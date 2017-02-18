@@ -15,6 +15,11 @@ public class MainWindow extends JFrame {
 	private BalloonWidget balloonWidget = null;
 	private BalloonWindow balloonWindow = null;
 	OptionsDialog optionsDialog = null;
+
+	Integer balloonDelay = 5000;
+	private Timer balloonTimer = null;
+	Integer sayDelay = 600000;
+	private Timer sayTimer = null;
 	
 	void initialize(PluginProxy pluginProxy) {
 		this.pluginProxy = pluginProxy;
@@ -41,6 +46,22 @@ public class MainWindow extends JFrame {
 		}));
 
 		Actions.loadMenuActions(this);
+
+		this.balloonTimer = new Timer(balloonDelay, e -> {
+            if(balloonWidget != null) {
+                if(balloonWindow != null) {
+                    balloonWindow.dispose();
+                } else {
+                    remove(MainWindow.this.balloonWidget);
+                }
+
+                balloonWindow = null;
+                balloonWidget = null;
+            }
+        });
+		balloonTimer.setRepeats(false);
+
+		updateSayTimer();
 	}
 	
 	void setDefaultLocation() {
@@ -93,6 +114,14 @@ public class MainWindow extends JFrame {
 		if (balloonWindow != null) {
 			balloonWindow.setVisible(true);
 		}
+
+		if (balloonTimer.isRunning()) {
+			balloonTimer.stop();
+			balloonTimer.restart();
+		}
+
+		balloonTimer.setInitialDelay(balloonDelay);
+		balloonTimer.start();
 	}
 	
 	void showBalloon(String text) {
@@ -107,6 +136,9 @@ public class MainWindow extends JFrame {
 	
 	@Override
 	public void dispose() {
+		if (balloonTimer.isRunning())
+			balloonTimer.stop();
+
 		if (optionsDialog != null) {
 			optionsDialog.dispose();
 		}
@@ -140,5 +172,11 @@ public class MainWindow extends JFrame {
 	PluginProxy getPluginProxy() {
 		return pluginProxy;
 	}
-	
+
+	void updateSayTimer() {
+		if (sayTimer != null && sayTimer.isRunning())
+			sayTimer.stop();
+
+		sayTimer = new Timer(sayDelay, Actions.getSayAction(this));
+	}
 }

@@ -28,6 +28,8 @@ class OptionsDialog extends JFrame {
 			}
 		}
 	};
+	private Integer balloonDelay;
+	private Integer sayDelay;
 	
 	OptionsDialog(MainWindow mainWindow) {
 		super("deskchan Options");
@@ -71,6 +73,44 @@ class OptionsDialog extends JFrame {
 		JPanel debugTab = new JPanel(new BorderLayout());
 		//
 		tabbedPane.addTab("Debug", debugTab);
+
+		this.balloonDelay = OptionsDialog.this.mainWindow.balloonDelay;
+		JPanel otherTab = new JPanel(new BorderLayout());
+		JSlider balloonDelaySlider = new JSlider(JSlider.HORIZONTAL, 1, 19, OptionsDialog.this.balloonDelay / 1000);
+		balloonDelaySlider.setMajorTickSpacing(10);
+		balloonDelaySlider.setMinorTickSpacing(1);
+		balloonDelaySlider.setPaintTicks(true);
+		balloonDelaySlider.setPaintLabels(true);
+		balloonDelaySlider.setSnapToTicks(true);
+		balloonDelaySlider.addChangeListener(e -> {
+			JSlider source = (JSlider)e.getSource();
+			OptionsDialog.this.balloonDelay = source.getValue() * 1000;
+		});
+
+		this.sayDelay = OptionsDialog.this.mainWindow.sayDelay;
+		JSlider sayDelaySlider = new JSlider(JSlider.HORIZONTAL, 10, 720, OptionsDialog.this.sayDelay / 60000);
+		sayDelaySlider.setMajorTickSpacing(180);
+		sayDelaySlider.setMinorTickSpacing(10);
+		sayDelaySlider.setPaintTicks(true);
+		sayDelaySlider.setPaintLabels(true);
+		sayDelaySlider.setSnapToTicks(true);
+		sayDelaySlider.addChangeListener(e -> {
+			JSlider source = (JSlider)e.getSource();
+			OptionsDialog.this.sayDelay = source.getValue() * 60000;
+		});
+
+		JButton otherOkButton = new JButton(new AbstractAction("OK") {
+			public void actionPerformed(ActionEvent actionEvent) {
+				mainWindow.balloonDelay = balloonDelay;
+				mainWindow.sayDelay = sayDelay;
+				mainWindow.updateSayTimer();
+			}
+		});
+		otherTab.add(balloonDelaySlider, BorderLayout.PAGE_START);
+		otherTab.add(sayDelaySlider, BorderLayout.CENTER);
+		otherTab.add(otherOkButton, BorderLayout.PAGE_END);
+		this.tabbedPane.addTab("Timings", otherTab);
+
 		pack();
 	}
 	
