@@ -32,7 +32,7 @@ public class MainWindow extends JFrame {
 		setLayout(null);
 		setBackground(new Color(0, 0, 0, 0));
 		pack();
-		characterWidget.loadImage(Utils.getResourcePath("characters/sprite0001.png"));
+		characterWidget.loadImage(Utils.getResourcePath("characters/chocola01.png"));
 		setDefaultLocation();
 		setContentPane(characterWidget);
 		optionsDialog = new OptionsDialog(this);
@@ -97,6 +97,8 @@ public class MainWindow extends JFrame {
 			if (balloonBounds.getX() < 0) {
 				balloonBounds.x = getX() + frameSize.width;
 			}
+			balloonBounds.height = 100;
+
 			balloonWindow.setBounds(balloonBounds);
 		}
 		Rectangle frameBounds = new Rectangle(getLocation(), frameSize);
