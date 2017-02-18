@@ -7,6 +7,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.util.Calendar;
 
 public class MainWindow extends JFrame {
 	
@@ -62,6 +63,17 @@ public class MainWindow extends JFrame {
 		balloonTimer.setRepeats(false);
 
 		updateSayTimer();
+
+		Calendar currentTime = Calendar.getInstance();
+		int currentHour = currentTime.get(Calendar.HOUR_OF_DAY);
+		if (currentHour < 12 && currentHour > 6)
+			showBalloon("Доброе утро, Хозяин!");
+		else if (currentHour < 17 && currentHour > 6)
+			showBalloon("Добрый день, Хозяин!");
+		else if (currentHour < 23 && currentHour > 6)
+			showBalloon("Добрый вечер, Хозяин!");
+		else
+			showBalloon("Доброй ночи, Хозяин!");
 	}
 	
 	void setDefaultLocation() {
