@@ -5,7 +5,6 @@ import com.eternal_search.deskchan.core.Utils;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
@@ -16,24 +15,6 @@ public class MainWindow extends JFrame {
 	private BalloonWidget balloonWidget = null;
 	private BalloonWindow balloonWindow = null;
 	OptionsDialog optionsDialog = null;
-	final Action quitAction = new AbstractAction("Quit") {
-		@Override
-		public void actionPerformed(ActionEvent actionEvent) {
-			setVisible(false);
-			dispose();
-		}
-	};
-	final Action optionsAction = new AbstractAction("Options...") {
-		@Override
-		public void actionPerformed(ActionEvent actionEvent) {
-			Rectangle screenBounds = GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds();
-			optionsDialog.setLocation(
-					(screenBounds.width - optionsDialog.getWidth()) / 2 + screenBounds.x,
-					(screenBounds.height - optionsDialog.getHeight()) / 2 + screenBounds.y
-			);
-			optionsDialog.setVisible(true);
-		}
-	};
 	
 	void initialize(PluginProxy pluginProxy) {
 		this.pluginProxy = pluginProxy;
@@ -58,6 +39,8 @@ public class MainWindow extends JFrame {
 		pluginProxy.addMessageListener("gui:say", ((sender, tag, data) -> {
 			showBalloon(data.toString());
 		}));
+
+		Actions.loadMenuActions(this);
 	}
 	
 	void setDefaultLocation() {

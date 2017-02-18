@@ -1,5 +1,7 @@
 package com.eternal_search.deskchan.gui;
 
+import com.eternal_search.deskchan.core.ActionManager;
+
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
@@ -55,6 +57,9 @@ class CharacterWidget extends JPanel implements MouseListener, MouseMotionListen
 	
 	@Override
 	public void mouseClicked(MouseEvent e) {
+		if(SwingUtilities.isLeftMouseButton(e)) {
+			mainWindow.showBalloon("ћ€у! я так люблю, когда ты мен€ трогаешь, ’оз€ин!");
+		}
 	}
 	
 	@Override
@@ -64,9 +69,15 @@ class CharacterWidget extends JPanel implements MouseListener, MouseMotionListen
 			dragging = true;
 		} else if (SwingUtilities.isRightMouseButton(e)) {
 			JPopupMenu popupMenu = new JPopupMenu();
-			popupMenu.add(mainWindow.optionsAction);
+			popupMenu.add(ActionManager.get("options"));
 			popupMenu.addSeparator();
-			popupMenu.add(mainWindow.quitAction);
+			popupMenu.add(ActionManager.get("feed"));
+			popupMenu.add(ActionManager.get("sex"));
+			popupMenu.addSeparator();
+			popupMenu.add(ActionManager.get("about"));
+			popupMenu.add(ActionManager.get("degrade"));
+			popupMenu.addSeparator();
+			popupMenu.add(ActionManager.get("quit"));
 			popupMenu.setLightWeightPopupEnabled(false);
 			popupMenu.show(this, e.getX(), e.getY());
 		}
