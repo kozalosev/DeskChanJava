@@ -67,13 +67,13 @@ public class MainWindow extends JFrame {
 		Calendar currentTime = Calendar.getInstance();
 		int currentHour = currentTime.get(Calendar.HOUR_OF_DAY);
 		if (currentHour < 12 && currentHour > 6)
-			showBalloon("Доброе утро, Хозяин!");
+			showBalloon("Р”РѕР±СЂРѕРµ СѓС‚СЂРѕ, РҐРѕР·СЏРёРЅ!");
 		else if (currentHour < 17 && currentHour > 6)
-			showBalloon("Добрый день, Хозяин!");
+			showBalloon("Р”РѕР±СЂС‹Р№ РґРµРЅСЊ, РҐРѕР·СЏРёРЅ!");
 		else if (currentHour < 23 && currentHour > 6)
-			showBalloon("Добрый вечер, Хозяин!");
+			showBalloon("Р”РѕР±СЂС‹Р№ РІРµС‡РµСЂ, РҐРѕР·СЏРёРЅ!");
 		else
-			showBalloon("Доброй ночи, Хозяин!");
+			showBalloon("Р”РѕР±СЂРѕР№ РЅРѕС‡Рё, РҐРѕР·СЏРёРЅ!");
 	}
 	
 	void setDefaultLocation() {

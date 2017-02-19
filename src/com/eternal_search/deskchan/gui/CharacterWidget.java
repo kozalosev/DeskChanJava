@@ -58,7 +58,7 @@ class CharacterWidget extends JPanel implements MouseListener, MouseMotionListen
 	@Override
 	public void mouseClicked(MouseEvent e) {
 		if(SwingUtilities.isLeftMouseButton(e)) {
-			mainWindow.showBalloon("Мяу! Я так люблю, когда ты меня трогаешь, Хозяин!");
+			mainWindow.showBalloon("РњСЏСѓ! РЇ С‚Р°Рє Р»СЋР±Р»СЋ, РєРѕРіРґР° С‚С‹ РјРµРЅСЏ С‚СЂРѕРіР°РµС€СЊ, РҐРѕР·СЏРёРЅ!");
 		}
 	}
 	

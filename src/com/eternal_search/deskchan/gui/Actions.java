@@ -15,7 +15,7 @@ abstract class Actions {
 
    static void loadMenuActions(MainWindow window) {
 
-      ActionManager.add("quit", new AbstractAction("Выход") {
+      ActionManager.add("quit", new AbstractAction("Р’С‹С…РѕРґ") {
          @Override
          public void actionPerformed(ActionEvent actionEvent) {
             window.setVisible(false);
@@ -23,7 +23,7 @@ abstract class Actions {
          }
       });
 
-      ActionManager.add("options", new AbstractAction("Настройки...") {
+      ActionManager.add("options", new AbstractAction("РќР°СЃС‚СЂРѕР№РєРё...") {
          @Override
          public void actionPerformed(ActionEvent actionEvent) {
             Rectangle screenBounds = GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds();
@@ -35,7 +35,7 @@ abstract class Actions {
          }
       });
 
-      ActionManager.add("about", new AbstractAction("Страница проекта") {
+      ActionManager.add("about", new AbstractAction("РЎС‚СЂР°РЅРёС†Р° РїСЂРѕРµРєС‚Р°") {
          public void actionPerformed(ActionEvent actionEvent) {
             try {
                URL link = new URL("https://2ch.hk/s/res/1936557.html");
@@ -46,7 +46,7 @@ abstract class Actions {
          }
       });
 
-      ActionManager.add("degrade", new AbstractAction("Деградировать") {
+      ActionManager.add("degrade", new AbstractAction("Р”РµРіСЂР°РґРёСЂРѕРІР°С‚СЊ") {
          public void actionPerformed(ActionEvent actionEvent) {
             try {
                URL link = new URL("https://2ch.hk/b/");
@@ -57,32 +57,32 @@ abstract class Actions {
          }
       });
 
-      ActionManager.add("feed", new RandomMessageAction(window, "Покормить", new String[] {
-           //"Фу! Сам жри эту гадость!",
-           //"Опять пельмени?",
-           //"Ну когда же мы уже в ресторан-то пойдём?",
-           "М-м-м! Как вкусно!",
-           "Хозяин, ты лучший!",
-           "А можно Чоколе ещё тортик?"
+      ActionManager.add("feed", new RandomMessageAction(window, "РџРѕРєРѕСЂРјРёС‚СЊ", new String[] {
+           //"Р¤Сѓ! РЎР°Рј Р¶СЂРё СЌС‚Сѓ РіР°РґРѕСЃС‚СЊ!",
+           //"РћРїСЏС‚СЊ РїРµР»СЊРјРµРЅРё?",
+           //"РќСѓ РєРѕРіРґР° Р¶Рµ РјС‹ СѓР¶Рµ РІ СЂРµСЃС‚РѕСЂР°РЅ-С‚Рѕ РїРѕР№РґС‘Рј?",
+           "Рњ-Рј-Рј! РљР°Рє РІРєСѓСЃРЅРѕ!",
+           "РҐРѕР·СЏРёРЅ, С‚С‹ Р»СѓС‡С€РёР№!",
+           "Рђ РјРѕР¶РЅРѕ Р§РѕРєРѕР»Рµ РµС‰С‘ С‚РѕСЂС‚РёРє?"
       }));
 
-      ActionManager.add("sex", new RandomMessageAction(window, "Пошалим?", new String[] {
-              //"Блин, милый, у меня голова сегодня болит. Может завтра?",
-              //"Ишь чего захотел! Не для тебя моя роза цвела!",
-              "Мур-мур-мур...",
-              "Иди ко мне, мой господин!",
-              "Хозяин такой чуткий! Хозяин почувствовал, что у Чоколы течка!"
+      ActionManager.add("sex", new RandomMessageAction(window, "РџРѕС€Р°Р»РёРј?", new String[] {
+              //"Р‘Р»РёРЅ, РјРёР»С‹Р№, Сѓ РјРµРЅСЏ РіРѕР»РѕРІР° СЃРµРіРѕРґРЅСЏ Р±РѕР»РёС‚. РњРѕР¶РµС‚ Р·Р°РІС‚СЂР°?",
+              //"РС€СЊ С‡РµРіРѕ Р·Р°С…РѕС‚РµР»! РќРµ РґР»СЏ С‚РµР±СЏ РјРѕСЏ СЂРѕР·Р° С†РІРµР»Р°!",
+              "РњСѓСЂ-РјСѓСЂ-РјСѓСЂ...",
+              "РРґРё РєРѕ РјРЅРµ, РјРѕР№ РіРѕСЃРїРѕРґРёРЅ!",
+              "РҐРѕР·СЏРёРЅ С‚Р°РєРѕР№ С‡СѓС‚РєРёР№! РҐРѕР·СЏРёРЅ РїРѕС‡СѓРІСЃС‚РІРѕРІР°Р», С‡С‚Рѕ Сѓ Р§РѕРєРѕР»С‹ С‚РµС‡РєР°!"
       }));
    }
 
 
    static ActionListener getSayAction(MainWindow window) {
       return new RandomMessageAction(window, null, new String[] {
-           "Хозяин, а не пора ли нам погулять?",
-           "Время отдыха, Хозяин!",
-           "Может нам пора подкрепиться?",
-           "У Чоколы урчит в животике. <ур-р-р>",
-           "Ты сегодня не забыл выспаться, Хозяин?"
+           "РҐРѕР·СЏРёРЅ, Р° РЅРµ РїРѕСЂР° Р»Рё РЅР°Рј РїРѕРіСѓР»СЏС‚СЊ?",
+           "Р’СЂРµРјСЏ РѕС‚РґС‹С…Р°, РҐРѕР·СЏРёРЅ!",
+           "РњРѕР¶РµС‚ РЅР°Рј РїРѕСЂР° РїРѕРґРєСЂРµРїРёС‚СЊСЃСЏ?",
+           "РЈ Р§РѕРєРѕР»С‹ СѓСЂС‡РёС‚ РІ Р¶РёРІРѕС‚РёРєРµ. <СѓСЂ-СЂ-СЂ>",
+           "РўС‹ СЃРµРіРѕРґРЅСЏ РЅРµ Р·Р°Р±С‹Р» РІС‹СЃРїР°С‚СЊСЃСЏ, РҐРѕР·СЏРёРЅ?"
       });
    }
 }
