@@ -1,13 +1,13 @@
 package com.eternal_search.deskchan.gui;
 
+import com.eternal_search.deskchan.core.Character;
+import com.eternal_search.deskchan.core.CharacterManager;
 import com.eternal_search.deskchan.core.PluginProxy;
-import com.eternal_search.deskchan.core.Utils;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.util.Calendar;
 
 public class MainWindow extends JFrame {
 	
@@ -21,6 +21,8 @@ public class MainWindow extends JFrame {
 	private Timer balloonTimer = null;
 	Integer sayDelay = 600000;
 	private Timer sayTimer = null;
+
+	private Character character = CharacterManager.getRandomCharacter();
 	
 	void initialize(PluginProxy pluginProxy) {
 		this.pluginProxy = pluginProxy;
@@ -32,7 +34,7 @@ public class MainWindow extends JFrame {
 		setLayout(null);
 		setBackground(new Color(0, 0, 0, 0));
 		pack();
-		characterWidget.loadImage(Utils.getResourcePath("characters/chocola01.png"));
+		characterWidget.loadImage(character.getSkin());
 		setDefaultLocation();
 		setContentPane(characterWidget);
 		optionsDialog = new OptionsDialog(this);
@@ -62,18 +64,16 @@ public class MainWindow extends JFrame {
         });
 		balloonTimer.setRepeats(false);
 
-		updateSayTimer();
+		Timer skinUpdateTimer = new Timer(3600000, e -> {
+			if (character.skinReloadRequired()) {
+				characterWidget.loadImage(character.getSkin());
+				showBalloon(character.getWelcomePhrase());
+			}
+		});
+		skinUpdateTimer.start();
 
-		Calendar currentTime = Calendar.getInstance();
-		int currentHour = currentTime.get(Calendar.HOUR_OF_DAY);
-		if (currentHour < 12 && currentHour > 6)
-			showBalloon("Доброе утро, Хозяин!");
-		else if (currentHour < 17 && currentHour > 6)
-			showBalloon("Добрый день, Хозяин!");
-		else if (currentHour < 23 && currentHour > 6)
-			showBalloon("Добрый вечер, Хозяин!");
-		else
-			showBalloon("Доброй ночи, Хозяин!");
+		updateSayTimer();
+		showBalloon(character.getWelcomePhrase());
 	}
 	
 	void setDefaultLocation() {
