@@ -23,14 +23,14 @@ public class MainWindow extends JFrame {
 	private BalloonWidget balloonWidget = null;
 	private BalloonWindow balloonWindow = null;
 	OptionsDialog optionsDialog = null;
-	final Action quitAction = new AbstractAction("Quit") {
+	final Action quitAction = new AbstractAction("Выход") {
 		@Override
 		public void actionPerformed(ActionEvent actionEvent) {
 			setVisible(false);
 			dispose();
 		}
 	};
-	final Action optionsAction = new AbstractAction("Options...") {
+	final Action optionsAction = new AbstractAction("Настройки...") {
 		@Override
 		public void actionPerformed(ActionEvent actionEvent) {
 			optionsDialog.updateOptions();
@@ -84,6 +84,12 @@ public class MainWindow extends JFrame {
 						}
 					};
 					extraActions.add(action);
+				});
+			});
+			pluginProxy.addMessageListener("gui:change-skin", (sender, tag, data) -> {
+				runOnEventThread(() -> {
+					characterWidget.loadImage((Path)data);
+					setDefaultLocation();
 				});
 			});
 			pluginProxy.addMessageListener("core-events:plugin-unload", (sender, tag, data) -> {
