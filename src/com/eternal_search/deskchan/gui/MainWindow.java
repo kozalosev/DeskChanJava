@@ -132,6 +132,7 @@ public class MainWindow extends JFrame {
 				(int)screenBounds.getMaxX() - getWidth(),
 				(int)screenBounds.getMaxY() - getHeight()
 		);
+		updateSizes();
 	}
 	
 	void updateSizes() {
