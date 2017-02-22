@@ -41,6 +41,8 @@ jar {
 		attributes 'Main-Class': 'com.eternal_search.deskchan.core.Main'
 	}
 
+	exclude('resources')
+
 	//from files(sourceSets.main.output.classesDir)
 	//from configurations.runtime.asFileTree.files.collect { zipTree(it) }
 }
@@ -49,10 +51,16 @@ distZip {
 	into(project.name + '/plugins') {
 		from './plugins'
 	}
+	into(project.name + '/resources') {
+		from './resources'
+	}
 }
 
 distTar {
 	into(project.name + '/plugins') {
 		from './plugins'
+	}
+	into(project.name + '/resources') {
+		from './resources'
 	}
 }
