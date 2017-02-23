@@ -1,15 +1,17 @@
 package character_manager.logic
 
-import com.eternal_search.deskchan.core.Utils
 import character_manager.exceptions.WrongCharacterException
 
 import java.nio.file.DirectoryStream
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.Paths
 import java.util.regex.Matcher
 import java.util.regex.Pattern
 
 class Character {
+    final private static String CHARACTERS_PATH = "resources/characters/"
+
     private enum TimeOfDay {
         DAY, NIGHT, MORNING, EVENING
     }
@@ -121,8 +123,13 @@ class Character {
 
     private static SkinInfo[] readSkins(String path) throws WrongCharacterException
     {
+        Path directoryPath
+        if (Files.isDirectory(Paths.get(CHARACTERS_PATH + path + "/sprites")))
+            directoryPath = Paths.get(CHARACTERS_PATH + path + "/sprites")
+        else if (Files.isDirectory(Paths.get("../" + CHARACTERS_PATH + path + "/sprites")))
+            directoryPath = Paths.get("../" + CHARACTERS_PATH + path + "/sprites")
+
         ArrayList<SkinInfo> list = new ArrayList<>()
-        Path directoryPath = Utils.getResourcePath("characters/" + path + "/sprites")
         if (directoryPath != null) {
             try {
                 DirectoryStream<Path> directoryStream = Files.newDirectoryStream(directoryPath)
@@ -144,7 +151,12 @@ class Character {
     }
 
     private void loadPhrases(String path) throws WrongCharacterException {
-        Path directoryPath = Utils.getResourcePath("characters/" + path + "/phrases")
+        Path directoryPath
+        if (Files.isDirectory(Paths.get(CHARACTERS_PATH + path + "/phrases")))
+            directoryPath = Paths.get(CHARACTERS_PATH + path + "/phrases")
+        else if (Files.isDirectory(Paths.get("../" + CHARACTERS_PATH + path + "/phrases")))
+            directoryPath = Paths.get("../" + CHARACTERS_PATH + path + "/phrases")
+
         if (directoryPath != null) {
             try {
                 DirectoryStream<Path> directoryStream = Files.newDirectoryStream(directoryPath)
