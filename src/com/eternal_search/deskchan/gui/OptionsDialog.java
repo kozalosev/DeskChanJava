@@ -25,7 +25,7 @@ class OptionsDialog extends JFrame {
 	private final MainWindow mainWindow;
 	private final JTabbedPane tabbedPane = new JTabbedPane();
 	private JList skinList;
-	private final Action selectSkinAction = new AbstractAction("Select") {
+	private final Action selectSkinAction = new AbstractAction("Выбрать") {
 		@Override
 		public void actionPerformed(ActionEvent actionEvent) {
 			Object selectedValue = skinList.getSelectedValue();
@@ -36,14 +36,14 @@ class OptionsDialog extends JFrame {
 			}
 		}
 	};
-	private final Action addSkinAction = new AbstractAction("Add...") {
+	private final Action addSkinAction = new AbstractAction("Добавить...") {
 		@Override
 		public void actionPerformed(ActionEvent actionEvent) {
 			JFileChooser chooser = new JFileChooser();
 			chooser.setCurrentDirectory(new File("."));
 			chooser.setDialogTitle("Add skin...");
 			chooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
-			chooser.setFileFilter(new FileNameExtensionFilter("Image files", ImageIO.getReaderFileSuffixes()));
+			chooser.setFileFilter(new FileNameExtensionFilter("Изображения", ImageIO.getReaderFileSuffixes()));
 			if (chooser.showOpenDialog(getContentPane()) == JFileChooser.APPROVE_OPTION) {
 				Path path = chooser.getSelectedFile().toPath();
 				DefaultListModel model = (DefaultListModel) skinList.getModel();
@@ -52,7 +52,7 @@ class OptionsDialog extends JFrame {
 			}
 		}
 	};
-	private final Action removeSkinAction = new AbstractAction("Remove") {
+	private final Action removeSkinAction = new AbstractAction("Удалить") {
 		@Override
 		public void actionPerformed(ActionEvent actionEvent) {
 			Object selectedValue = skinList.getSelectedValue();
@@ -67,11 +67,11 @@ class OptionsDialog extends JFrame {
 		}
 	};
 	private JList pluginsList;
-	private final Action loadPluginAction = new AbstractAction("Load...") {
+	private final Action loadPluginAction = new AbstractAction("Загрузить...") {
 		@Override
 		public void actionPerformed(ActionEvent actionEvent) {
 			JFileChooser chooser = new JFileChooser();
-			chooser.setCurrentDirectory(new File("."));
+			chooser.setCurrentDirectory(new File("../plugins"));
 			chooser.setDialogTitle("Load plugin...");
 			chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
 			chooser.setAcceptAllFileFilterUsed(false);
@@ -85,7 +85,7 @@ class OptionsDialog extends JFrame {
 			}
 		}
 	};
-	private final Action unloadPluginAction = new AbstractAction("Unload") {
+	private final Action unloadPluginAction = new AbstractAction("Выгрузить") {
 		@Override
 		public void actionPerformed(ActionEvent actionEvent) {
 			String plugin = pluginsList.getSelectedValue().toString();
@@ -98,7 +98,7 @@ class OptionsDialog extends JFrame {
 	private JTree alternativesTree;
 	private JTextField debugTagTextField;
 	private JTextArea debugDataTextArea;
-	private final Action debugSendMessageAction = new AbstractAction("Send") {
+	private final Action debugSendMessageAction = new AbstractAction("Выполнить") {
 		@Override
 		public void actionPerformed(ActionEvent actionEvent) {
 			String tag = debugTagTextField.getText();
