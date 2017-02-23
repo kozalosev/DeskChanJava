@@ -2,15 +2,9 @@ package character_manager.logic
 
 import character_manager.exceptions.WrongCharacterException
 
-import java.nio.file.DirectoryStream
-import java.nio.file.Files
 import java.nio.file.Path
-import java.nio.file.Paths
-import java.util.regex.Matcher
-import java.util.regex.Pattern
 
 class Character {
-    final private static String CHARACTERS_PATH = "resources/characters/"
 
     private enum TimeOfDay {
         DAY, NIGHT, MORNING, EVENING
@@ -20,19 +14,14 @@ class Character {
     private SkinInfo defaultSkin, nightSkin, morningSkin, eveningSkin
     private TimeOfDay currentTimeOfDay
 
-    private Phrases dayPhrases = new Phrases()
-    private Phrases nightPhrases = new Phrases()
-    private Phrases morningPhrases = new Phrases()
-    private Phrases eveningPhrases = new Phrases()
-    private Phrases feedPhrases = new Phrases()
-    private Phrases naughtyPhrases = new Phrases()
+    private PhrasesSet phrases
     private int lastRandomPhraseNumber = -1
 
     Character(String name) throws WrongCharacterException
     {
         this.name = name
 
-        SkinInfo[] skins = readSkins(name)
+        SkinInfo[] skins = ResourcesLoader.readSkins(name)
         for (SkinInfo info : skins) {
             switch (info.name.substring(0, info.name.length() - 4)) {
                 case "default":
@@ -52,6 +41,8 @@ class Character {
 
         if (defaultSkin == null)
             throw new WrongCharacterException("No default skin!")
+
+        reloadPhrases()
     }
 
     String getName() { return name }
@@ -88,11 +79,11 @@ class Character {
     }
 
     String feed() {
-        return getRandomPhrase(feedPhrases)
+        return getRandomPhrase(phrases.feedPhrases)
     }
 
     String doNaughtyThings() {
-        return getRandomPhrase(naughtyPhrases)
+        return getRandomPhrase(phrases.naughtyPhrases)
     }
 
     String getRandomPhrase() {
@@ -118,117 +109,19 @@ class Character {
     }
 
     void reloadPhrases() {
-        loadPhrases(name)
-    }
-
-    private static SkinInfo[] readSkins(String path) throws WrongCharacterException
-    {
-        Path directoryPath
-        if (Files.isDirectory(Paths.get(CHARACTERS_PATH + path + "/sprites")))
-            directoryPath = Paths.get(CHARACTERS_PATH + path + "/sprites")
-        else if (Files.isDirectory(Paths.get("../" + CHARACTERS_PATH + path + "/sprites")))
-            directoryPath = Paths.get("../" + CHARACTERS_PATH + path + "/sprites")
-
-        ArrayList<SkinInfo> list = new ArrayList<>()
-        if (directoryPath != null) {
-            try {
-                DirectoryStream<Path> directoryStream = Files.newDirectoryStream(directoryPath)
-                for (Path skinPath : directoryStream) {
-                    if (!Files.isDirectory(skinPath)) {
-                        list.add(new SkinInfo(skinPath))
-                    }
-                }
-            } catch (IOException e) {
-                e.printStackTrace()
-            }
-        }
-        else
-            throw new WrongCharacterException("Character not found!")
-
-        SkinInfo[] resultArray = new SkinInfo[list.size()]
-        resultArray = list.toArray(resultArray)
-        return resultArray
-    }
-
-    private void loadPhrases(String path) throws WrongCharacterException {
-        Path directoryPath
-        if (Files.isDirectory(Paths.get(CHARACTERS_PATH + path + "/phrases")))
-            directoryPath = Paths.get(CHARACTERS_PATH + path + "/phrases")
-        else if (Files.isDirectory(Paths.get("../" + CHARACTERS_PATH + path + "/phrases")))
-            directoryPath = Paths.get("../" + CHARACTERS_PATH + path + "/phrases")
-
-        if (directoryPath != null) {
-            try {
-                DirectoryStream<Path> directoryStream = Files.newDirectoryStream(directoryPath)
-                for (Path filePath : directoryStream) {
-                    if (Files.isDirectory(filePath))
-                        continue
-
-                    Phrases phrases = new Phrases()
-
-                    Files.lines(filePath).forEach({ line ->
-                        Pattern p = Pattern.compile("([A-Z]+)\\s*=\\s*(.*)")
-                        Matcher m = p.matcher(line)
-                        while (m.find()) {
-                            String key = m.group(1)
-                            String value = m.group(2)
-
-                            if (key == "WELCOME")
-                                phrases.welcomeMessage = value
-                            else if (key == "CLICK")
-                                phrases.clickMessage = value
-
-                            return
-                        }
-
-                        phrases.phrases.add(line)
-                    })
-
-                    String filename = filePath.getFileName()
-                    switch(filename.substring(0, filename.length() - 4)) {
-                        case "default":
-                            dayPhrases.concat(phrases)
-                            nightPhrases.concat(phrases)
-                            morningPhrases.concat(phrases)
-                            eveningPhrases.concat(phrases)
-                            break
-                        case "day":
-                            dayPhrases.concat(phrases)
-                            break
-                        case "night":
-                            nightPhrases.concat(phrases)
-                            break
-                        case "morning":
-                            morningPhrases.concat(phrases)
-                            break
-                        case "evening":
-                            eveningPhrases.concat(phrases)
-                            break
-                        case "feed":
-                            feedPhrases.concat(phrases)
-                            break
-                        case "naughty":
-                            naughtyPhrases.concat(phrases)
-                    }
-                }
-            } catch (IOException e) {
-                e.printStackTrace()
-            }
-        }
-        else
-            throw new WrongCharacterException("Character not found!")
+        phrases = ResourcesLoader.readPhrases(name)
     }
 
     private Phrases getPhrases() {
         switch(getTimeOfDay()) {
             case TimeOfDay.MORNING:
-                return morningPhrases
+                return phrases.morningPhrases
             case TimeOfDay.NIGHT:
-                return nightPhrases
+                return phrases.nightPhrases
             case TimeOfDay.EVENING:
-                return eveningPhrases
+                return phrases.eveningPhrases
             default:
-                return dayPhrases
+                return phrases.dayPhrases
         }
     }
 
@@ -244,46 +137,5 @@ class Character {
             return TimeOfDay.EVENING
         else
             return TimeOfDay.NIGHT
-    }
-}
-
-class SkinInfo implements Comparable<SkinInfo> {
-
-    String name
-    Path path
-
-    SkinInfo(String name, Path path) {
-        this.name = name
-        this.path = path
-    }
-
-    SkinInfo(Path path) {
-        this(path.getFileName().toString(), path)
-    }
-
-    @Override
-    int compareTo(SkinInfo o) {
-        return name <=> o.name
-    }
-
-    @Override
-    String toString() {
-        return name
-    }
-
-}
-
-class Phrases {
-    String welcomeMessage = null
-    String clickMessage = null
-    List<String> phrases = new ArrayList<String>()
-
-    void concat(Phrases another) {
-        if (welcomeMessage == null)
-            welcomeMessage = another.welcomeMessage
-        if (clickMessage == null)
-            clickMessage = another.clickMessage
-
-        phrases.addAll(another.phrases)
     }
 }
