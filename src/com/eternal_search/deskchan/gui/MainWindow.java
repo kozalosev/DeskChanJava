@@ -4,7 +4,6 @@ import com.eternal_search.deskchan.core.PluginProxy;
 import com.eternal_search.deskchan.core.Utils;
 
 import javax.swing.*;
-import javax.swing.Timer;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.WindowAdapter;
@@ -24,18 +23,14 @@ public class MainWindow extends JFrame {
 	private BalloonWidget balloonWidget = null;
 	private BalloonWindow balloonWindow = null;
 	OptionsDialog optionsDialog = null;
-
-    private final Integer balloonDelay = 5000;
-    private Timer balloonTimer = null;
-
-	final Action quitAction = new AbstractAction("Выход") {
+	final Action quitAction = new AbstractAction("Quit") {
 		@Override
 		public void actionPerformed(ActionEvent actionEvent) {
 			setVisible(false);
 			dispose();
 		}
 	};
-	final Action optionsAction = new AbstractAction("Настройки...") {
+	final Action optionsAction = new AbstractAction("Options...") {
 		@Override
 		public void actionPerformed(ActionEvent actionEvent) {
 			optionsDialog.updateOptions();
@@ -91,12 +86,6 @@ public class MainWindow extends JFrame {
 					extraActions.add(action);
 				});
 			});
-			pluginProxy.addMessageListener("gui:change-skin", (sender, tag, data) -> {
-				runOnEventThread(() -> {
-					characterWidget.loadImage((Path)data);
-					setDefaultLocation();
-				});
-			});
 			pluginProxy.addMessageListener("core-events:plugin-unload", (sender, tag, data) -> {
 				runOnEventThread(() -> {
 					extraActions.removeIf(action -> action.getPlugin().equals(data));
@@ -110,20 +99,6 @@ public class MainWindow extends JFrame {
 				put("priority", 100);
 			}});
 		});
-
-        balloonTimer = new Timer(balloonDelay, e -> {
-            if(balloonWidget != null) {
-                if(balloonWindow != null) {
-                    balloonWindow.dispose();
-                } else {
-                    remove(balloonWidget);
-                }
-
-                balloonWindow = null;
-                balloonWidget = null;
-            }
-        });
-        balloonTimer.setRepeats(false);
 	}
 	
 	void setDefaultLocation() {
@@ -148,7 +123,6 @@ public class MainWindow extends JFrame {
 			if (balloonBounds.getX() < 0) {
 				balloonBounds.x = getX() + frameSize.width;
 			}
-            balloonBounds.height = 150;
 			balloonWindow.setBounds(balloonBounds);
 		}
 		Rectangle frameBounds = new Rectangle(getLocation(), frameSize);
@@ -178,14 +152,6 @@ public class MainWindow extends JFrame {
 		if (balloonWindow != null) {
 			balloonWindow.setVisible(true);
 		}
-
-        if (balloonTimer.isRunning()) {
-            balloonTimer.stop();
-            balloonTimer.restart();
-        }
-
-        balloonTimer.setInitialDelay(balloonDelay);
-        balloonTimer.start();
 	}
 	
 	void showBalloon(String text) {
@@ -201,9 +167,6 @@ public class MainWindow extends JFrame {
 	
 	@Override
 	public void dispose() {
-        if (balloonTimer.isRunning())
-            balloonTimer.stop();
-
 		if (optionsDialog != null) {
 			optionsDialog.dispose();
 		}
