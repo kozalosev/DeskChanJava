@@ -1,78 +1,64 @@
 package com.eternal_search.deskchan.gui;
 
 import com.eternal_search.deskchan.core.PluginManager;
-import com.eternal_search.deskchan.core.Utils;
 import org.json.JSONObject;
 
-import javax.imageio.ImageIO;
 import javax.swing.*;
-import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.TreePath;
 import java.awt.*;
 import java.awt.event.ActionEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 import java.io.*;
 import java.nio.file.*;
-import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Calendar;
 import java.util.Map;
 import java.util.List;
 
-class OptionsDialog extends JFrame {
+class OptionsDialog extends JFrame implements ItemListener {
 	
 	private final MainWindow mainWindow;
-	private final JTabbedPane tabbedPane = new JTabbedPane();
-	private JList skinList;
-	private final Action selectSkinAction = new AbstractAction("Select") {
+	private final JComboBox cardsComboBox = new JComboBox(new DefaultComboBoxModel());
+	private final JPanel cards = new JPanel(new CardLayout());
+	private final Action openSkinManagerAction = new AbstractAction("...") {
 		@Override
 		public void actionPerformed(ActionEvent actionEvent) {
-			Object selectedValue = skinList.getSelectedValue();
-			if (selectedValue != null) {
-				SkinInfo skinInfo = (SkinInfo) selectedValue;
-				mainWindow.getCharacterWidget().loadImage(skinInfo.path);
-				mainWindow.setDefaultLocation();
-			}
+			SkinManagerDialog dialog = new SkinManagerDialog(mainWindow, OptionsDialog.this);
+			dialog.setVisible(true);
+			openSkinManagerAction.putValue(Action.NAME, mainWindow.getCharacterWidget().getCurrentSkin().getName());
 		}
 	};
-	private final Action addSkinAction = new AbstractAction("Add...") {
+	private final Action changeBalloonFontAction = new AbstractAction("...") {
 		@Override
 		public void actionPerformed(ActionEvent actionEvent) {
-			JFileChooser chooser = new JFileChooser();
-			chooser.setCurrentDirectory(new File("."));
-			chooser.setDialogTitle("Add skin...");
-			chooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
-			chooser.setFileFilter(new FileNameExtensionFilter("Image files", ImageIO.getReaderFileSuffixes()));
-			if (chooser.showOpenDialog(getContentPane()) == JFileChooser.APPROVE_OPTION) {
-				Path path = chooser.getSelectedFile().toPath();
-				DefaultListModel model = (DefaultListModel) skinList.getModel();
-				model.addElement(new SkinInfo(path, false));
-				storeSkinList();
-			}
+			JDialog dialog = new JDialog(OptionsDialog.this, MainWindow.getString("select_font"),
+					JDialog.ModalityType.DOCUMENT_MODAL);
+			JFontChooser chooser = new JFontChooser();
+			chooser.setSelectedFont(mainWindow.balloonTextFont);
+			dialog.add(chooser);
+			dialog.setLocationByPlatform(true);
+			dialog.pack();
+			dialog.setVisible(true);
+			mainWindow.balloonTextFont = chooser.getSelectedFont();
+			changeBalloonFontAction.putValue(Action.NAME, mainWindow.balloonTextFont.getName() + ", " +
+					String.valueOf(mainWindow.balloonTextFont.getSize()));
+			MainWindow.properties.setProperty("balloon.font.family", mainWindow.balloonTextFont.getFamily());
+			MainWindow.properties.setProperty("balloon.font.size",
+					String.valueOf(mainWindow.balloonTextFont.getSize()));
+			MainWindow.properties.setProperty("balloon.font.style",
+					String.valueOf(mainWindow.balloonTextFont.getStyle()));
 		}
 	};
-	private final Action removeSkinAction = new AbstractAction("Remove") {
-		@Override
-		public void actionPerformed(ActionEvent actionEvent) {
-			Object selectedValue = skinList.getSelectedValue();
-			if (selectedValue != null) {
-				SkinInfo skinInfo = (SkinInfo) selectedValue;
-				if (!skinInfo.builtin) {
-					DefaultListModel model = (DefaultListModel) skinList.getModel();
-					model.removeElement(skinInfo);
-					storeSkinList();
-				}
-			}
-		}
-	};
+	private final JSpinner balloonDefaultTimeoutSpinner = new JSpinner(new SpinnerNumberModel(0,
+			0, 600000, 500));
 	private JList pluginsList;
-	private final Action loadPluginAction = new AbstractAction("Load...") {
+	private final Action loadPluginAction = new AbstractAction(MainWindow.getString("load")) {
 		@Override
 		public void actionPerformed(ActionEvent actionEvent) {
 			JFileChooser chooser = new JFileChooser();
 			chooser.setCurrentDirectory(new File("."));
-			chooser.setDialogTitle("Load plugin...");
+			chooser.setDialogTitle(MainWindow.getString("load_plugin"));
 			chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
 			chooser.setAcceptAllFileFilterUsed(false);
 			if (chooser.showOpenDialog(getContentPane()) == JFileChooser.APPROVE_OPTION) {
@@ -85,7 +71,7 @@ class OptionsDialog extends JFrame {
 			}
 		}
 	};
-	private final Action unloadPluginAction = new AbstractAction("Unload") {
+	private final Action unloadPluginAction = new AbstractAction(MainWindow.getString("unload")) {
 		@Override
 		public void actionPerformed(ActionEvent actionEvent) {
 			String plugin = pluginsList.getSelectedValue().toString();
@@ -98,7 +84,7 @@ class OptionsDialog extends JFrame {
 	private JTree alternativesTree;
 	private JTextField debugTagTextField;
 	private JTextArea debugDataTextArea;
-	private final Action debugSendMessageAction = new AbstractAction("Send") {
+	private final Action debugSendMessageAction = new AbstractAction(MainWindow.getString("send")) {
 		@Override
 		public void actionPerformed(ActionEvent actionEvent) {
 			String tag = debugTagTextField.getText();
@@ -114,34 +100,28 @@ class OptionsDialog extends JFrame {
 	};
 	
 	OptionsDialog(MainWindow mainWindow) {
-		super("DeskChan Options");
+		super(MainWindow.getString("deskchan_options"));
 		this.mainWindow = mainWindow;
-		setMinimumSize(new Dimension(400, 300));
+		setMinimumSize(new Dimension(600, 300));
 		setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
-		setContentPane(tabbedPane);
+		cardsComboBox.addItemListener(this);
 		JPanel appearanceTab = new JPanel(new BorderLayout());
-		DefaultListModel skinListModel = new DefaultListModel();
-		for (Object skinInfo : loadSkinList()) {
-			skinListModel.addElement(skinInfo);
-		}
-		skinList = new JList(skinListModel);
-		skinList.setLayoutOrientation(JList.VERTICAL);
-		skinList.addMouseListener(new MouseAdapter() {
-			@Override
-			public void mouseClicked(MouseEvent e) {
-				if (e.getClickCount() == 2) {
-					selectSkinAction.actionPerformed(null);
-				}
-			}
+		JPanel panel = new JPanel(new GridLayout(4, 2));
+		panel.add(new JLabel(MainWindow.getString("look_and_feel")));
+		panel.add(new LookAndFeelComboBox());
+		panel.add(new JLabel(MainWindow.getString("skin")));
+		panel.add(new JButton(openSkinManagerAction));
+		panel.add(new JLabel(MainWindow.getString("balloon_font")));
+		panel.add(new JButton(changeBalloonFontAction));
+		panel.add(new JLabel(MainWindow.getString("balloon_default_timeout")));
+		balloonDefaultTimeoutSpinner.addChangeListener((event) -> {
+			mainWindow.balloonDefaultTimeout = (int) balloonDefaultTimeoutSpinner.getValue();
+			MainWindow.properties.setProperty("balloon.defaultTimeout",
+					String.valueOf(mainWindow.balloonDefaultTimeout));
 		});
-		JScrollPane skinListScrollPane = new JScrollPane(skinList);
-		appearanceTab.add(skinListScrollPane);
-		JPanel buttonPanel = new JPanel();
-		buttonPanel.add(new JButton(selectSkinAction));
-		buttonPanel.add(new JButton(addSkinAction));
-		buttonPanel.add(new JButton(removeSkinAction));
-		appearanceTab.add(buttonPanel, BorderLayout.PAGE_END);
-		tabbedPane.addTab("Appearance", appearanceTab);
+		panel.add(balloonDefaultTimeoutSpinner);
+		appearanceTab.add(panel, BorderLayout.PAGE_START);
+		addTab(MainWindow.getString("appearance"), appearanceTab);
 		JPanel pluginsTab = new JPanel(new BorderLayout());
 		DefaultListModel pluginsListModel = new DefaultListModel();
 		mainWindow.getPluginProxy().addMessageListener("core-events:plugin-load", (sender, tag, data) -> {
@@ -162,18 +142,18 @@ class OptionsDialog extends JFrame {
 		pluginsList = new JList(pluginsListModel);
 		JScrollPane pluginsListScrollPane = new JScrollPane(pluginsList);
 		pluginsTab.add(pluginsListScrollPane);
-		buttonPanel = new JPanel();
+		JPanel buttonPanel = new JPanel();
 		buttonPanel.add(new JButton(loadPluginAction));
 		buttonPanel.add(new JButton(unloadPluginAction));
 		pluginsTab.add(buttonPanel, BorderLayout.PAGE_END);
-		tabbedPane.addTab("Plugins", pluginsTab);
+		addTab(MainWindow.getString("plugins"), pluginsTab);
 		JPanel alternativesTab = new JPanel(new BorderLayout());
 		alternativesTreeRoot = new DefaultMutableTreeNode("Alternatives");
 		alternativesTree = new JTree(alternativesTreeRoot);
 		alternativesTree.setRootVisible(false);
 		JScrollPane alternativesScrollPane = new JScrollPane(alternativesTree);
 		alternativesTab.add(alternativesScrollPane);
-		tabbedPane.addTab("Alternatives", alternativesTab);
+		addTab(MainWindow.getString("alternatives"), alternativesTab);
 		JPanel debugTab = new JPanel(new BorderLayout());
 		debugTagTextField = new JTextField("DeskChan:say");
 		debugTab.add(debugTagTextField, BorderLayout.PAGE_START);
@@ -181,65 +161,17 @@ class OptionsDialog extends JFrame {
 		JScrollPane debugDataTextAreaScrollPane = new JScrollPane(debugDataTextArea);
 		debugTab.add(debugDataTextAreaScrollPane);
 		debugTab.add(new JButton(debugSendMessageAction), BorderLayout.PAGE_END);
-		tabbedPane.addTab("Debug", debugTab);
+		addTab(MainWindow.getString("debug"), debugTab);
+		add(cardsComboBox, BorderLayout.PAGE_START);
+		add(cards, BorderLayout.CENTER);
 		pack();
 	}
 	
-	private ArrayList<SkinInfo> loadSkinList() {
-		ArrayList<SkinInfo> list = new ArrayList<>();
-		Path directoryPath = Utils.getResourcePath("characters");
-		if (directoryPath != null) {
-			try {
-				DirectoryStream<Path> directoryStream = Files.newDirectoryStream(directoryPath);
-				for (Path skinPath : directoryStream) {
-					if (!Files.isDirectory(skinPath)) {
-						list.add(new SkinInfo(skinPath, true));
-					}
-				}
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
-		try {
-			List<String> lines = Files.readAllLines(mainWindow.getDataDirPath().resolve("extra_skins.txt"));
-			for (String line : lines) {
-				if (line.isEmpty()) continue;
-				Path skinPath = Paths.get(line);
-				if (Files.isReadable(skinPath)) {
-					list.add(new SkinInfo(skinPath, false));
-				}
-			}
-		} catch (IOException e) {
-			// Configuration file not found
-		}
-		Collections.sort(list);
-		return list;
-	}
-	
-	private void storeSkinList() {
-		ArrayList<SkinInfo> list = new ArrayList<>();
-		for (Object skinInfo : ((DefaultListModel) skinList.getModel()).toArray()) {
-			if (skinInfo instanceof SkinInfo) {
-				list.add((SkinInfo) skinInfo);
-			}
-		}
-		storeSkinList(list);
-	}
-	
-	private void storeSkinList(ArrayList<SkinInfo> list) {
-		try {
-			PrintWriter writer = new PrintWriter(mainWindow.getDataDirPath().resolve("extra_skins.txt").toFile());
-			for (SkinInfo skinInfo : list) {
-				if (skinInfo.builtin) continue;
-				writer.println(skinInfo.path.toString());
-			}
-			writer.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
-	
 	void updateOptions() {
+		openSkinManagerAction.putValue(Action.NAME, mainWindow.getCharacterWidget().getCurrentSkin().getName());
+		changeBalloonFontAction.putValue(Action.NAME, mainWindow.balloonTextFont.getName() + ", " +
+				String.valueOf(mainWindow.balloonTextFont.getSize()));
+		balloonDefaultTimeoutSpinner.setValue(mainWindow.balloonDefaultTimeout);
 		mainWindow.getPluginProxy().sendMessage("core:query-alternatives-map", null, (sender, data) -> {
 			alternativesTreeRoot.removeAllChildren();
 			Map<String, Object> m = (Map<String, Object>) (((Map) data).get("map"));
@@ -259,32 +191,23 @@ class OptionsDialog extends JFrame {
 		});
 	}
 	
-	class SkinInfo implements Comparable<SkinInfo> {
-		
-		String name;
-		Path path;
-		boolean builtin;
-		
-		SkinInfo(String name, Path path, boolean builtin) {
-			this.name = name;
-			this.path = path;
-			this.builtin = builtin;
-		}
-		
-		SkinInfo(Path path, boolean builtin) {
-			this(path.getFileName().toString(), path, builtin);
-		}
-		
-		@Override
-		public int compareTo(SkinInfo o) {
-			return name.compareTo(o.name);
-		}
-		
-		@Override
-		public String toString() {
-			return name;
-		}
-		
+	void addTab(String name, JComponent component) {
+		cards.add(component, name);
+		cardsComboBox.addItem(name);
+	}
+	
+	@Override
+	public void itemStateChanged(ItemEvent itemEvent) {
+		CardLayout cardLayout = (CardLayout) cards.getLayout();
+		cardLayout.show(cards, (String) itemEvent.getItem());
+	}
+	
+	void addTab(String name, String plugin, List controls) {
+		//
+	}
+	
+	void removeTabsByPlugin(String plugin) {
+		//
 	}
 	
 }

@@ -1,36 +1,45 @@
 package com.eternal_search.deskchan.gui;
 
 import com.eternal_search.deskchan.core.PluginProxy;
-import com.eternal_search.deskchan.core.Utils;
 
 import javax.swing.*;
+import javax.swing.Timer;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.List;
 
 public class MainWindow extends JFrame {
-	
+
 	private PluginProxy pluginProxy = null;
 	private Path dataDirPath = null;
-	private final CharacterWidget characterWidget = new CharacterWidget(this);
+	private CharacterWidget characterWidget;
 	private BalloonWidget balloonWidget = null;
 	private BalloonWindow balloonWindow = null;
 	OptionsDialog optionsDialog = null;
-	final Action quitAction = new AbstractAction("Quit") {
+	private Timer balloonTimer = null;
+	private static final ResourceBundle strings = ResourceBundle.getBundle("gui-strings");
+	static final Properties properties = new Properties();
+	Font balloonTextFont = null;
+	int balloonDefaultTimeout;
+	private String currentCharacterImage = "normal";
+	
+	final Action quitAction = new AbstractAction(getString("quit")) {
 		@Override
 		public void actionPerformed(ActionEvent actionEvent) {
 			setVisible(false);
 			dispose();
 		}
 	};
-	final Action optionsAction = new AbstractAction("Options...") {
+	final Action optionsAction = new AbstractAction(getString("options")) {
 		@Override
 		public void actionPerformed(ActionEvent actionEvent) {
 			optionsDialog.updateOptions();
@@ -48,15 +57,44 @@ public class MainWindow extends JFrame {
 		this.pluginProxy = pluginProxy;
 		pluginProxy.sendMessage("core:get-plugin-data-dir", null, (sender_, data_) -> {
 			dataDirPath = Paths.get(((Map) data_).get("path").toString());
+			try {
+				properties.load(Files.newInputStream(dataDirPath.resolve("config.properties")));
+			} catch (IOException e) {
+				// Configuration file not found: do nothing
+			}
+			try {
+				String lookAndFeelClassName = properties.getProperty("lookAndFeel.className");
+				if (lookAndFeelClassName != null) {
+					UIManager.setLookAndFeel(lookAndFeelClassName);
+				}
+			} catch (Throwable e) {
+				e.printStackTrace();
+			}
+			{
+				String fontFamily = properties.getProperty("balloon.font.family", "Times New Roman");
+				String fontSizeStr = properties.getProperty("balloon.font.size", "18");
+				String fontStyleStr = properties.getProperty("balloon.font.style", "1");
+				int fontSize = Integer.parseInt(fontSizeStr);
+				int fontStyle = Integer.parseInt(fontStyleStr);
+				balloonTextFont = new Font(fontFamily, fontStyle, fontSize);
+				balloonDefaultTimeout = Integer.parseInt(properties.getProperty("balloon.defaultTimeout",
+						"10000"));
+			}
 			setTitle("DeskChan");
 			setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
 			setUndecorated(true);
 			setAlwaysOnTop(true);
+			setType(Type.POPUP);
 			setFocusableWindowState(false);
 			setLayout(null);
 			setBackground(new Color(0, 0, 0, 0));
 			pack();
-			characterWidget.loadImage(Utils.getResourcePath("characters/sprite0001.png"));
+			characterWidget = new CharacterWidget(this);
+			if (!properties.getProperty("skin.builtin", "true").equals("false")) {
+				characterWidget.loadBuiltinSkin(MainWindow.properties.getProperty("skin.name", "variant1"));
+			} else {
+				characterWidget.loadSkin(Paths.get(MainWindow.properties.getProperty("skin.name")));
+			}
 			setDefaultLocation();
 			setContentPane(characterWidget);
 			optionsDialog = new OptionsDialog(this);
@@ -69,7 +107,7 @@ public class MainWindow extends JFrame {
 			pluginProxy.addMessageListener("gui:say", (sender, tag, data) -> {
 				runOnEventThread(() -> {
 					Map m = (Map) data;
-					showBalloon(m.get("text").toString());
+					showBalloon(createBalloonTextComponent(m.get("text").toString()), m);
 				});
 			});
 			pluginProxy.addMessageListener("gui:register-extra-action", (sender, tag, data) -> {
@@ -86,9 +124,32 @@ public class MainWindow extends JFrame {
 					extraActions.add(action);
 				});
 			});
+			pluginProxy.addMessageListener("gui:change-skin", (sender, tag, data) -> {
+				runOnEventThread(() -> {
+					if (data instanceof Path) {
+						characterWidget.loadSkin((Path) data);
+					} else {
+						characterWidget.loadSkin(Paths.get(data.toString()));
+					}
+					setDefaultLocation();
+				});
+			});
+			pluginProxy.addMessageListener("gui:set-image", (sender, tag, data) -> {
+				runOnEventThread(() -> {
+					currentCharacterImage = data.toString();
+					characterWidget.setImage(currentCharacterImage);
+				});
+			});
+			pluginProxy.addMessageListener("gui:add-options-tab", (sender, tag, data) -> {
+				runOnEventThread(() -> {
+					Map m = (Map) data;
+					optionsDialog.addTab((String) m.getOrDefault("name", tag), sender, (List) m.get("controls"));
+				});
+			});
 			pluginProxy.addMessageListener("core-events:plugin-unload", (sender, tag, data) -> {
 				runOnEventThread(() -> {
 					extraActions.removeIf(action -> action.getPlugin().equals(data));
+					optionsDialog.removeTabsByPlugin(data.toString());
 				});
 			});
 			pluginProxy.sendMessage("core:register-alternative", new HashMap<String, Object>() {{
@@ -99,6 +160,12 @@ public class MainWindow extends JFrame {
 				put("priority", 100);
 			}});
 		});
+		balloonTimer = new Timer(balloonDefaultTimeout, e -> {
+			if (balloonWidget != null) {
+				closeBalloon();
+			}
+		});
+		balloonTimer.setRepeats(false);
 	}
 	
 	void setDefaultLocation() {
@@ -134,7 +201,12 @@ public class MainWindow extends JFrame {
 		}
 	}
 	
-	private void showBalloon(JComponent component) {
+	private void showBalloon(JComponent component, Map<String, Object> params) {
+		int timeout = (int) params.getOrDefault("timeout", balloonDefaultTimeout);
+		String characterImage = (String) params.getOrDefault("characterImage", null);
+		if (characterImage != null) {
+			characterWidget.setImage(characterImage);
+		}
 		if (balloonWidget != null) {
 			if (balloonWindow != null) {
 				balloonWindow.dispose();
@@ -152,21 +224,35 @@ public class MainWindow extends JFrame {
 		if (balloonWindow != null) {
 			balloonWindow.setVisible(true);
 		}
+		if (balloonTimer.isRunning()) {
+			balloonTimer.stop();
+		}
+		if (balloonWidget != null) {
+			if (timeout > 0) {
+				balloonTimer.setInitialDelay(timeout);
+				balloonTimer.start();
+			}
+		} else {
+			characterWidget.setImage(currentCharacterImage);
+		}
 	}
 	
-	void showBalloon(String text) {
-		if (text != null) {
-			JLabel label = new JLabel("<html><center>" + text + "</center></html>");
-			label.setHorizontalAlignment(JLabel.CENTER);
-			label.setFont(label.getFont().deriveFont(15.0f));
-			showBalloon(label);
-		} else {
-			showBalloon((JComponent) null);
-		}
+	void closeBalloon() {
+		showBalloon(null, new HashMap<>());
+	}
+	
+	private JComponent createBalloonTextComponent(String text) {
+		JLabel label = new JLabel("<html><center>" + text + "</center></html>");
+		label.setHorizontalAlignment(JLabel.CENTER);
+		label.setFont(balloonTextFont);
+		return label;
 	}
 	
 	@Override
 	public void dispose() {
+		if (balloonTimer.isRunning()) {
+			balloonTimer.stop();
+		}
 		if (optionsDialog != null) {
 			optionsDialog.dispose();
 		}
@@ -174,6 +260,12 @@ public class MainWindow extends JFrame {
 			balloonWindow.dispose();
 		}
 		super.dispose();
+		try {
+			properties.store(Files.newOutputStream(dataDirPath.resolve("config.properties")),
+					"DeskChan GUI configuration");
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	void setPosition(Point pos) {
@@ -242,6 +334,15 @@ public class MainWindow extends JFrame {
 			return plugin;
 		}
 		
+	}
+	
+	static String getString(String key) {
+		try {
+			String s = strings.getString(key);
+			return new String(s.getBytes("ISO-8859-1"), "UTF-8");
+		} catch (Throwable e) {
+			return key;
+		}
 	}
 	
 	private static class LongMessagePanel extends JPanel {

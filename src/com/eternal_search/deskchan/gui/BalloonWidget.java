@@ -22,7 +22,7 @@ class BalloonWidget extends JPanel implements MouseListener {
 	}
 	
 	private void close() {
-		mainWindow.showBalloon((String) null);
+		mainWindow.closeBalloon();
 	}
 	
 	@Override
@@ -40,6 +40,15 @@ class BalloonWidget extends JPanel implements MouseListener {
 	
 	@Override
 	public void mouseClicked(MouseEvent e) {
+		String event = "gui-events:balloon-left-click";
+		if (SwingUtilities.isLeftMouseButton(e) && e.getClickCount() == 2) {
+			event = "gui-events:balloon-double-click";
+		} else if (SwingUtilities.isRightMouseButton(e)) {
+			event = "gui-events:balloon-right-click";
+		} else if (SwingUtilities.isMiddleMouseButton(e)) {
+			event = "gui-events:balloon-middle-click";
+		}
+		mainWindow.getPluginProxy().sendMessage(event, null);
 		close();
 	}
 	
