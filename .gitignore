@@ -3,3 +3,5 @@ build
 .idea
 .directory
 Thumbs.db
+gradle*
+debug*
