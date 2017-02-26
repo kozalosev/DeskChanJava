@@ -1,4 +1,4 @@
-package character_manager.logic
+package classes
 
 class PhrasesSet {
     Phrases dayPhrases = new Phrases()

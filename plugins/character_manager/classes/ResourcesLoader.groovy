@@ -1,6 +1,6 @@
-package character_manager.logic
+package classes
 
-import character_manager.exceptions.WrongCharacterException
+import exceptions.WrongCharacterException
 
 import java.nio.file.DirectoryStream
 import java.nio.file.Files

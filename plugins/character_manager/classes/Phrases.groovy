@@ -1,4 +1,4 @@
-package character_manager.logic
+package classes
 
 class Phrases {
     String welcomeMessage = null

@@ -1,4 +1,4 @@
-package character_manager.exceptions
+package exceptions
 
 class WrongCharacterException extends RuntimeException {
     WrongCharacterException(String string) {

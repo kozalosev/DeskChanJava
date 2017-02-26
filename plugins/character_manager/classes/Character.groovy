@@ -1,6 +1,6 @@
-package character_manager.logic
+package classes
 
-import character_manager.exceptions.WrongCharacterException
+import exceptions.WrongCharacterException
 
 import java.nio.file.Path
 
@@ -24,7 +24,7 @@ class Character {
         SkinInfo[] skins = ResourcesLoader.readSkins(name)
         for (SkinInfo info : skins) {
             switch (info.name.substring(0, info.name.length() - 4)) {
-                case "default":
+                case "normal":
                     defaultSkin = info
                     break
                 case "night":

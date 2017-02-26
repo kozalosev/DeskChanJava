@@ -1,7 +1,7 @@
-package character_manager.logic
+package classes
 
-import character_manager.exceptions.WrongCharacterException
 import com.eternal_search.deskchan.core.Utils
+import exceptions.WrongCharacterException
 
 import java.nio.file.DirectoryStream
 import java.nio.file.Files
@@ -15,7 +15,7 @@ abstract class CharacterManager {
             try {
                 DirectoryStream<Path> directoryStream = Files.newDirectoryStream(directoryPath)
                 for (Path characterPath : directoryStream) {
-                    if (Files.isDirectory(characterPath)) {
+                    if (Files.isDirectory(characterPath) && Files.isDirectory(characterPath.resolve("sprites"))) {
                         list.add(characterPath.getFileName().toString())
                     }
                 }

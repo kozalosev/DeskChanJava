@@ -1,4 +1,4 @@
-package character_manager.logic
+package classes
 
 import java.nio.file.Path
 
