@@ -5,9 +5,12 @@ import org.apache.commons.io.FilenameUtils;
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.io.IOException;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 public class Skin implements Comparable<Skin> {
 	
@@ -18,10 +21,12 @@ public class Skin implements Comparable<Skin> {
 	private final Path basePath;
 	private final int type;
 	private final boolean builtin;
+	private String description;
 	
 	Skin(Path path, boolean builtin) {
 		this.builtin = builtin;
 		basePath = path;
+		description = "N/A";
 		if (basePath == null) {
 			type = INVALID;
 			return;
@@ -29,6 +34,11 @@ public class Skin implements Comparable<Skin> {
 		final String extension = FilenameUtils.getExtension(basePath.getFileName().toString());
 		if (Files.isDirectory(basePath)) {
 			type = IMAGE_SET;
+			try {
+				description = new String(Files.readAllBytes(basePath.resolve("info.txt")), "UTF-8");
+			} catch (IOException e) {
+				// info.txt not found: do nothing
+			}
 		} else if (Files.isReadable(basePath) && Arrays.asList(ImageIO.getReaderFileSuffixes()).contains(extension)) {
 			type = SINGLE_IMAGE;
 		} else {
@@ -40,6 +50,7 @@ public class Skin implements Comparable<Skin> {
 		this(path, false);
 	}
 	
+	@Override
 	public String toString() {
 		return basePath.getFileName().toString() + " [" + typeToString(type) + "]";
 	}
@@ -56,6 +67,10 @@ public class Skin implements Comparable<Skin> {
 		return type;
 	}
 	
+	String getDescription() {
+		return description;
+	}
+	
 	Image getImage(String name) {
 		switch (type) {
 			case SINGLE_IMAGE:
@@ -67,7 +82,20 @@ public class Skin implements Comparable<Skin> {
 				break;
 			case IMAGE_SET:
 				Path imagePath = basePath.resolve(name + ".png");
-				if (Files.isReadable(imagePath)) {
+				if (Files.isDirectory(imagePath)) {
+					try {
+						DirectoryStream<Path> directoryStream = Files.newDirectoryStream(imagePath, "*.png");
+						List<Path> variants = new ArrayList<>();
+						for (Path path : directoryStream) {
+							variants.add(path);
+						}
+						int i = (int) Math.floor(Math.random() * variants.size());
+						imagePath = variants.get(i);
+						return ImageIO.read(Files.newInputStream(imagePath));
+					} catch (Throwable e) {
+						e.printStackTrace();
+					}
+				} else if (Files.isReadable(imagePath)) {
 					try {
 						return ImageIO.read(Files.newInputStream(imagePath));
 					} catch (Throwable e) {

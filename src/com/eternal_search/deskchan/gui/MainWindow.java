@@ -19,6 +19,9 @@ import java.util.List;
 
 public class MainWindow extends JFrame {
 
+	static final int WINDOW_MODE_NORMAL = 0;
+	static final int WINDOW_MODE_TOP_MOST = 1;
+	
 	private PluginProxy pluginProxy = null;
 	private Path dataDirPath = null;
 	private CharacterWidget characterWidget;
@@ -31,6 +34,8 @@ public class MainWindow extends JFrame {
 	Font balloonTextFont = null;
 	int balloonDefaultTimeout;
 	private String currentCharacterImage = "normal";
+	private PriorityQueue<BalloonMessage> balloonQueue = new PriorityQueue<>();
+	private int windowMode = WINDOW_MODE_NORMAL;
 	
 	final Action quitAction = new AbstractAction(getString("quit")) {
 		@Override
@@ -79,12 +84,13 @@ public class MainWindow extends JFrame {
 				balloonTextFont = new Font(fontFamily, fontStyle, fontSize);
 				balloonDefaultTimeout = Integer.parseInt(properties.getProperty("balloon.defaultTimeout",
 						"10000"));
+				windowMode = Integer.parseInt(properties.getProperty("window_mode", "0"));
 			}
 			setTitle("DeskChan");
 			setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
 			setUndecorated(true);
-			setAlwaysOnTop(true);
-			setType(Type.POPUP);
+			setType(Type.UTILITY);
+			setAlwaysOnTop(windowMode == WINDOW_MODE_TOP_MOST);
 			setFocusableWindowState(false);
 			setLayout(null);
 			setBackground(new Color(0, 0, 0, 0));
@@ -108,6 +114,14 @@ public class MainWindow extends JFrame {
 				runOnEventThread(() -> {
 					Map m = (Map) data;
 					showBalloon(createBalloonTextComponent(m.get("text").toString()), m);
+				});
+			});
+			pluginProxy.addMessageListener("gui:ask", (sender, tag, data) -> {
+				runOnEventThread(() -> {
+					Map m = (Map) data;
+					InputWidget widget = new InputWidget(MainWindow.this);
+					widget.setMessage((String) m.getOrDefault("text", null));
+					showBalloon(widget, m);
 				});
 			});
 			pluginProxy.addMessageListener("gui:register-extra-action", (sender, tag, data) -> {
@@ -143,7 +157,10 @@ public class MainWindow extends JFrame {
 			pluginProxy.addMessageListener("gui:add-options-tab", (sender, tag, data) -> {
 				runOnEventThread(() -> {
 					Map m = (Map) data;
-					optionsDialog.addTab((String) m.getOrDefault("name", tag), sender, (List) m.get("controls"));
+					String name = (String) m.getOrDefault("name", tag);
+					String msgTag = (String) m.getOrDefault("msgTag", null);
+					List controls = (List) m.get("controls");
+					optionsDialog.addTab(name, sender, msgTag, controls);
 				});
 			});
 			pluginProxy.addMessageListener("core-events:plugin-unload", (sender, tag, data) -> {
@@ -154,6 +171,9 @@ public class MainWindow extends JFrame {
 			});
 			pluginProxy.sendMessage("core:register-alternative", new HashMap<String, Object>() {{
 				put("srcTag", "DeskChan:say"); put("dstTag", "gui:say"); put("priority", 100);
+			}});
+			pluginProxy.sendMessage("core:register-alternative", new HashMap<String, Object>() {{
+				put("srcTag", "DeskChan:ask"); put("dstTag", "gui:ask"); put("priority", 100);
 			}});
 			pluginProxy.sendMessage("core:register-alternative", new HashMap<String, Object>() {{
 				put("srcTag", "DeskChan:register-simple-action"); put("dstTag", "gui:register-extra-action");
@@ -182,7 +202,7 @@ public class MainWindow extends JFrame {
 		Rectangle characterBounds = new Rectangle(new Point(0, 0), characterSize);
 		Dimension frameSize = new Dimension(characterSize);
 		if (balloonWidget != null) {
-			Dimension balloonSize = balloonWidget.getPreferredSize();
+			Dimension balloonSize = balloonWindow.getSize();
 			Rectangle balloonBounds = new Rectangle(
 					new Point(getX() - balloonSize.width, getY()),
 					balloonSize
@@ -201,11 +221,19 @@ public class MainWindow extends JFrame {
 		}
 	}
 	
-	private void showBalloon(JComponent component, Map<String, Object> params) {
-		int timeout = (int) params.getOrDefault("timeout", balloonDefaultTimeout);
-		String characterImage = (String) params.getOrDefault("characterImage", null);
-		if (characterImage != null) {
-			characterWidget.setImage(characterImage);
+	void showBalloon(JComponent component, Map<String, Object> params) {
+		boolean prevBalloonIsFocused = (balloonWindow != null) && balloonWindow.isFocused();
+		if (component != null) {
+			int priority = (int) params.getOrDefault("priority", 1000);
+			BalloonMessage message = new BalloonMessage(component, params, priority);
+			balloonQueue.add(message);
+			if (balloonQueue.peek() != message) {
+				if (priority <= 0) {
+					balloonQueue.remove(message);
+				}
+				return;
+			}
+			balloonQueue.removeIf((msg) -> ((msg != message) && (msg.priority <= 0)));
 		}
 		if (balloonWidget != null) {
 			if (balloonWindow != null) {
@@ -215,6 +243,21 @@ public class MainWindow extends JFrame {
 			}
 			balloonWindow = null;
 			balloonWidget = null;
+			if (component == null) {
+				balloonQueue.poll();
+			}
+		}
+		BalloonMessage message = balloonQueue.peek();
+		if (message != null) {
+			component = message.getComponent();
+			params = message.getParams();
+		} else {
+			component = null;
+		}
+		int timeout = (int) params.getOrDefault("timeout", balloonDefaultTimeout);
+		String characterImage = (String) params.getOrDefault("characterImage", null);
+		if (characterImage != null) {
+			characterWidget.setImage(characterImage);
 		}
 		if (component != null) {
 			balloonWidget = new BalloonWidget(component, this);
@@ -223,6 +266,16 @@ public class MainWindow extends JFrame {
 		updateSizes();
 		if (balloonWindow != null) {
 			balloonWindow.setVisible(true);
+			if (prevBalloonIsFocused) {
+				balloonWindow.setFocusableWindowState(true);
+				balloonWindow.requestFocus();
+			} else {
+				Timer timer = new Timer(100, (actionEvent) -> {
+					balloonWindow.setFocusableWindowState(true);
+				});
+				timer.setRepeats(false);
+				timer.start();
+			}
 		}
 		if (balloonTimer.isRunning()) {
 			balloonTimer.stop();
@@ -234,6 +287,11 @@ public class MainWindow extends JFrame {
 			}
 		} else {
 			characterWidget.setImage(currentCharacterImage);
+		}
+		if (balloonWidget != null) {
+			setAlwaysOnTop(true);
+		} else {
+			setAlwaysOnTop(windowMode == WINDOW_MODE_TOP_MOST);
 		}
 	}
 	
@@ -269,16 +327,29 @@ public class MainWindow extends JFrame {
 	}
 	
 	void setPosition(Point pos) {
-		Rectangle screenBounds = GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds();
+		Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+		Rectangle desktopBounds = GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds();
 		Rectangle frameBounds = new Rectangle(pos, getSize());
-		if (frameBounds.getMaxX() > screenBounds.getMaxX()) {
-			frameBounds.x = (int) screenBounds.getMaxX() - frameBounds.width;
+		if (Math.abs(frameBounds.getMaxX() - desktopBounds.getMaxX()) < 5) {
+			frameBounds.x = (int) desktopBounds.getMaxX() - frameBounds.width;
 		}
-		if (frameBounds.getMaxY() > screenBounds.getMaxY()) {
-			frameBounds.y = (int)screenBounds.getMaxY() - frameBounds.height;
+		if (Math.abs(frameBounds.getMaxY() - desktopBounds.getMaxY()) < 5) {
+			frameBounds.y = (int) desktopBounds.getMaxY() - frameBounds.height;
 		}
-		frameBounds.x = Math.max(screenBounds.x, frameBounds.x);
-		frameBounds.y = Math.max(screenBounds.y, frameBounds.y);
+		if (Math.abs(desktopBounds.getMinX() - frameBounds.getMinX()) < 5) {
+			frameBounds.x = Math.max(desktopBounds.x, frameBounds.x);
+		}
+		if (Math.abs(desktopBounds.getMinY() - frameBounds.getMinY()) < 5) {
+			frameBounds.y = Math.max(desktopBounds.y, frameBounds.y);
+		}
+		if (frameBounds.getMaxX() > screenSize.width) {
+			frameBounds.x = screenSize.width - frameBounds.width;
+		}
+		if (frameBounds.getMaxY() > screenSize.height) {
+			frameBounds.y = screenSize.height - frameBounds.height;
+		}
+		frameBounds.y = Math.max(frameBounds.y, 0);
+		frameBounds.y = Math.max(frameBounds.y, 0);
 		setLocation(frameBounds.x, frameBounds.y);
 		if (balloonWindow != null) {
 			updateSizes();
@@ -297,11 +368,21 @@ public class MainWindow extends JFrame {
 		return dataDirPath;
 	}
 	
+	int getWindowMode() {
+		return windowMode;
+	}
+	
+	void setWindowMode(int mode) {
+		windowMode = mode;
+		properties.setProperty("window_mode", String.valueOf(windowMode));
+		setAlwaysOnTop((windowMode == WINDOW_MODE_TOP_MOST) || (balloonWidget != null));
+	}
+	
 	void showThrowable(Throwable e) {
 		showThrowable(this, e);
 	}
 	
-	static void showThrowable(JFrame frame, Throwable e) {
+	static void showThrowable(Component frame, Throwable e) {
 		StringWriter stringWriter = new StringWriter();
 		PrintWriter printWriter = new PrintWriter(stringWriter);
 		e.printStackTrace(printWriter);
@@ -309,7 +390,7 @@ public class MainWindow extends JFrame {
 		showLongMessage(frame, stackTraceStr, e.toString(), JOptionPane.ERROR_MESSAGE);
 	}
 	
-	private static void showLongMessage(JFrame frame, String message, String title, int type) {
+	static void showLongMessage(Component frame, String message, String title, int type) {
 		JOptionPane.showMessageDialog(frame, new LongMessagePanel(message), title, type);
 	}
 	
@@ -362,6 +443,37 @@ public class MainWindow extends JFrame {
 			scrollPane.setPreferredSize(new Dimension(400, 250));
 			scrollPane.getViewport().setViewPosition(new Point(0, 0));
 			add(scrollPane, BorderLayout.CENTER);
+		}
+		
+	}
+	
+	private static class BalloonMessage implements Comparable<BalloonMessage> {
+		
+		private int priority;
+		private JComponent component;
+		private Map<String, Object> params;
+		
+		BalloonMessage(JComponent component, Map<String, Object> params, int priority) {
+			this.component = component;
+			this.priority = priority;
+			this.params = params;
+		}
+		
+		int getPriority() {
+			return priority;
+		}
+		
+		JComponent getComponent() {
+			return component;
+		}
+		
+		Map<String, Object> getParams() {
+			return params;
+		}
+		
+		@Override
+		public int compareTo(BalloonMessage balloonMessage) {
+			return balloonMessage.priority - priority;
 		}
 		
 	}
