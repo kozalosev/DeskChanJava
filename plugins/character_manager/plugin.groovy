@@ -1,11 +1,20 @@
 import classes.BrowserAdapter
 import classes.CharacterManager
 import classes.Character
+import classes.Settings
 
 import javax.swing.Timer
 import java.awt.event.ActionEvent
 
+final String MENU_DELAY_MESSAGES = 'delay-between-messages'
+final String PROPERTY_DELAY_MESSAGES = 'character_manager:delay-between-messages'
+final int DEFAULT_DELAY = 10
+
 Character character = CharacterManager.getRandomCharacter()
+
+String storedDelay = Settings.getInstance().get(PROPERTY_DELAY_MESSAGES)
+int delayBetweenMessages = (storedDelay != null) ? Integer.parseInt(storedDelay) : DEFAULT_DELAY
+Timer messageShowTimer = initMessageTimer(character, delayBetweenMessages)
 
 Timer skinUpdateTimer = new Timer(3600000, { ActionEvent actionEvent ->
     if (character.reloadRequired()) {
@@ -15,13 +24,8 @@ Timer skinUpdateTimer = new Timer(3600000, { ActionEvent actionEvent ->
     }
 })
 skinUpdateTimer.initialDelay = 0
-
-Timer messageShowTimer = new Timer(600000, { ActionEvent actionEvent ->
-    showMessage(character.getRandomPhrase())
-})
-
 skinUpdateTimer.start()
-messageShowTimer.start()
+
 
 addCleanupHandler({
     skinUpdateTimer.stop()
@@ -49,8 +53,30 @@ sendMessage('DeskChan:register-simple-action', [name: 'Покормить', 'msg
 sendMessage('DeskChan:register-simple-action', [name: 'Пошалить', 'msgTag': 'character_manager:naughty'])
 sendMessage('DeskChan:register-simple-action', [name: 'Страница проекта', 'msgTag': 'character_manager:about'])
 
+addMessageListener('character_manager:save-settings', { sender, tag, data ->
+    if (data.containsKey(MENU_DELAY_MESSAGES)) {
+        Settings.getInstance().put((String) PROPERTY_DELAY_MESSAGES, (String) data[MENU_DELAY_MESSAGES])
+        initMessageTimer(character, messageShowTimer, (int) data[MENU_DELAY_MESSAGES])
+    }
+})
+
+sendMessage('gui:add-options-tab', [name: 'character_manager', msgTag: 'character_manager:save-settings', controls: [
+    [
+        type: 'Spinner', id: MENU_DELAY_MESSAGES, label: 'Задержка между сообщениями (в минутах)',
+        value: delayBetweenMessages, min: 5, max: 180, step: 5
+    ]
+]])
+
 
 def showMessage(String message) {
     if (message != null && message.trim() != "")
         sendMessage('DeskChan:say', [text: message])
+}
+
+Timer initMessageTimer(Character character, int minutes) {
+    Timer timer = new Timer(minutes * 60000, { ActionEvent actionEvent ->
+        showMessage(character.getRandomPhrase())
+    })
+    timer.start()
+    return timer
 }
