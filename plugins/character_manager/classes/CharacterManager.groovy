@@ -15,9 +15,8 @@ abstract class CharacterManager {
             try {
                 DirectoryStream<Path> directoryStream = Files.newDirectoryStream(directoryPath)
                 for (Path characterPath : directoryStream) {
-                    if (Files.isDirectory(characterPath) && Files.isDirectory(characterPath.resolve("sprites"))) {
+                    if (Files.isDirectory(characterPath) && Files.isDirectory(characterPath.resolve("sprites")) && Files.isDirectory(characterPath.resolve("phrases")))
                         list.add(characterPath.getFileName().toString())
-                    }
                 }
             } catch (IOException e) {
                 e.printStackTrace()
