@@ -1,5 +1,8 @@
 package classes
 
+import enums.PhraseAction
+import enums.PhraseCondition
+import enums.TimeOfDay
 import exceptions.WrongCharacterException
 
 import java.nio.file.DirectoryStream
@@ -48,67 +51,78 @@ abstract class ResourcesLoader {
         else if (Files.isDirectory(Paths.get("../" + CHARACTERS_PATH + characterName + "/phrases")))
             directoryPath = Paths.get("../" + CHARACTERS_PATH + characterName + "/phrases")
 
-        PhrasesSet set = new PhrasesSet()
         if (directoryPath != null) {
-            try {
-                DirectoryStream<Path> directoryStream = Files.newDirectoryStream(directoryPath)
-                for (Path filePath : directoryStream) {
-                    if (Files.isDirectory(filePath))
-                        continue
+            PhrasesSet set = new PhrasesSet()
+            set.concat(readFile(directoryPath.resolve("default.txt")))
 
-                    Phrases phrases = new Phrases()
-
-                    Files.lines(filePath).forEach({ line ->
-                        Pattern p = Pattern.compile("([A-Z]+)\\s*=\\s*(.*)")
-                        Matcher m = p.matcher(line)
-                        while (m.find()) {
-                            String key = m.group(1)
-                            String value = m.group(2)
-
-                            if (key == "WELCOME")
-                                phrases.welcomeMessage = value
-                            else if (key == "CLICK")
-                                phrases.clickMessage = value
-
-                            return
-                        }
-
-                        phrases.phrases.add(line)
-                    })
-
-                    String filename = filePath.getFileName()
-                    switch(filename.substring(0, filename.length() - 4)) {
-                        case "default":
-                            set.dayPhrases.concat(phrases)
-                            set.nightPhrases.concat(phrases)
-                            set.morningPhrases.concat(phrases)
-                            set.eveningPhrases.concat(phrases)
-                            break
-                        case "day":
-                            set.dayPhrases.concat(phrases)
-                            break
-                        case "night":
-                            set.nightPhrases.concat(phrases)
-                            break
-                        case "morning":
-                            set.morningPhrases.concat(phrases)
-                            break
-                        case "evening":
-                            set.eveningPhrases.concat(phrases)
-                            break
-                        case "feed":
-                            set.feedPhrases.concat(phrases)
-                            break
-                        case "naughty":
-                            set.naughtyPhrases.concat(phrases)
-                    }
-                }
-            } catch (IOException e) {
-                e.printStackTrace()
+            switch (Clock.getTimeOfDay()) {
+                case TimeOfDay.DAY:
+                    set.concat(readFile(directoryPath.resolve("day.txt")))
+                    break
+                case TimeOfDay.NIGHT:
+                    set.concat(readFile(directoryPath.resolve("night.txt")))
+                    break
+                case TimeOfDay.MORNING:
+                    set.concat(readFile(directoryPath.resolve("morning.txt")))
+                    break
+                case TimeOfDay.EVENING:
+                    set.concat(readFile(directoryPath.resolve("evening.txt")))
+                    break
             }
+
+            return set
         }
         else
             throw new WrongCharacterException("Character not found!")
+    }
+
+    private static PhrasesSet readFile(Path filePath) {
+        PhrasesSet set = new PhrasesSet()
+        PhraseAction phraseAction = PhraseAction.MESSAGE
+        PhraseCondition phraseCondition = PhraseCondition.DEFAULT
+
+        try {
+            if (!Files.isReadable(filePath))
+                return set
+
+            Files.lines(filePath).forEach({ line ->
+                if (line.trim() == "" || line[0] == '#')
+                    return
+
+                Pattern p = Pattern.compile("\\[([A-Za-z_]*):?([A-Za-z_]*)]")
+                Matcher m = p.matcher(line)
+                while (m.find()) {
+                    String action = m.group(1).toUpperCase()
+                    String condition = m.group(2).toUpperCase()
+
+                    if (action == "WELCOME")
+                        phraseAction = PhraseAction.WELCOME
+                    else if (action == "CLICK")
+                        phraseAction = PhraseAction.CLICK
+                    else if (action == "FEED")
+                        phraseAction = PhraseAction.FEED
+                    else if (action == "NAUGHTY")
+                        phraseAction = PhraseAction.NAUGHTY
+
+                    if (condition == "FED")
+                        phraseCondition = PhraseCondition.FED
+                    else if (condition == "HUNGRY")
+                        phraseCondition = PhraseCondition.HUNGRY
+                    else if (condition == "SEXUALLY_SATISFIED")
+                        phraseCondition = PhraseCondition.SEXUALLY_SATISFIED
+                    else if (condition == "SEXUALLY_HUNGRY")
+                        phraseCondition = PhraseCondition.SEXUALLY_HUNGRY
+                    else
+                        phraseCondition = PhraseCondition.DEFAULT
+
+                    return
+                }
+
+                set.add(phraseAction, phraseCondition, line)
+            })
+        } catch (IOException e) {
+            e.printStackTrace()
+        }
 
         return set
     }

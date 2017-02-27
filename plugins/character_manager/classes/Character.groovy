@@ -1,21 +1,26 @@
 package classes
 
+import enums.PhraseAction
+import enums.TimeOfDay
 import exceptions.WrongCharacterException
 
 import java.nio.file.Path
 
 class Character {
-
-    private enum TimeOfDay {
-        DAY, NIGHT, MORNING, EVENING
-    }
+    final private static int MAX_SATIETY = 100
+    final private static int MAX_PLEASURE = 100
+    final private static int SATIETY_ACCRETION = 10
+    final private static int PLEASURE_ACCRETION = 10
 
     private String name
     private SkinInfo defaultSkin, nightSkin, morningSkin, eveningSkin
     private TimeOfDay currentTimeOfDay
 
     private PhrasesSet phrases
-    private int lastRandomPhraseNumber = -1
+    private String lastRandomPhrase = ""
+
+    private int satiety = Math.ceil(MAX_SATIETY / 2)
+    private int pleasure = Math.ceil(MAX_PLEASURE / 2)
 
     Character(String name) throws WrongCharacterException
     {
@@ -48,7 +53,7 @@ class Character {
     String getName() { return name }
 
     Path getSkin() {
-        TimeOfDay timeOfDay = getTimeOfDay()
+        TimeOfDay timeOfDay = Clock.getTimeOfDay()
 
         switch (timeOfDay) {
             case TimeOfDay.MORNING:
@@ -67,43 +72,51 @@ class Character {
     }
 
     boolean reloadRequired() {
-        return currentTimeOfDay != getTimeOfDay()
+        return currentTimeOfDay != Clock.getTimeOfDay()
     }
 
     String getWelcomePhrase() {
-        return getPhrases().welcomeMessage
+        return getRandomPhrase(getPhrases(PhraseAction.WELCOME))
     }
 
     String getClickPhrase() {
-        return getPhrases().clickMessage
+        increasePleasure()
+        return getRandomPhrase(getPhrases(PhraseAction.CLICK))
     }
 
     String feed() {
-        return getRandomPhrase(phrases.feedPhrases)
+        increaseSatiety()
+        return getRandomPhrase(getPhrases(PhraseAction.FEED))
     }
 
     String doNaughtyThings() {
-        return getRandomPhrase(phrases.naughtyPhrases)
+        increasePleasure()
+        decreaseSatiety()
+        return getRandomPhrase(getPhrases(PhraseAction.NAUGHTY))
     }
 
     String getRandomPhrase() {
-        getRandomPhrase(getPhrases())
+        decreaseSatiety()
+        decreasePleasure()
+        return getRandomPhrase(getPhrases(PhraseAction.MESSAGE))
     }
 
-    String getRandomPhrase(Phrases sourceList) {
+    String getRandomPhrase(Set sourceList) {
         Random random = new Random()
-        int count = sourceList.phrases.size()
+        int count = sourceList.size()
 
         if (count > 1) {
-            int i = lastRandomPhraseNumber
-            while (i == lastRandomPhraseNumber)
-                i = random.nextInt(sourceList.phrases.size() - 1)
-            lastRandomPhraseNumber = i
+            String currentPhrase = lastRandomPhrase
+            while (currentPhrase == lastRandomPhrase) {
+                int i = random.nextInt(sourceList.size() - 1)
+                currentPhrase = sourceList[i]
+            }
+            lastRandomPhrase = currentPhrase
 
-            return sourceList.phrases[i]
+            return currentPhrase
         }
         else if (count > 0)
-            return sourceList.phrases[0]
+            return sourceList[0]
         else
             return null
     }
@@ -112,30 +125,39 @@ class Character {
         phrases = ResourcesLoader.readPhrases(name)
     }
 
-    private Phrases getPhrases() {
-        switch(getTimeOfDay()) {
-            case TimeOfDay.MORNING:
-                return phrases.morningPhrases
-            case TimeOfDay.NIGHT:
-                return phrases.nightPhrases
-            case TimeOfDay.EVENING:
-                return phrases.eveningPhrases
-            default:
-                return phrases.dayPhrases
-        }
+    private Set<String> getPhrases(PhraseAction action) {
+        int satietyMeasure = Math.ceil(MAX_SATIETY / 3)
+        int pleasureMeasure = Math.ceil(MAX_PLEASURE / 3)
+
+        if (satiety < satietyMeasure)
+            return phrases.getHungryPhrases(action)
+        else if (satiety > satietyMeasure * 2)
+            return phrases.getFullPhrases(action)
+        else if (pleasure < pleasureMeasure)
+            return phrases.getSexuallyHungryPhrases(action)
+        else if (pleasure > pleasureMeasure * 2)
+            return phrases.getSexuallySatisfiedPhrases(action)
+        else
+            return phrases.getDefaultPhrases(action)
     }
 
-    private TimeOfDay getTimeOfDay() {
-        Calendar currentTime = Calendar.getInstance()
-        int currentHour = currentTime.get(Calendar.HOUR_OF_DAY)
+    private decreaseSatiety() {
+        if (satiety > 0)
+            satiety--
+    }
 
-        if (currentHour < 12 && currentHour > 6)
-            return TimeOfDay.MORNING
-        else if (currentHour < 17 && currentHour > 6)
-            return TimeOfDay.DAY
-        else if (currentHour < 23 && currentHour > 6)
-            return TimeOfDay.EVENING
-        else
-            return TimeOfDay.NIGHT
+    private decreasePleasure() {
+        if (pleasure > 0)
+            pleasure--
+    }
+
+    private increaseSatiety() {
+        if (satiety + SATIETY_ACCRETION <= MAX_SATIETY)
+            satiety += SATIETY_ACCRETION
+    }
+
+    private increasePleasure() {
+        if (pleasure + PLEASURE_ACCRETION <= MAX_PLEASURE)
+            pleasure += PLEASURE_ACCRETION
     }
 }
