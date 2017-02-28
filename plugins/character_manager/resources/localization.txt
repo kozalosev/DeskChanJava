@@ -1,0 +1,4 @@
+feed           = Feed
+naughty        = Do naughty things
+about          = About
+settings-delay = Delay between messages (in minutes)

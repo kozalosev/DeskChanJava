@@ -1,6 +1,7 @@
 import classes.BrowserAdapter
 import classes.CharacterManager
 import classes.Character
+import classes.Localization
 import classes.Settings
 
 import javax.swing.Timer
@@ -10,6 +11,7 @@ final String MENU_DELAY_MESSAGES = 'delay-between-messages'
 final String PROPERTY_DELAY_MESSAGES = 'character_manager:delay-between-messages'
 final int DEFAULT_DELAY = 10
 
+Localization localization = Localization.getInstance()
 Character character = CharacterManager.getRandomCharacter()
 
 String storedDelay = Settings.getInstance().get(PROPERTY_DELAY_MESSAGES)
@@ -49,9 +51,9 @@ addMessageListener('character_manager:about', {sender, tag, data ->
     BrowserAdapter.openWebpage("https://2ch.hk/s/res/1936557.html")
 })
 
-sendMessage('DeskChan:register-simple-action', [name: 'Покормить', 'msgTag': 'character_manager:feed'])
-sendMessage('DeskChan:register-simple-action', [name: 'Пошалить', 'msgTag': 'character_manager:naughty'])
-sendMessage('DeskChan:register-simple-action', [name: 'Страница проекта', 'msgTag': 'character_manager:about'])
+sendMessage('DeskChan:register-simple-action', [name: localization.get('feed'), 'msgTag': 'character_manager:feed'])
+sendMessage('DeskChan:register-simple-action', [name: localization.get('naughty'), 'msgTag': 'character_manager:naughty'])
+sendMessage('DeskChan:register-simple-action', [name: localization.get('about'), 'msgTag': 'character_manager:about'])
 
 addMessageListener('character_manager:save-settings', { sender, tag, data ->
     if (data.containsKey(MENU_DELAY_MESSAGES)) {
@@ -62,7 +64,7 @@ addMessageListener('character_manager:save-settings', { sender, tag, data ->
 
 sendMessage('gui:add-options-tab', [name: 'character_manager', msgTag: 'character_manager:save-settings', controls: [
     [
-        type: 'Spinner', id: MENU_DELAY_MESSAGES, label: 'Задержка между сообщениями (в минутах)',
+        type: 'Spinner', id: MENU_DELAY_MESSAGES, label: localization.get('settings-delay'),
         value: delayBetweenMessages, min: 5, max: 180, step: 5
     ]
 ]])
