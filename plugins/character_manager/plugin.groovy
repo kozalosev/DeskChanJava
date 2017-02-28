@@ -56,7 +56,7 @@ sendMessage('DeskChan:register-simple-action', [name: 'Страница прое
 addMessageListener('character_manager:save-settings', { sender, tag, data ->
     if (data.containsKey(MENU_DELAY_MESSAGES)) {
         Settings.getInstance().put((String) PROPERTY_DELAY_MESSAGES, (String) data[MENU_DELAY_MESSAGES])
-        initMessageTimer(character, messageShowTimer, (int) data[MENU_DELAY_MESSAGES])
+        messageShowTimer = initMessageTimer(character, (int) data[MENU_DELAY_MESSAGES])
     }
 })
 
