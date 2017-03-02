@@ -102,6 +102,7 @@ class OptionsDialog extends JFrame implements ItemListener {
 	
 	OptionsDialog(MainWindow mainWindow) {
 		super(MainWindow.getString("deskchan_options"));
+		setIconImage(MainWindow.getApplicationIcon());
 		this.mainWindow = mainWindow;
 		setMinimumSize(new Dimension(600, 300));
 		setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
@@ -273,6 +274,9 @@ class OptionsDialog extends JFrame implements ItemListener {
 				break;
 			case "ComboBox":
 				control = new PluginOptionsControlItem.ComboBox();
+				break;
+			case "ListBox":
+				control = new PluginOptionsControlItem.ListBox();
 				break;
 			case "Button":
 				control = new PluginOptionsControlItem.Button();
