@@ -1,5 +1,7 @@
 package classes
 
+import exceptions.WrongLocalizationException
+
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -25,7 +27,7 @@ class Localization {
             localizationFile = defaultLocalization
 
         if (!Files.isReadable(localizationFile))
-            throw new RuntimeException("No localization!")
+            throw new WrongLocalizationException("No localization!")
 
         Files.lines(localizationFile).forEach({ line ->
             Pattern p = Pattern.compile("([A-Za-z_\\-]+)\\s*=\\s*(.+)")

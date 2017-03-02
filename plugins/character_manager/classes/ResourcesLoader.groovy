@@ -53,20 +53,20 @@ abstract class ResourcesLoader {
 
         if (directoryPath != null) {
             PhrasesSet set = new PhrasesSet()
-            set.concat(readFile(directoryPath.resolve("default.txt")))
+            set.concat(readPhrasesFile(directoryPath.resolve("default.txt")))
 
             switch (Clock.getTimeOfDay()) {
                 case TimeOfDay.DAY:
-                    set.concat(readFile(directoryPath.resolve("day.txt")))
+                    set.concat(readPhrasesFile(directoryPath.resolve("day.txt")))
                     break
                 case TimeOfDay.NIGHT:
-                    set.concat(readFile(directoryPath.resolve("night.txt")))
+                    set.concat(readPhrasesFile(directoryPath.resolve("night.txt")))
                     break
                 case TimeOfDay.MORNING:
-                    set.concat(readFile(directoryPath.resolve("morning.txt")))
+                    set.concat(readPhrasesFile(directoryPath.resolve("morning.txt")))
                     break
                 case TimeOfDay.EVENING:
-                    set.concat(readFile(directoryPath.resolve("evening.txt")))
+                    set.concat(readPhrasesFile(directoryPath.resolve("evening.txt")))
                     break
             }
 
@@ -76,7 +76,7 @@ abstract class ResourcesLoader {
             throw new WrongCharacterException("Character not found!")
     }
 
-    private static PhrasesSet readFile(Path filePath) {
+    private static PhrasesSet readPhrasesFile(Path filePath) {
         PhrasesSet set = new PhrasesSet()
         PhraseAction phraseAction = PhraseAction.MESSAGE
         PhraseCondition phraseCondition = PhraseCondition.DEFAULT

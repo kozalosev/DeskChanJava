@@ -40,12 +40,17 @@ class Settings {
             return null
     }
 
-    void put(String key, String value) {
+    void put(String key, String value, boolean writeOnDisk) {
         settings.put(key, value)
-        save()
+        if (writeOnDisk)
+            save()
     }
 
-    private save() {
+    void put(String key, String value) {
+        put(key, value, true)
+    }
+
+    void save() {
         String json = new JSONObject(settings).toString()
         FileUtils.writeStringToFile(settingsFile.toFile(), json)
     }

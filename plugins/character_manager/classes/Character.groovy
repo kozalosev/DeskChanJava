@@ -54,19 +54,16 @@ class Character {
 
     Path getSkin() {
         TimeOfDay timeOfDay = Clock.getTimeOfDay()
+        currentTimeOfDay = timeOfDay
 
         switch (timeOfDay) {
             case TimeOfDay.MORNING:
-                currentTimeOfDay = TimeOfDay.MORNING
                 return (morningSkin != null) ? morningSkin.path : defaultSkin.path
             case TimeOfDay.NIGHT:
-                currentTimeOfDay = TimeOfDay.NIGHT
                 return (nightSkin != null) ? nightSkin.path : defaultSkin.path
             case TimeOfDay.EVENING:
-                currentTimeOfDay = TimeOfDay.EVENING
                 return (eveningSkin != null) ? eveningSkin.path : defaultSkin.path
             default:
-                currentTimeOfDay = TimeOfDay.DAY
                 return defaultSkin.path
         }
     }
@@ -123,6 +120,7 @@ class Character {
 
     void reloadPhrases() {
         phrases = ResourcesLoader.readPhrases(name)
+        currentTimeOfDay = Clock.getTimeOfDay()
     }
 
     private Set<String> getPhrases(PhraseAction action) {
