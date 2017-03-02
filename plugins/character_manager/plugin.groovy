@@ -38,10 +38,11 @@ skinUpdateTimer.initialDelay = 0
 skinUpdateTimer.start()
 
 
-// При выгрузке плагина останавливаем таймеры.
+// При выгрузке плагина останавливаем таймеры и сохраняем состояние персонажа.
 addCleanupHandler({
     skinUpdateTimer.stop()
     messageShowTimer.stop()
+    character.saveState()
 })
 
 

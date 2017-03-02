@@ -22,9 +22,10 @@ class Character {
     private PhrasesSet phrases
     private String lastRandomPhrase = ""
 
-    // При запуске задаются сытость и удовольствие по умолчанию.
-    private int satiety = Math.ceil(MAX_SATIETY / 2)
-    private int pleasure = Math.ceil(MAX_PLEASURE / 2)
+    // Состояние персонажа при запуске считывается из файла настроек
+    // или выставляется по умолчанию в половину максимального.
+    private int satiety
+    private int pleasure
 
     // Конструктор проверяет наличие необходимых ресурсов в resources/characters/%name%.
     // Если там нет sprites/normal.png или phrases/default.txt, то выбрасывается WrongCharacterException.
@@ -55,6 +56,13 @@ class Character {
             throw new WrongCharacterException("No default skin!")
 
         reloadPhrases()
+
+        Settings settings = Settings.getInstance()
+        String storedSatiety = settings.get("satiety")
+        String storedPleasure = settings.get("pleasure")
+
+        satiety = (storedSatiety != null) ? Integer.parseInt(storedSatiety) : Math.ceil(MAX_SATIETY / 2)
+        pleasure = (storedPleasure != null) ? Integer.parseInt(storedPleasure) : Math.ceil(MAX_PLEASURE / 2)
     }
 
     String getName() { return name }
@@ -133,6 +141,14 @@ class Character {
     void reloadPhrases() {
         phrases = ResourcesLoader.readPhrases(name)
         currentTimeOfDay = Clock.getTimeOfDay()
+    }
+
+    // Сохраняет состояние персонажа в файл настроек.
+    void saveState() {
+        Settings settings = Settings.getInstance()
+        settings.put('satiety', Integer.toString(satiety), false)
+        settings.put('pleasure', Integer.toString(pleasure), false)
+        settings.save()
     }
 
     // Возвращает фразы для указанного действия.
