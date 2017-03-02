@@ -2,6 +2,7 @@ package classes
 
 import java.nio.file.Path
 
+// Заимствованный класс Ивана Колесникова (KivApple) для хранения информации о спрайтах.
 class SkinInfo implements Comparable<SkinInfo> {
 
     String name

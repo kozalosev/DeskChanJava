@@ -2,7 +2,8 @@ package classes
 
 import java.awt.Desktop
 
-// Based on: http://stackoverflow.com/a/10967469
+// Вспомогательный класс для открытия ссылок в браузере.
+// Код основан на следующем ответе: http://stackoverflow.com/a/10967469
 class BrowserAdapter {
 
     static void openWebpage(URI uri) {

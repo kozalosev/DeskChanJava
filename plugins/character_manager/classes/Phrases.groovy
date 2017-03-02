@@ -2,6 +2,7 @@ package classes
 
 import enums.PhraseAction
 
+// Класс для хранения наборов фраз для каждого действия.
 class Phrases {
     Set<String> welcomeMessages = new HashSet<String>()
     Set<String> clickMessages = new HashSet<String>()
@@ -9,6 +10,7 @@ class Phrases {
     Set<String> naughtyMessages = new HashSet<String>()
     Set<String> phrases = new HashSet<String>()
 
+    // Геттер.
     Set<String> get(PhraseAction action) {
         switch (action) {
             case PhraseAction.MESSAGE:
@@ -24,6 +26,7 @@ class Phrases {
         }
     }
 
+    // Метод для объединения фраз с фразами из другого набора.
     void concat(Phrases another) {
         welcomeMessages.addAll(another.welcomeMessages)
         clickMessages.addAll(another.clickMessages)
@@ -32,6 +35,7 @@ class Phrases {
         phrases.addAll(another.phrases)
     }
 
+    // Добавляет новую фразу для указанного действия.
     void add(PhraseAction action, String phrase) {
         switch (action) {
             case PhraseAction.MESSAGE:

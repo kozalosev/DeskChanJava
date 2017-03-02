@@ -12,9 +12,12 @@ import java.nio.file.Paths
 import java.util.regex.Matcher
 import java.util.regex.Pattern
 
+// Класс, использующийся для загрузки спрайтов и наборов фраз.
 abstract class ResourcesLoader {
     final private static String CHARACTERS_PATH = "resources/characters/"
 
+
+    // Функция для получения информации обо всех спрайтах.
     static SkinInfo[] readSkins(String characterName) throws WrongCharacterException
     {
         Path directoryPath
@@ -44,6 +47,8 @@ abstract class ResourcesLoader {
         return resultArray
     }
 
+
+    // Эта функция считывает и возвращает только набор фраз для текущего времени суток.
     static PhrasesSet readPhrases(String characterName) throws WrongCharacterException {
         Path directoryPath
         if (Files.isDirectory(Paths.get(CHARACTERS_PATH + characterName + "/phrases")))
@@ -76,6 +81,8 @@ abstract class ResourcesLoader {
             throw new WrongCharacterException("Character not found!")
     }
 
+
+    // Вспомогательная функция для чтения файлов с фразами
     private static PhrasesSet readPhrasesFile(Path filePath) {
         PhrasesSet set = new PhrasesSet()
         PhraseAction phraseAction = PhraseAction.MESSAGE

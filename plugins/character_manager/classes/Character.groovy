@@ -6,22 +6,29 @@ import exceptions.WrongCharacterException
 
 import java.nio.file.Path
 
+// Класс персонажа.
 class Character {
+    // Некоторые параметры.
     final private static int MAX_SATIETY = 100
     final private static int MAX_PLEASURE = 100
     final private static int SATIETY_ACCRETION = 10
     final private static int PLEASURE_ACCRETION = 10
 
     private String name
+    // Для каждого персонажа можно задать до 4 спрайтов, отображаемых в зависимости от времени суток.
     private SkinInfo defaultSkin, nightSkin, morningSkin, eveningSkin
     private TimeOfDay currentTimeOfDay
-
+    // Для фраз также можно задавать различные наборы.
     private PhrasesSet phrases
     private String lastRandomPhrase = ""
 
+    // При запуске задаются сытость и удовольствие по умолчанию.
     private int satiety = Math.ceil(MAX_SATIETY / 2)
     private int pleasure = Math.ceil(MAX_PLEASURE / 2)
 
+    // Конструктор проверяет наличие необходимых ресурсов в resources/characters/%name%.
+    // Если там нет sprites/normal.png или phrases/default.txt, то выбрасывается WrongCharacterException.
+    // Также он читает спрайты и фразы для текущего времени суток.
     Character(String name) throws WrongCharacterException
     {
         this.name = name
@@ -52,6 +59,7 @@ class Character {
 
     String getName() { return name }
 
+    // Возвращает спрайт для текущего времени суток.
     Path getSkin() {
         TimeOfDay timeOfDay = Clock.getTimeOfDay()
         currentTimeOfDay = timeOfDay
@@ -68,10 +76,12 @@ class Character {
         }
     }
 
+    // Возвращает true, если время суток изменилось и требуется перезагрузка фраз и устан.
     boolean reloadRequired() {
         return currentTimeOfDay != Clock.getTimeOfDay()
     }
 
+    // Следующие методы возвращают нужные фразы...
     String getWelcomePhrase() {
         return getRandomPhrase(getPhrases(PhraseAction.WELCOME))
     }
@@ -81,6 +91,7 @@ class Character {
         return getRandomPhrase(getPhrases(PhraseAction.CLICK))
     }
 
+    // ...а некоторые ещё изменяют параметры персонажа.
     String feed() {
         increaseSatiety()
         return getRandomPhrase(getPhrases(PhraseAction.FEED))
@@ -118,11 +129,13 @@ class Character {
             return null
     }
 
+    // Перезагружает фразы, чтоб они соответствовали текущему времени суток.
     void reloadPhrases() {
         phrases = ResourcesLoader.readPhrases(name)
         currentTimeOfDay = Clock.getTimeOfDay()
     }
 
+    // Возвращает фразы для указанного действия.
     private Set<String> getPhrases(PhraseAction action) {
         int satietyMeasure = Math.ceil(MAX_SATIETY / 3)
         int pleasureMeasure = Math.ceil(MAX_PLEASURE / 3)
@@ -139,6 +152,7 @@ class Character {
             return phrases.getDefaultPhrases(action)
     }
 
+    // Для изменения параметров лучше использовать специальные методы, которые проверяют границы.
     private decreaseSatiety() {
         if (satiety > 0)
             satiety--

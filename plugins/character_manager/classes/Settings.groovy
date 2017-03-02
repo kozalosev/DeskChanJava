@@ -7,6 +7,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 
+// Синглтон, предоставляющий простую абстракцию над файлом resources/settings.json.
 class Settings {
     private final static Path settingsFile = Paths.get(Settings.class.protectionDomain.codeSource.location.path)
         .getParent().resolve("resources").resolve("settings.json")
@@ -33,6 +34,7 @@ class Settings {
         return instance
     }
 
+    // Геттер.
     String get(String key) {
         if (settings.containsKey(key))
             return settings[key]
@@ -40,16 +42,19 @@ class Settings {
             return null
     }
 
+    // Сеттер.
     void put(String key, String value, boolean writeOnDisk) {
         settings.put(key, value)
         if (writeOnDisk)
             save()
     }
 
+    // Без явного отключения, все изменения автоматически сохраняются в файл.
     void put(String key, String value) {
         put(key, value, true)
     }
 
+    // Сохраняет настройки в файл.
     void save() {
         String json = new JSONObject(settings).toString()
         FileUtils.writeStringToFile(settingsFile.toFile(), json)

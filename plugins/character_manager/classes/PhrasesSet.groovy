@@ -3,6 +3,7 @@ package classes
 import enums.PhraseAction
 import enums.PhraseCondition
 
+// Класс для хранения набора фраз под каждое условие для текущего времени суток.
 class PhrasesSet {
     private Phrases defaultPhrases = new Phrases()
 
@@ -12,6 +13,7 @@ class PhrasesSet {
     private Phrases sexuallySatisfiedPhrases = new Phrases()
     private Phrases sexuallyHungryPhrases = new Phrases()
 
+    // Геттеры, которые при отсутствии фраз в каком-либо наборе, возвращают фразы по умолчанию.
     Set<String> getDefaultPhrases(PhraseAction action) {
         return defaultPhrases.get(action)
     }
@@ -32,6 +34,7 @@ class PhrasesSet {
         return baseGetter(sexuallyHungryPhrases, action)
     }
 
+    // Метод для объединения фраз из двух объектов.
     void concat(PhrasesSet another) {
         defaultPhrases.concat(another.defaultPhrases)
         fedPhrases.concat(another.fedPhrases)
@@ -40,6 +43,7 @@ class PhrasesSet {
         sexuallyHungryPhrases.concat(another.sexuallyHungryPhrases)
     }
 
+    // Добавляет новые фразы под указанное условие.
     void add(PhraseCondition condition, Phrases phrases) {
         switch (condition) {
             case PhraseCondition.DEFAULT:
@@ -60,6 +64,7 @@ class PhrasesSet {
         }
     }
 
+    // Добавляет новую фразу под указанное условие и действие.
     void add(PhraseAction action, PhraseCondition condition, String phrase) {
         switch (condition) {
             case PhraseCondition.DEFAULT:

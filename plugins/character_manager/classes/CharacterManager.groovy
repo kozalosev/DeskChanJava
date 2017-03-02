@@ -7,7 +7,10 @@ import java.nio.file.DirectoryStream
 import java.nio.file.Files
 import java.nio.file.Path
 
+// Класс для управления персонажами.
 abstract class CharacterManager {
+
+    // Позволяет получить список доступных в папке персонажей...
     static String[] getCharacterList() {
         ArrayList<String> list = new ArrayList<>()
         Path directoryPath = Utils.getResourcePath("characters")
@@ -30,6 +33,7 @@ abstract class CharacterManager {
         return resultArray
     }
 
+    // а также получить случайного персонажа из этого списка.
     static Character getRandomCharacter() {
         String[] listOfCharacters = getCharacterList()
 

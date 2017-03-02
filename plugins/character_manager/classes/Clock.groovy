@@ -2,6 +2,7 @@ package classes
 
 import enums.TimeOfDay
 
+// Класс, использующийся для получения текущего времени суток (одно из значений перечисления TimeOfDay).
 class Clock {
     static TimeOfDay getTimeOfDay() {
         Calendar currentTime = Calendar.getInstance()

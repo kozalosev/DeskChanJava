@@ -8,9 +8,11 @@ import java.nio.file.Paths
 import java.util.regex.Matcher
 import java.util.regex.Pattern
 
+// Класс, предоставляющий простую абстракцию над файлами resources/localization-**_**.txt.
 class Localization {
     private final static Path resourcesPath = Paths.get(Settings.class.protectionDomain.codeSource.location.path)
             .getParent().resolve("resources")
+    // По умолчанию используется файл localization.txt. Если его не будет в папке, вылетит WrongLocalizationException!
     private final static Path defaultLocalization = resourcesPath.resolve("localization.txt")
 
     private static Localization instance
@@ -44,6 +46,7 @@ class Localization {
         return instance
     }
 
+    // Геттер.
     String get(String key) {
         return strings.getOrDefault(key, '')
     }
