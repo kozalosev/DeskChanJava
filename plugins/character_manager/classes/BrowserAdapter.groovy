@@ -8,7 +8,7 @@ class BrowserAdapter {
 
     static void openWebpage(URI uri) {
         Desktop desktop = Desktop.isDesktopSupported() ? Desktop.getDesktop() : null
-        if (desktop != null && desktop.isSupported(Desktop.Action.BROWSE)) {
+        if (desktop?.isSupported(Desktop.Action.BROWSE)) {
             try {
                 desktop.browse(uri)
             } catch (Exception e) {

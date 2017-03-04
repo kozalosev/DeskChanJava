@@ -74,11 +74,11 @@ class Character {
 
         switch (timeOfDay) {
             case TimeOfDay.MORNING:
-                return (morningSkin != null) ? morningSkin.path : defaultSkin.path
+                return morningSkin?.path ?: defaultSkin.path
             case TimeOfDay.NIGHT:
-                return (nightSkin != null) ? nightSkin.path : defaultSkin.path
+                return nightSkin?.path ?: defaultSkin.path
             case TimeOfDay.EVENING:
-                return (eveningSkin != null) ? eveningSkin.path : defaultSkin.path
+                return eveningSkin?.path ?: defaultSkin.path
             default:
                 return defaultSkin.path
         }
