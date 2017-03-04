@@ -8,8 +8,9 @@ import javax.swing.Timer
 import java.awt.event.ActionEvent
 import java.nio.file.Paths
 
-// Тэг для пункта меню и сохранения настроек.
+// Тэги для пунктов меню и сохранения настроек.
 final String TAG_DELAY_MESSAGES = 'delay-between-messages'
+final String TAG_CHOSEN_CHARACTER = 'chosen-character'
 // Задержка между случайными сообщениями по умолчанию.
 final int DEFAULT_DELAY = 10
 
@@ -22,9 +23,10 @@ sendMessage('core:get-plugin-data-dir', null, { sender, data ->
     CharacterManager.setDataDir(Paths.get(((Map) data).get('path').toString()))
 })
 
-// Получаем случайного персонажа из папки resources/characters.
+// Получаем ранее выбранного или случайного персонажа из папки resources/characters.
 // Под персонажем подразумевается папка, внутри которой располагаются папки sprites и phrases.
-Character character = CharacterManager.getRandomCharacter()
+String storedCharacterName = Settings.getInstance().get('chosen-character')
+Character character = (storedCharacterName != null) ? new Character(storedCharacterName) : CharacterManager.getRandomCharacter()
 
 // Получаем параметры и запускаем таймер случайных сообщений.
 String storedDelay = Settings.getInstance().get(TAG_DELAY_MESSAGES)
@@ -68,12 +70,22 @@ addMessageListener('gui-events:character-left-click', { sender, tag, data ->
     showMessage(character.getClickPhrase())
 })
 
-// Обработчик изменения настроек.
+// Обработчик сохранения настроек.
 addMessageListener('character_manager:save-settings', { sender, tag, data ->
+    Settings settings = Settings.getInstance()
+
     if (data.containsKey(TAG_DELAY_MESSAGES)) {
-        Settings.getInstance().put((String) TAG_DELAY_MESSAGES, (String) data[TAG_DELAY_MESSAGES])
+        settings.put(TAG_DELAY_MESSAGES, (String) data[TAG_DELAY_MESSAGES], false)
         messageShowTimer = initMessageTimer(character, (int) data[TAG_DELAY_MESSAGES])
     }
+
+    if (data.containsKey(TAG_CHOSEN_CHARACTER) && data[TAG_CHOSEN_CHARACTER] != null) {
+        character = CharacterManager.getCharacterById((int) data[TAG_CHOSEN_CHARACTER])
+        settings.put(TAG_CHOSEN_CHARACTER, character.getName(), false)
+        refreshCharacter(character)
+    }
+
+    settings.save()
 })
 
 
@@ -87,16 +99,21 @@ sendMessage('gui:add-options-tab', [name: 'character_manager', msgTag: 'characte
     [
         type: 'Spinner', id: TAG_DELAY_MESSAGES, label: localization.get('settings-delay'),
         value: delayBetweenMessages, min: 5, max: 180, step: 5
+    ],
+    [
+        type: 'ComboBox', id: TAG_CHOSEN_CHARACTER, label: localization.get('settings-character'),
+        values: Arrays.asList(CharacterManager.getCharacterList()), value: CharacterManager.getIdOfCharacter(character)
     ]
 ]])
 
+
+// ФУНКЦИИ
 
 // Вспомогательная функция, отображающая текст только при условии, что это не пустая строка или null.
 def showMessage(String message) {
     if (message != null && message.trim() != "")
         sendMessage('DeskChan:say', [text: message])
 }
-
 
 // Функция для обновления списка фраз и спрайта персонажа в соответствии с текущим временем суток.
 def refreshCharacter(Character character) {

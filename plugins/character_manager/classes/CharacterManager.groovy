@@ -47,4 +47,29 @@ abstract class CharacterManager {
 
         return new Character(randomName)
     }
+
+    // Сканирует папку с персонажами и сопоставляет имена, возвращая порядковый номер указанного персонажа.
+    static int getIdOfCharacter(Character character) {
+        int currentCharacterId = 0
+        String[] names = getCharacterList()
+
+        for (int i = 0; i < names.length; i++) {
+            if (names[i] == character.getName()) {
+                currentCharacterId = i
+                break
+            }
+        }
+
+        return currentCharacterId
+    }
+
+    // Позволяет получать персонажа не только, создавая его напрямую по имени, но и используя порядковый номер.
+    static Character getCharacterById(int id) {
+        String[] characters = getCharacterList()
+
+        if (id < 0 || id >= characters.length)
+            return null
+        else
+            return new Character(characters[id])
+    }
 }
