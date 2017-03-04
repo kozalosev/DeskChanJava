@@ -6,6 +6,7 @@ import classes.Settings
 
 import javax.swing.Timer
 import java.awt.event.ActionEvent
+import java.nio.file.Paths
 
 // Тэг для пункта меню и сохранения настроек.
 final String TAG_DELAY_MESSAGES = 'delay-between-messages'
@@ -15,6 +16,11 @@ final int DEFAULT_DELAY = 10
 // Используется для получения заголовков пунктов меню на языке системы.
 // Сейчас поддерживаются русский, а для всех остальных отображается английский.
 Localization localization = Localization.getInstance()
+
+// Получаем путь к директории, выделенной для хранения информации, сохраняющейся между обновлениями билдов приложения.
+sendMessage('core:get-plugin-data-dir', null, { sender, data ->
+    CharacterManager.setDataDir(Paths.get(((Map) data).get('path').toString()))
+})
 
 // Получаем случайного персонажа из папки resources/characters.
 // Под персонажем подразумевается папка, внутри которой располагаются папки sprites и phrases.
@@ -28,13 +34,10 @@ Timer messageShowTimer = initMessageTimer(character, delayBetweenMessages)
 // Поскольку у персонажа есть до 4 спрайтов и наборов фраз, которые устанавливаются в зависимости от времени суток
 // (normal, night, morning и evening), так что каждый час плагин проверяет, не пришло ли время обновить эти данные.
 Timer skinUpdateTimer = new Timer(3600000, { ActionEvent actionEvent ->
-    if (character.reloadRequired()) {
-        sendMessage('gui:change-skin', character.getSkin())
-        character.reloadPhrases()
-        showMessage(character.getWelcomePhrase())
-    }
+    if (character.reloadRequired())
+        refreshCharacter(character)
 })
-skinUpdateTimer.initialDelay = 0
+refreshCharacter(character)
 skinUpdateTimer.start()
 
 
@@ -56,7 +59,7 @@ addMessageListener('character_manager:naughty', { sender, tag, data ->
 })
 
 addMessageListener('character_manager:about', {sender, tag, data ->
-    BrowserAdapter.openWebpage("https://2ch.hk/s/res/1936557.html")
+    BrowserAdapter.openWebpage("http://eternal-search.com/deskchan/")
 })
 
 
@@ -92,6 +95,14 @@ sendMessage('gui:add-options-tab', [name: 'character_manager', msgTag: 'characte
 def showMessage(String message) {
     if (message != null && message.trim() != "")
         sendMessage('DeskChan:say', [text: message])
+}
+
+
+// Функция для обновления списка фраз и спрайта персонажа в соответствии с текущим временем суток.
+def refreshCharacter(Character character) {
+    sendMessage('gui:change-skin', character.getSkin())
+    character.reloadPhrases()
+    showMessage(character.getWelcomePhrase())
 }
 
 // Функция (пере-)инициализации таймера.

@@ -14,33 +14,26 @@ import java.util.regex.Pattern
 
 // Класс, использующийся для загрузки спрайтов и наборов фраз.
 abstract class ResourcesLoader {
-    final private static String CHARACTERS_PATH = "resources/characters/"
+    final private static Path CHARACTERS_PATH = CharacterManager.getDataDir().resolve("characters")
 
 
     // Функция для получения информации обо всех спрайтах.
     static SkinInfo[] readSkins(String characterName) throws WrongCharacterException
     {
-        Path directoryPath
-        if (Files.isDirectory(Paths.get(CHARACTERS_PATH + characterName + "/sprites")))
-            directoryPath = Paths.get(CHARACTERS_PATH + characterName + "/sprites")
-        else if (Files.isDirectory(Paths.get("../" + CHARACTERS_PATH + characterName + "/sprites")))
-            directoryPath = Paths.get("../" + CHARACTERS_PATH + characterName + "/sprites")
+        Path directoryPath = CHARACTERS_PATH.resolve(characterName).resolve("sprites")
+        if (!Files.isDirectory(directoryPath))
+            throw new WrongCharacterException("Character not found!")
 
         ArrayList<SkinInfo> list = new ArrayList<>()
-        if (directoryPath != null) {
-            try {
-                DirectoryStream<Path> directoryStream = Files.newDirectoryStream(directoryPath)
-                for (Path skinPath : directoryStream) {
-                    if (!Files.isDirectory(skinPath)) {
-                        list.add(new SkinInfo(skinPath))
-                    }
-                }
-            } catch (IOException e) {
-                e.printStackTrace()
+        try {
+            DirectoryStream<Path> directoryStream = Files.newDirectoryStream(directoryPath)
+            for (Path skinPath : directoryStream) {
+                if (!Files.isDirectory(skinPath))
+                    list.add(new SkinInfo(skinPath))
             }
+        } catch (IOException e) {
+            e.printStackTrace()
         }
-        else
-            throw new WrongCharacterException("Character not found!")
 
         SkinInfo[] resultArray = new SkinInfo[list.size()]
         resultArray = list.toArray(resultArray)
@@ -50,35 +43,29 @@ abstract class ResourcesLoader {
 
     // Эта функция считывает и возвращает только набор фраз для текущего времени суток.
     static PhrasesSet readPhrases(String characterName) throws WrongCharacterException {
-        Path directoryPath
-        if (Files.isDirectory(Paths.get(CHARACTERS_PATH + characterName + "/phrases")))
-            directoryPath = Paths.get(CHARACTERS_PATH + characterName + "/phrases")
-        else if (Files.isDirectory(Paths.get("../" + CHARACTERS_PATH + characterName + "/phrases")))
-            directoryPath = Paths.get("../" + CHARACTERS_PATH + characterName + "/phrases")
-
-        if (directoryPath != null) {
-            PhrasesSet set = new PhrasesSet()
-            set.concat(readPhrasesFile(directoryPath.resolve("default.txt")))
-
-            switch (Clock.getTimeOfDay()) {
-                case TimeOfDay.DAY:
-                    set.concat(readPhrasesFile(directoryPath.resolve("day.txt")))
-                    break
-                case TimeOfDay.NIGHT:
-                    set.concat(readPhrasesFile(directoryPath.resolve("night.txt")))
-                    break
-                case TimeOfDay.MORNING:
-                    set.concat(readPhrasesFile(directoryPath.resolve("morning.txt")))
-                    break
-                case TimeOfDay.EVENING:
-                    set.concat(readPhrasesFile(directoryPath.resolve("evening.txt")))
-                    break
-            }
-
-            return set
-        }
-        else
+        Path directoryPath = CHARACTERS_PATH.resolve(characterName).resolve("phrases")
+        if (!Files.isDirectory(directoryPath))
             throw new WrongCharacterException("Character not found!")
+
+        PhrasesSet set = new PhrasesSet()
+        set.concat(readPhrasesFile(directoryPath.resolve("default.txt")))
+
+        switch (Clock.getTimeOfDay()) {
+            case TimeOfDay.DAY:
+                set.concat(readPhrasesFile(directoryPath.resolve("day.txt")))
+                break
+            case TimeOfDay.NIGHT:
+                set.concat(readPhrasesFile(directoryPath.resolve("night.txt")))
+                break
+            case TimeOfDay.MORNING:
+                set.concat(readPhrasesFile(directoryPath.resolve("morning.txt")))
+                break
+            case TimeOfDay.EVENING:
+                set.concat(readPhrasesFile(directoryPath.resolve("evening.txt")))
+                break
+        }
+
+        return set
     }
 
 

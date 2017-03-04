@@ -1,20 +1,24 @@
 package classes
 
-import com.eternal_search.deskchan.core.Utils
 import exceptions.WrongCharacterException
 
 import java.nio.file.DirectoryStream
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.Paths
 
 // Класс для управления персонажами.
 abstract class CharacterManager {
+    // По умолчанию данные складывались бы в папку data внутри директории с плагином,
+    // но вообще значение этой переменной стоит сменить перед созданием персонажей.
+    static Path dataDir = Paths.get(new File(CharacterManager.class.protectionDomain.codeSource.location.path).getPath())
+        .getParent().resolve("data")
 
     // Позволяет получить список доступных в папке персонажей...
     static String[] getCharacterList() {
         ArrayList<String> list = new ArrayList<>()
-        Path directoryPath = Utils.getResourcePath("characters")
-        if (directoryPath != null) {
+        Path directoryPath = dataDir.resolve("characters")
+        if (Files.isDirectory(directoryPath)) {
             try {
                 DirectoryStream<Path> directoryStream = Files.newDirectoryStream(directoryPath)
                 for (Path characterPath : directoryStream) {

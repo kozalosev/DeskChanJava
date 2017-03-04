@@ -5,12 +5,10 @@ import org.json.JSONObject
 
 import java.nio.file.Files
 import java.nio.file.Path
-import java.nio.file.Paths
 
 // Синглтон, предоставляющий простую абстракцию над файлом resources/settings.json.
 class Settings {
-    private final static Path settingsFile = Paths.get(Settings.class.protectionDomain.codeSource.location.path)
-        .getParent().resolve("resources").resolve("settings.json")
+    private final static Path settingsFile = CharacterManager.getDataDir().resolve("settings.json")
 
     private Map<String, String> settings = new HashMap<>()
     static Settings instance

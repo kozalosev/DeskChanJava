@@ -106,7 +106,13 @@ task copyIconForExe(type: Copy) {
 	into "${buildDir}/launch4j"
 }
 
+task copyChocolaSprites(type: Copy) {
+	from "${projectDir}/resources/characters/Chocola"
+	into "${buildDir}/data/character_manager/characters/Chocola"
+}
+
 createExe.dependsOn createStartScriptsForExe
 createExe.dependsOn copyIconForExe
 distZip.dependsOn createExe
 distTar.dependsOn createExe
+build.dependsOn copyChocolaSprites

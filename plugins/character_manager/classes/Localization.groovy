@@ -10,9 +10,9 @@ import java.util.regex.Pattern
 
 // Класс, предоставляющий простую абстракцию над файлами resources/localization-**_**.txt.
 class Localization {
-    private final static Path resourcesPath = Paths.get(Settings.class.protectionDomain.codeSource.location.path)
-            .getParent().resolve("resources")
-    // По умолчанию используется файл localization.txt. Если его не будет в папке, вылетит WrongLocalizationException!
+    private final static Path resourcesPath = Paths.get(new File(Localization.class.protectionDomain.codeSource.location.path).getPath())
+        .getParent().resolve("resources")
+    // По умолчанию используется файл resources/localization.txt. Если его не будет в папке, вылетит WrongLocalizationException!
     private final static Path defaultLocalization = resourcesPath.resolve("localization.txt")
 
     private static Localization instance
