@@ -28,13 +28,10 @@ public class PluginClass implements Plugin, PluginLoader {
 	
 	@Override
 	public boolean matchPath(Path path) {
-		if (Files.isDirectory(path)) {
-			path = path.resolve("plugin.groovy");
-			if (Files.isReadable(path)) {
-				return true;
-			}
-		}
-		return path.getFileName().toString().endsWith(".groovy");
+		if (Files.isDirectory(path))
+			return Files.isReadable(path.resolve("plugin.groovy"));
+		else
+			return path.getFileName().toString().endsWith(".groovy");
 	}
 	
 	@Override
