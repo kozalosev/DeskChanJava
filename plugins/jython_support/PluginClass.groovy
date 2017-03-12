@@ -45,6 +45,7 @@ class PluginClass implements Plugin, PluginLoader {
         interpreter.getSystemState().path.append(Py.java2py(path.getParent().toString()))
         PyCode script = interpreter.compile(new FileReader(path.toFile()))
         JythonPlugin plugin = new JythonPlugin(script)
+        plugin.setPluginDir(path.getParent())
         PluginManager.getInstance().initializePlugin(id, plugin)
     }
 }

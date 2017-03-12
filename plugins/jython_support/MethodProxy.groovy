@@ -2,13 +2,15 @@ import com.eternal_search.deskchan.core.MessageListener
 import com.eternal_search.deskchan.core.PluginProxy
 import com.eternal_search.deskchan.core.ResponseListener
 
+import java.nio.file.Path
+
 class MethodProxy {
     private PluginProxy pluginProxy
-    private List<Runnable> cleanupHandlers
+    private JythonPlugin plugin
 
-    MethodProxy(PluginProxy pluginProxy, List<Runnable> cleanupHandlers) {
+    MethodProxy(PluginProxy pluginProxy, JythonPlugin plugin) {
         this.pluginProxy = pluginProxy
-        this.cleanupHandlers = cleanupHandlers
+        this.plugin = plugin
     }
 
     void sendMessage (String tag, Object data) {
@@ -28,6 +30,14 @@ class MethodProxy {
     }
 
     void addCleanupHandler(Runnable handler) {
-        cleanupHandlers.add(handler)
+        plugin.getCleanupHandlers().add(handler)
+    }
+
+    Path getPluginDir() {
+        return plugin.getPluginDir()
+    }
+
+    Path getDataDir() {
+        return pluginProxy.getDataDir()
     }
 }

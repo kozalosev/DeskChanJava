@@ -5,6 +5,9 @@ from libs.functions import build_tag
 
 # Shows the welcome message.
 bus.sendMessage("DeskChan:say", {'text': 'Hello!'})
+# Prints information messages to the console.
+print("[Test Python] Plugin directory: %s." % bus.getPluginDir())
+print("[Test Python] Data directory: %s." % bus.getDataDir())
 # Adds the "Test" item into the popup menu.
 bus.sendMessage("DeskChan:register-simple-action", {'name': 'Test', 'msgTag': build_tag(TAG_MENUACTION)})
 
