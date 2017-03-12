@@ -27,7 +27,7 @@ bus.addMessageListener(build_tag(TAG_SAVE_OPTIONS), lambda sender, tag, data:
 )
 
 # This piece of code demonstrates how we can use Python and Java modules.
-# Shows random float point numbers every 10 minutes.
+# Shows random float point numbers every minute.
 timer = Timer(TIMER_DELAY, lambda action_event:
     bus.sendMessage("DeskChan:say", {'text': random.random()})
 )
