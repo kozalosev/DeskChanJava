@@ -5,6 +5,7 @@ import com.eternal_search.deskchan.core.Plugin;
 import com.eternal_search.deskchan.core.PluginLoader;
 import com.eternal_search.deskchan.core.PluginManager;
 import com.eternal_search.deskchan.core.PluginProxy;
+import org.python.core.Py;
 import org.python.core.PyCode;
 import org.python.util.PythonInterpreter;
 
@@ -39,6 +40,7 @@ public class PluginClass implements Plugin, PluginLoader {
             path = path.resolve("plugin.py");
         }
         PythonInterpreter interpreter = new PythonInterpreter();
+        interpreter.getSystemState().path.append(Py.java2py(path.getParent().toString()));
         PyCode script = interpreter.compile(new FileReader(path.toFile()));
         JythonPlugin plugin = new JythonPlugin(script);
         PluginManager.getInstance().initializePlugin(id, plugin);
