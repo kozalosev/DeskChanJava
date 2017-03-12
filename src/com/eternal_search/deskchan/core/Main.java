@@ -25,7 +25,6 @@ public class Main {
 		PluginManager pluginManager = PluginManager.getInstance();
 		pluginManager.initialize();
 		pluginManager.loadPluginByPackageName("com.eternal_search.deskchan.groovy_support");
-		pluginManager.loadPluginByPackageName("com.eternal_search.deskchan.jython_support");
 		pluginManager.loadPluginByPackageName("com.eternal_search.deskchan.gui");
 		try {
 			Path jarPath = Paths.get(Main.class.getProtectionDomain().getCodeSource().getLocation().toURI());
