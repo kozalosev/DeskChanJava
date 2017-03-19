@@ -123,9 +123,13 @@ class Character {
 
         if (count > 1) {
             String currentPhrase = lastRandomPhrase
+            int endlessLoopDetector = 100
             while (currentPhrase == lastRandomPhrase) {
-                int i = random.nextInt(sourceList.size() - 1)
+                int i = random.nextInt(sourceList.size())
                 currentPhrase = sourceList[i]
+
+                if (--endlessLoopDetector <= 0)
+                    break
             }
             lastRandomPhrase = currentPhrase
 
