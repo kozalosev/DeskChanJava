@@ -61,7 +61,7 @@ addMessageListener('character_manager:naughty', { sender, tag, data ->
 })
 
 addMessageListener('character_manager:about', {sender, tag, data ->
-    BrowserAdapter.openWebpage("http://eternal-search.com/deskchan/")
+    BrowserAdapter.openWebpage("http://deskchan.info/")
 })
 
 

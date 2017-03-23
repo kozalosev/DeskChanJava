@@ -8,7 +8,6 @@ import exceptions.WrongCharacterException
 import java.nio.file.DirectoryStream
 import java.nio.file.Files
 import java.nio.file.Path
-import java.nio.file.Paths
 import java.util.regex.Matcher
 import java.util.regex.Pattern
 
