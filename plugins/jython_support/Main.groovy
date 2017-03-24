@@ -1,9 +1,9 @@
 @Grab('org.python:jython-standalone:2.5.2')
 
-import com.eternal_search.deskchan.core.Plugin
-import com.eternal_search.deskchan.core.PluginLoader
-import com.eternal_search.deskchan.core.PluginManager
-import com.eternal_search.deskchan.core.PluginProxy
+import info.deskchan.core.Plugin
+import info.deskchan.core.PluginLoader
+import info.deskchan.core.PluginManager
+import info.deskchan.core.PluginProxy
 import org.python.core.Py
 import org.python.core.PyCode
 import org.python.util.PythonInterpreter
@@ -11,7 +11,7 @@ import org.python.util.PythonInterpreter
 import java.nio.file.Files
 import java.nio.file.Path
 
-class PluginClass implements Plugin, PluginLoader {
+class Main implements Plugin, PluginLoader {
     @Override
     boolean initialize(PluginProxy proxy) {
         PluginManager.getInstance().registerPluginLoader(this)
@@ -45,7 +45,7 @@ class PluginClass implements Plugin, PluginLoader {
         interpreter.getSystemState().path.append(Py.java2py(path.getParent().toString()))
         PyCode script = interpreter.compile(new FileReader(path.toFile()))
         JythonPlugin plugin = new JythonPlugin(script)
-        plugin.setPluginDir(path.getParent())
+        plugin.setPluginDirPath(path.getParent())
         PluginManager.getInstance().initializePlugin(id, plugin)
     }
 }

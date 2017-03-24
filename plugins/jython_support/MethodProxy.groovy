@@ -1,7 +1,8 @@
-import com.eternal_search.deskchan.core.MessageListener
-import com.eternal_search.deskchan.core.PluginProxy
-import com.eternal_search.deskchan.core.ResponseListener
+import info.deskchan.core.MessageListener
+import info.deskchan.core.PluginProxy
+import info.deskchan.core.ResponseListener
 
+import java.nio.charset.Charset
 import java.nio.file.Path
 
 class MethodProxy {
@@ -33,11 +34,19 @@ class MethodProxy {
         plugin.getCleanupHandlers().add(handler)
     }
 
-    Path getPluginDir() {
-        return plugin.getPluginDir()
+    Path getPluginDirPath() {
+        return plugin.getPluginDirPath()
     }
 
-    Path getDataDir() {
-        return pluginProxy.getDataDir()
+    Path getDataDirPath() {
+        return pluginProxy.getDataDirPath()
+    }
+
+    def log(obj) {
+        pluginProxy.log(obj.toString())
+    }
+
+    def log(Throwable e) {
+        pluginProxy.log(e)
     }
 }

@@ -1,1 +1,1 @@
-new PluginClass().initialize()
+new Main().initialize()

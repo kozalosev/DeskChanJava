@@ -1,5 +1,5 @@
-import com.eternal_search.deskchan.core.Plugin
-import com.eternal_search.deskchan.core.PluginProxy
+import info.deskchan.core.Plugin
+import info.deskchan.core.PluginProxy
 import org.python.core.Py
 import org.python.core.PyCode
 import org.python.core.PyStringMap
@@ -9,7 +9,7 @@ import java.nio.file.Path
 class JythonPlugin implements Plugin {
     private List<Runnable> cleanupHandlers = new ArrayList<>()
     private PyCode compiledCode
-    private Path pluginDir
+    private Path pluginDirPath
 
     JythonPlugin(PyCode compiledCode) {
         this.compiledCode = compiledCode
@@ -17,7 +17,7 @@ class JythonPlugin implements Plugin {
 
     @Override
     boolean initialize(PluginProxy pluginProxy) {
-        if (pluginDir == null)
+        if (pluginDirPath == null)
             throw new NullPointerException("Plugin directory is not set!")
 
         PyStringMap globals = new PyStringMap()
@@ -39,18 +39,18 @@ class JythonPlugin implements Plugin {
         }
     }
 
-    void setPluginDir(Path path) {
-        if (pluginDir == null)
-            pluginDir = path
+    void setPluginDirPath(Path path) {
+        if (pluginDirPath == null)
+            pluginDirPath = path
         else
             System.err.println("Attempt to change plugin directory!")
     }
 
-    List<Runnable> getCleanupHandlers() {
-        return cleanupHandlers
+    Path getPluginDirPath() {
+        return pluginDirPath
     }
 
-    Path getPluginDir() {
-        return pluginDir
+    List<Runnable> getCleanupHandlers() {
+        return cleanupHandlers
     }
 }
