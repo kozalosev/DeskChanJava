@@ -1,4 +1,4 @@
-@Grab('org.python:jython-standalone:2.5.2')
+@Grab('org.python:jython-standalone:2.7.1b3')
 
 import info.deskchan.core.Plugin
 import info.deskchan.core.PluginLoader
@@ -43,6 +43,7 @@ class Main implements Plugin, PluginLoader {
         }
         PythonInterpreter interpreter = new PythonInterpreter()
         interpreter.getSystemState().path.append(Py.java2py(path.getParent().toString()))
+        interpreter.getSystemState().path.append(Py.java2py(path.getParent().resolve("__dependencies__").toString()))
         PyCode script = interpreter.compile(new FileReader(path.toFile()))
         JythonPlugin plugin = new JythonPlugin(script)
         plugin.setPluginDirPath(path.getParent())

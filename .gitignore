@@ -4,3 +4,4 @@ build
 .directory
 Thumbs.db
 *$py.class
+plugins/**/__dependencies__
