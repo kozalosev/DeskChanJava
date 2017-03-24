@@ -27,14 +27,15 @@ bus.sendMessage("gui:add-options-tab", {'name': 'Test Python', 'msgTag': build_t
 ]})
 
 # Prints a message when user clicks on the "Save" button.
+# Note that I provide you a special method to say something without worrying about tags and string conversions.
 bus.addMessageListener(build_tag(TAG_SAVE_OPTIONS), lambda sender, tag, data:
-    bus.sendMessage("DeskChan:say", {'text': "You asked me to print: \"%s\"." % data[TAG_TEXTFIELD]})
+    bus.say("You asked me to print: \"%s\"." % data[TAG_TEXTFIELD])
 )
 
 # This piece of code demonstrates how we can use Python and Java modules.
 # Shows random float point numbers every minute.
 timer = Timer(TIMER_DELAY, lambda action_event:
-    bus.sendMessage("DeskChan:say", {'text': str(random.random()})
+    bus.say(random.random())
 )
 timer.start()
 

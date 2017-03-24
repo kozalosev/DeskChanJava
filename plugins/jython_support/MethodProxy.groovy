@@ -49,4 +49,10 @@ class MethodProxy {
     def log(Throwable e) {
         pluginProxy.log(e)
     }
+
+    def say(message) {
+        byte[] text = message.toString().getBytes(Charset.forName("ISO_8859_1"))
+        String convertedMessage = new String(text)
+        sendMessage("DeskChan:say", [text: convertedMessage])
+    }
 }
