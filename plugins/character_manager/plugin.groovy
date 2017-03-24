@@ -4,9 +4,6 @@ import classes.Character
 import classes.Localization
 import classes.Settings
 
-import javax.swing.Timer
-import java.awt.event.ActionEvent
-import java.nio.file.Paths
 
 // Тэги для пунктов меню и сохранения настроек.
 final String TAG_DELAY_MESSAGES = 'delay-between-messages'
@@ -19,9 +16,7 @@ final int DEFAULT_DELAY = 10
 Localization localization = Localization.getInstance()
 
 // Получаем путь к директории, выделенной для хранения информации, сохраняющейся между обновлениями билдов приложения.
-sendMessage('core:get-plugin-data-dir', null, { sender, data ->
-    CharacterManager.setDataDir(Paths.get(((Map) data).get('path').toString()))
-})
+CharacterManager.setDataDir(getDataDirPath())
 
 // Получаем ранее выбранного или случайного персонажа из папки resources/characters.
 // Под персонажем подразумевается папка, внутри которой располагаются папки sprites и phrases.
@@ -35,18 +30,20 @@ Timer messageShowTimer = initMessageTimer(character, delayBetweenMessages)
 
 // Поскольку у персонажа есть до 4 спрайтов и наборов фраз, которые устанавливаются в зависимости от времени суток
 // (normal, night, morning и evening), так что каждый час плагин проверяет, не пришло ли время обновить эти данные.
-Timer skinUpdateTimer = new Timer(3600000, { ActionEvent actionEvent ->
+Timer skinUpdateTimer = new Timer()
+skinUpdateTimer.schedule({ ->
     if (character.reloadRequired())
         refreshCharacter(character)
-})
+}, 3600000, 3600000)
 refreshCharacter(character)
-skinUpdateTimer.start()
 
 
 // При выгрузке плагина останавливаем таймеры и сохраняем состояние персонажа.
 addCleanupHandler({
-    skinUpdateTimer.stop()
-    messageShowTimer.stop()
+    skinUpdateTimer.cancel()
+    skinUpdateTimer.purge()
+    messageShowTimer.cancel()
+    messageShowTimer.purge()
     character.saveState()
 })
 
@@ -125,9 +122,10 @@ def refreshCharacter(Character character) {
 // Функция (пере-)инициализации таймера.
 // Используется при загрузке плагина и в случае изменения настроек.
 Timer initMessageTimer(Character character, int minutes) {
-    Timer timer = new Timer(minutes * 60000, { ActionEvent actionEvent ->
+    int delayTime = minutes * 60000
+    Timer timer = new Timer()
+    timer.schedule({ ->
         showMessage(character.getRandomPhrase())
-    })
-    timer.start()
+    }, delayTime, delayTime)
     return timer
 }
