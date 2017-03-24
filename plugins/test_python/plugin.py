@@ -1,7 +1,8 @@
 import random
-from javax.swing import Timer
+from java.util import Timer, TimerTask
 from libs.constants import *
 from libs.functions import build_tag
+
 
 # Shows the welcome message.
 bus.sendMessage("DeskChan:say", {'text': 'Hello!'})
@@ -32,12 +33,21 @@ bus.addMessageListener(build_tag(TAG_SAVE_OPTIONS), lambda sender, tag, data:
     bus.say("You asked me to print: \"%s\"." % data[TAG_TEXTFIELD])
 )
 
+
 # This piece of code demonstrates how we can use Python and Java modules.
 # Shows random float point numbers every minute.
-timer = Timer(TIMER_DELAY, lambda action_event:
-    bus.say(random.random())
-)
-timer.start()
+class TimerAction(TimerTask):
+    def run(self):
+        bus.say(random.random())
+
+timer = Timer()
+timer.schedule(TimerAction(), TIMER_DELAY, TIMER_DELAY)
+
+
+# SECTION OF PURIFICATION
+def timer_cleanup():
+    timer.cancel()
+    timer.purge()
 
 # Here you should stop any actions and release any resources which the plugin is used.
-bus.addCleanupHandler(lambda: timer.stop())
+bus.addCleanupHandler(timer_cleanup)
