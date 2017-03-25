@@ -50,7 +50,7 @@ class MethodProxy {
     def say(String message) {
         byte[] bytes = message.getBytes(Charset.defaultCharset())
         String converted = new String(bytes, Charset.forName("UTF-8"))
-        sendMessage("DeskChan:say", [text: converted.toString()])
+        sendMessage("DeskChan:say", [ text: converted ])
     }
 }
 
