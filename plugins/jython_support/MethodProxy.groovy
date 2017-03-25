@@ -49,9 +49,7 @@ class MethodProxy {
     }
 
     def say(message) {
-        byte[] text = message.toString().getBytes(Charset.forName("ISO_8859_1"))
-        String convertedMessage = new String(text)
-        sendMessage("DeskChan:say", [text: convertedMessage])
+        sendMessage("DeskChan:say", [text: message.toString()])
     }
 }
 
