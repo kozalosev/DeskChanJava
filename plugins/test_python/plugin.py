@@ -13,16 +13,18 @@ from busproxy import *
 # Shows the welcome message.
 bus.sendMessage("DeskChan:say", {'text': 'Hello!'})
 # Use unicode strings for non-ASCII characters.
-# Note, how we can use aliases from the busproxy.
-sendMessage("DeskChan:say", {'text': u'And again but in Russian: "Привет!"'})
+# The method say() automatically converts strings from a default encoding into UTF-8. Thus, you should always use it
+# to show balloons instead of sending messages manually.
+say(u'And again but in Russian: "Привет!"')
 # Prints information messages to the console.
+# Note, how we can use aliases from the busproxy.
 bus.log("Plugin directory: %s." % bus.getPluginDirPath())
 log("Data directory: %s." % get_data_dir_path())
 # Adds the "Test" item into the popup menu.
 send_message("DeskChan:register-simple-action", {'name': 'Test', 'msgTag': build_tag(TAG_MENUACTION)})
 
 # Let's print identical messages if the user clicks on the character or selects the option in the popup menu.
-func_show_test_message = lambda sender, tag, data: send_message("DeskChan:say", {'text': 'It works!'})
+func_show_test_message = lambda sender, tag, data: say("It works!")
 addMessageListener(build_tag(TAG_MENUACTION), func_show_test_message)
 add_message_listener("gui-events:character-left-click", func_show_test_message)
 

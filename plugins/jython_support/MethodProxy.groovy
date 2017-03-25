@@ -1,5 +1,4 @@
 import info.deskchan.core.MessageListener
-import info.deskchan.core.PluginProxy
 import info.deskchan.core.ResponseListener
 
 import java.nio.charset.Charset
@@ -48,8 +47,10 @@ class MethodProxy {
         plugin.getPluginProxy().log(e)
     }
 
-    def say(message) {
-        sendMessage("DeskChan:say", [text: message.toString()])
+    def say(String message) {
+        byte[] bytes = message.getBytes(Charset.defaultCharset())
+        String converted = new String(bytes, Charset.forName("UTF-8"))
+        sendMessage("DeskChan:say", [text: converted.toString()])
     }
 }
 
