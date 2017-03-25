@@ -1,1 +1,1 @@
-new Main().initialize()
+new Main(getPluginDirPath()).initialize()

@@ -6,28 +6,26 @@ import java.nio.charset.Charset
 import java.nio.file.Path
 
 class MethodProxy {
-    private PluginProxy pluginProxy
     private JythonPlugin plugin
 
-    MethodProxy(PluginProxy pluginProxy, JythonPlugin plugin) {
-        this.pluginProxy = pluginProxy
+    MethodProxy(JythonPlugin plugin) {
         this.plugin = plugin
     }
 
     void sendMessage (String tag, Object data) {
-        pluginProxy.sendMessage(tag, data)
+        plugin.getPluginProxy().sendMessage(tag, data)
     }
 
     void sendMessage(String tag, Object data, ResponseListener responseListener) {
-        pluginProxy.sendMessage(tag, data, responseListener)
+        plugin.getPluginProxy().sendMessage(tag, data, responseListener)
     }
 
     void addMessageListener(String tag, MessageListener listener) {
-        pluginProxy.addMessageListener(tag, listener)
+        plugin.getPluginProxy().addMessageListener(tag, listener)
     }
 
     void removeMessageListener(String tag, MessageListener listener) {
-        pluginProxy.removeMessageListener(tag, listener)
+        plugin.getPluginProxy().removeMessageListener(tag, listener)
     }
 
     void addCleanupHandler(Runnable handler) {
@@ -39,15 +37,15 @@ class MethodProxy {
     }
 
     Path getDataDirPath() {
-        return pluginProxy.getDataDirPath()
+        return plugin.getPluginProxy().getDataDirPath()
     }
 
     def log(obj) {
-        pluginProxy.log(obj.toString())
+        plugin.getPluginProxy().log(obj.toString())
     }
 
     def log(Throwable e) {
-        pluginProxy.log(e)
+        plugin.getPluginProxy().log(e)
     }
 
     def say(message) {
@@ -55,4 +53,9 @@ class MethodProxy {
         String convertedMessage = new String(text)
         sendMessage("DeskChan:say", [text: convertedMessage])
     }
+}
+
+
+interface MethodProxyGetter {
+    MethodProxy get()
 }

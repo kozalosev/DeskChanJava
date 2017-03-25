@@ -6,12 +6,19 @@ import info.deskchan.core.PluginManager
 import info.deskchan.core.PluginProxy
 import org.python.core.Py
 import org.python.core.PyCode
+import org.python.core.PySystemState
 import org.python.util.PythonInterpreter
 
 import java.nio.file.Files
 import java.nio.file.Path
 
 class Main implements Plugin, PluginLoader {
+    private Path pluginDirPath
+
+    Main(Path pluginDirPah) {
+        this.pluginDirPath = pluginDirPah
+    }
+
     @Override
     boolean initialize(PluginProxy proxy) {
         PluginManager.getInstance().registerPluginLoader(this)
@@ -42,11 +49,19 @@ class Main implements Plugin, PluginLoader {
             path = path.resolve("plugin.py")
         }
         PythonInterpreter interpreter = new PythonInterpreter()
-        interpreter.getSystemState().path.append(Py.java2py(path.getParent().toString()))
-        interpreter.getSystemState().path.append(Py.java2py(path.getParent().resolve("__dependencies__").toString()))
+        PySystemState systemState = interpreter.getSystemState()
+        systemState.path.append(Py.java2py(pluginDirPath.toString()))
+        systemState.path.append(Py.java2py(path.getParent().toString()))
+        systemState.path.append(Py.java2py(path.getParent().resolve("__dependencies__").toString()))
         PyCode script = interpreter.compile(new FileReader(path.toFile()))
-        JythonPlugin plugin = new JythonPlugin(script)
+
+        // To make the bus work globally, I had to inject it in both ways: as a built-in and a global variable for a plugin.
+        MethodProxy methodProxy
+        JythonPlugin plugin = new JythonPlugin(script, { -> methodProxy })
         plugin.setPluginDirPath(path.getParent())
+        methodProxy = new MethodProxy(plugin)
+        systemState.builtins.__setitem__("bus", Py.java2py(methodProxy))
+
         PluginManager.getInstance().initializePlugin(id, plugin)
     }
 }

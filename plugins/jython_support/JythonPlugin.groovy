@@ -10,9 +10,12 @@ class JythonPlugin implements Plugin {
     private List<Runnable> cleanupHandlers = new ArrayList<>()
     private PyCode compiledCode
     private Path pluginDirPath
+    private PluginProxy pluginProxy
+    private MethodProxyGetter methodProxyGetter
 
-    JythonPlugin(PyCode compiledCode) {
+    JythonPlugin(PyCode compiledCode, MethodProxyGetter methodProxyGetter) {
         this.compiledCode = compiledCode
+        this.methodProxyGetter = methodProxyGetter
     }
 
     @Override
@@ -20,8 +23,11 @@ class JythonPlugin implements Plugin {
         if (pluginDirPath == null)
             throw new NullPointerException("Plugin directory is not set!")
 
+        this.pluginProxy = pluginProxy
+
         PyStringMap globals = new PyStringMap()
-        globals.__setitem__("bus", Py.java2py(new MethodProxy(pluginProxy, this)))
+        MethodProxy methodProxy = methodProxyGetter.get()
+        globals.__setitem__("bus", Py.java2py(methodProxy))
         try {
             Py.runCode(compiledCode, globals, globals)
         }
@@ -52,5 +58,9 @@ class JythonPlugin implements Plugin {
 
     List<Runnable> getCleanupHandlers() {
         return cleanupHandlers
+    }
+
+    PluginProxy getPluginProxy() {
+        return pluginProxy
     }
 }

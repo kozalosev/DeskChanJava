@@ -3,24 +3,31 @@ from java.util import Timer, TimerTask
 from libs.constants import *
 from libs.functions import build_tag
 
+# The plugin can communicate to the others using the bus. It's a special global object injected in the interpretator.
+# The bus has the same methods as Groovy plugins.
+# `busproxy` is a special module that you may use to include all functions of the bus to the scope. After that you
+# won't have to use `bus` explicitly. Moreover, it provides more Pythonic aliases (lower case names with underscores)
+# for some of the functions.
+from busproxy import *
 
 # Shows the welcome message.
 bus.sendMessage("DeskChan:say", {'text': 'Hello!'})
 # Use unicode strings for non-ASCII characters.
-bus.sendMessage("DeskChan:say", {'text': u'And again but in Russian: "Привет!"'})
+# Note, how we can use aliases from the busproxy.
+sendMessage("DeskChan:say", {'text': u'And again but in Russian: "Привет!"'})
 # Prints information messages to the console.
 bus.log("Plugin directory: %s." % bus.getPluginDirPath())
-bus.log("Data directory: %s." % bus.getDataDirPath())
+log("Data directory: %s." % get_data_dir_path())
 # Adds the "Test" item into the popup menu.
-bus.sendMessage("DeskChan:register-simple-action", {'name': 'Test', 'msgTag': build_tag(TAG_MENUACTION)})
+send_message("DeskChan:register-simple-action", {'name': 'Test', 'msgTag': build_tag(TAG_MENUACTION)})
 
 # Let's print identical messages if the user clicks on the character or selects the option in the popup menu.
-func_show_test_message = lambda sender, tag, data: bus.sendMessage("DeskChan:say", {'text': 'It works!'})
-bus.addMessageListener(build_tag(TAG_MENUACTION), func_show_test_message)
-bus.addMessageListener("gui-events:character-left-click", func_show_test_message)
+func_show_test_message = lambda sender, tag, data: send_message("DeskChan:say", {'text': 'It works!'})
+addMessageListener(build_tag(TAG_MENUACTION), func_show_test_message)
+add_message_listener("gui-events:character-left-click", func_show_test_message)
 
 # Adds the options tab.
-bus.sendMessage("gui:add-options-tab", {'name': 'Test Python', 'msgTag': build_tag(TAG_SAVE_OPTIONS), 'controls': [
+send_message("gui:add-options-tab", {'name': 'Test Python', 'msgTag': build_tag(TAG_SAVE_OPTIONS), 'controls': [
     {
         'type': 'TextField', 'id': TAG_TEXTFIELD, 'label': 'Test',
         'value': 'Type something here and press the button!'
@@ -29,8 +36,8 @@ bus.sendMessage("gui:add-options-tab", {'name': 'Test Python', 'msgTag': build_t
 
 # Prints a message when user clicks on the "Save" button.
 # Note that I provide you a special method to say something without worrying about tags and string conversions.
-bus.addMessageListener(build_tag(TAG_SAVE_OPTIONS), lambda sender, tag, data:
-    bus.say("You asked me to print: \"%s\"." % data[TAG_TEXTFIELD])
+add_message_listener(build_tag(TAG_SAVE_OPTIONS), lambda sender, tag, data:
+    say("You asked me to print: \"%s\"." % data[TAG_TEXTFIELD])
 )
 
 
@@ -38,7 +45,7 @@ bus.addMessageListener(build_tag(TAG_SAVE_OPTIONS), lambda sender, tag, data:
 # Shows random float point numbers every minute.
 class TimerAction(TimerTask):
     def run(self):
-        bus.say(random.random())
+        say(random.random())
 
 timer = Timer()
 timer.schedule(TimerAction(), TIMER_DELAY, TIMER_DELAY)
@@ -50,4 +57,4 @@ def timer_cleanup():
     timer.purge()
 
 # Here you should stop any actions and release any resources which the plugin is used.
-bus.addCleanupHandler(timer_cleanup)
+add_cleanup_handler(timer_cleanup)
