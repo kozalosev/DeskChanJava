@@ -31,12 +31,12 @@ class MethodProxy {
         plugin.getCleanupHandlers().add(handler)
     }
 
-    Path getPluginDirPath() {
-        return plugin.getPluginDirPath()
+    String getPluginDirPath() {
+        return plugin.getPluginDirPath().toString()
     }
 
-    Path getDataDirPath() {
-        return plugin.getPluginProxy().getDataDirPath()
+    String getDataDirPath() {
+        return plugin.getPluginProxy().getDataDirPath().toString()
     }
 
     def log(obj) {
