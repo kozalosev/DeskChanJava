@@ -1,0 +1,12 @@
+login               =   Email
+password            =   Password
+token               =   Token
+token_hint          =   Or you can type a token:
+get_token           =   Get token
+
+msg_from_user       =   Message from %s %s: "%s"
+msg_from_chat       =   Message from %s %s via chat "%s": "%s"
+msg_from_group      =   Message from group "%s": "%s"
+
+auth_attempt_fail   =   Master! I can receive messages from VK for you! Just go to options and tell me you credentials.
+login_fail          =   Something's wrong with your data: %s!
