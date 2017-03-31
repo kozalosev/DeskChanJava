@@ -15,6 +15,7 @@ class MessageListener:
     def __init__(self, session):
         self._session = session
         self._running = False
+        self._stop_flag = False
 
     def start(self, listener_callback):
         from threading import Thread
@@ -22,12 +23,11 @@ class MessageListener:
         longpoll = VkLongPoll(self._session)
 
         t = Thread(target=self._longpoll_loop, args=(longpoll, listener_callback))
-        self._running = True
         t.start()
 
     def stop(self):
         if self._running:
-            self._running = False
+            self._stop_flag = True
             self._session.http.close()
 
     @property
@@ -37,40 +37,52 @@ class MessageListener:
     def _longpoll_loop(self, longpoll, callback):
         from requests.exceptions import ConnectionError
 
-        try:
-            for event in longpoll.listen():
-                if event.type == VkEventType.MESSAGE_NEW and event.to_me:
-                    api = self._session.get_api()
+        self._running = True
 
-                    text = event.text
-                    group_name, first_name, last_name, chat_name = (None,) * 4
+        while True:
+            if self._stop_flag:
+                break
 
-                    if event.from_group:
-                        source = MessageSource.GROUP
-                        group = api.groups.getById(group_id=event.group_id)
-                        group_name = group.name
-                    else:
-                        user = api.users.get(user_ids=event.user_id)[0]
-                        first_name, last_name = user['first_name'], user['last_name']
+            events = longpoll.check()
 
-                        if event.from_user:
-                            source = MessageSource.USER
-                        elif event.from_chat:
-                            source = MessageSource.CHAT
-                            chat = api.messages.getChat(chat_id=event.chat_id)
-                            chat_name = chat.title
-                        else:
-                            raise RuntimeError("Unexpected event source!")
+            if events:
+                try:
+                    for event in events:
+                        if event.type == VkEventType.MESSAGE_NEW and event.to_me:
+                            api = self._session.get_api()
 
-                    data = {}
-                    for var in ('group_name', 'first_name', 'last_name', 'chat_name'):
-                        if var in locals():
-                            data[var] = locals()[var]
+                            text = event.text
+                            group_name, first_name, last_name, chat_name = (None,) * 4
 
-                    callback(source, text, data)
-        except ConnectionError as err:
-            if self._running:
-                raise
+                            if event.from_group:
+                                source = MessageSource.GROUP
+                                group = api.groups.getById(group_id=event.group_id)
+                                group_name = group.name
+                            else:
+                                user = api.users.get(user_ids=event.user_id)[0]
+                                first_name, last_name = user['first_name'], user['last_name']
+
+                                if event.from_user:
+                                    source = MessageSource.USER
+                                elif event.from_chat:
+                                    source = MessageSource.CHAT
+                                    chat = api.messages.getChat(chat_id=event.chat_id)
+                                    chat_name = chat.title
+                                else:
+                                    raise RuntimeError("Unexpected event source!")
+
+                            data = {}
+                            for var in ('group_name', 'first_name', 'last_name', 'chat_name'):
+                                if var in locals():
+                                    data[var] = locals()[var]
+
+                            callback(source, text, data)
+                except ConnectionError as err:
+                    if self._stop_flag:
+                        break
+
+        self._running = False
+        self._stop_flag = False
 
 
 class Auth:
