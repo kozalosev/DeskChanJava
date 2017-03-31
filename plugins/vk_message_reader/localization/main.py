@@ -38,6 +38,6 @@ class Localization:
 
     def get(self, label):
         if label in self.strings:
-            return self.strings[label]
+            return self.strings[label].decode('string_escape')
         else:
             raise ValueError("No localized string: %s!" % label)

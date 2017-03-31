@@ -28,49 +28,49 @@ class MessageListener:
     def stop(self):
         if self._running:
             self._running = False
-
+            self._session.http.close()
 
     @property
     def listening(self):
         return self._running
 
     def _longpoll_loop(self, longpoll, callback):
-        # TODO: Here we have a problem.
-        # longpoll.listen() put the thread into an endless loop. It's very bad!
-        # So, it seems I need to replace the long pool method with manual periodical updates.
-        for event in longpoll.listen():
-            if not self._running:
-                break
+        from requests.exceptions import ConnectionError
 
-            if event.type == VkEventType.MESSAGE_NEW and event.to_me:
-                api = self._session.get_api()
+        try:
+            for event in longpoll.listen():
+                if event.type == VkEventType.MESSAGE_NEW and event.to_me:
+                    api = self._session.get_api()
 
-                text = event.text
-                group_name, first_name, last_name, chat_name = (None,) * 4
+                    text = event.text
+                    group_name, first_name, last_name, chat_name = (None,) * 4
 
-                if event.from_group:
-                    source = MessageSource.GROUP
-                    group = api.groups.getById(group_id=event.group_id)
-                    group_name = group.name
-                else:
-                    user = api.users.get(user_ids=event.user_id)[0]
-                    first_name, last_name = user['first_name'], user['last_name']
-
-                    if event.from_user:
-                        source = MessageSource.USER
-                    elif event.from_chat:
-                        source = MessageSource.CHAT
-                        chat = api.messages.getChat(chat_id=event.chat_id)
-                        chat_name = chat.title
+                    if event.from_group:
+                        source = MessageSource.GROUP
+                        group = api.groups.getById(group_id=event.group_id)
+                        group_name = group.name
                     else:
-                        raise RuntimeError("Unexpected event source!")
+                        user = api.users.get(user_ids=event.user_id)[0]
+                        first_name, last_name = user['first_name'], user['last_name']
 
-                data = {}
-                for var in ('group_name', 'first_name', 'last_name', 'chat_name'):
-                    if var in locals():
-                        data[var] = locals()[var]
+                        if event.from_user:
+                            source = MessageSource.USER
+                        elif event.from_chat:
+                            source = MessageSource.CHAT
+                            chat = api.messages.getChat(chat_id=event.chat_id)
+                            chat_name = chat.title
+                        else:
+                            raise RuntimeError("Unexpected event source!")
 
-                callback(source, text, data)
+                    data = {}
+                    for var in ('group_name', 'first_name', 'last_name', 'chat_name'):
+                        if var in locals():
+                            data[var] = locals()[var]
+
+                    callback(source, text, data)
+        except ConnectionError as err:
+            if self._running:
+                raise
 
 
 class Auth:
@@ -95,7 +95,7 @@ redirect_uri=https://oauth.vk.com/blank.html&scope=messages,offline&response_typ
                 token = matches.group(1)
 
         try:
-            session = VkApi(login, password, token=token, app_id=cls.APP_ID, scope=69632,
+            session = VkApi(login, password, token=token, app_id=cls.APP_ID, scope="messages,offline",
                             config_filename=config_filename)
             session.auth()
         except AuthError as err:
@@ -122,6 +122,10 @@ class VK:
 
         listener = MessageListener(session)
         if listener:
+            settings = Settings.get_instance()
+            if settings['token'] != session.token['access_token']:
+                settings.set("token", session.token['access_token'])
+
             self._listener = listener
             listener.start(self._response_listener)
             return listener
@@ -144,8 +148,6 @@ class VK:
     def try_start_listening_again(self, credentials, fail_callback):
         if self._try_start_listening(credentials):
             settings = Settings.get_instance()
-            # TODO: Fix another problem.
-            # If the code goes this way, it doesn't save user's token on the disk.
             for key, value in credentials.items():
                 settings[key] = value
             settings.save()
