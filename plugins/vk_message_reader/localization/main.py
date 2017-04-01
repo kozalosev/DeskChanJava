@@ -1,3 +1,7 @@
+"""A simple localization module.
+Author: Leonid Kozarin <kozalo@nekochan.ru>
+"""
+
 import os
 import re
 import codecs
@@ -5,6 +9,8 @@ from java.lang import System
 
 
 class Localization:
+    """Singleton class which loads a locale-specific text file and returns localized strings."""
+
     _instance = None
 
     def __init__(self):
@@ -31,12 +37,23 @@ class Localization:
 
     @classmethod
     def get_instance(cls):
+        """Use this method instead of the constructor!
+        :returns: An instance of the class.
+        :rtype: Localization
+        """
+
         if cls._instance is None:
             cls._instance = cls()
 
         return cls._instance
 
     def get(self, label):
+        """
+        :returns: A localized string.
+        :rtype: str
+        :raises: ValueError
+        """
+
         if label in self.strings:
             return self.strings[label].decode('string_escape')
         else:
