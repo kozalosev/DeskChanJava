@@ -47,14 +47,14 @@ class Localization:
 
         return cls._instance
 
-    def get(self, label):
+    def __getitem__(self, item):
         """
         :returns: A localized string.
         :rtype: str
         :raises: ValueError
         """
 
-        if label in self.strings:
-            return self.strings[label].decode('string_escape')
+        if item in self.strings:
+            return self.strings[item].decode('string_escape')
         else:
-            raise ValueError("No localized string: %s!" % label)
+            raise ValueError("No localized string: %s!" % item)
