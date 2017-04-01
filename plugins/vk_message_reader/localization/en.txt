@@ -9,4 +9,7 @@ msg_from_chat       =   Message from %s %s via chat "%s":\n\n%s
 msg_from_group      =   Message from group "%s":\n\n%s
 
 auth_attempt_fail   =   Master! I can receive messages from VK for you! Just go to options and tell me you credentials.
-login_fail          =   Something's wrong with your data: %s!
+login_fail          =   Something's wrong with your data:\n\n%s!
+
+bad_password        =   Bad password
+account_blocked     =   Your account has been blocked

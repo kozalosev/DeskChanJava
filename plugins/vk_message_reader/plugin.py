@@ -32,7 +32,7 @@ send_message("gui:add-options-tab", {'name': 'VK', 'msgTag': "vk:login", 'contro
 
 # Callback which is called when user clicks "Save" in the options.
 add_message_listener("vk:login", lambda tag, sender, data: vk.try_start_listening_again(data, lambda msg_error:
-    say(l10n["login_fail"])
+    say(l10n["login_fail"] % msg_error)
 ))
 # This one is called when user clicks "Get token" in the options.
 add_message_listener("vk:get-token", lambda tag, sender, data: vk.get_token())

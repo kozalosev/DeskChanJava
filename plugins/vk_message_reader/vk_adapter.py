@@ -155,6 +155,8 @@ redirect_uri=https://oauth.vk.com/blank.html&scope=messages,offline&response_typ
         """
 
         import re
+        from vk_api.exceptions import BadPassword, AccountBlocked
+        from localization.main import Localization
 
         if token:
             pattern = "access_token=([a-z0-9]{85})&"
@@ -162,10 +164,18 @@ redirect_uri=https://oauth.vk.com/blank.html&scope=messages,offline&response_typ
             if matches:
                 token = matches.group(1)
 
+        l10n = Localization.get_instance()
+
         try:
             session = VkApi(login, password, token=token, app_id=cls.APP_ID, scope="messages,offline",
                             config_filename=config_filename)
             session.auth()
+        except BadPassword:
+            cls.last_error = l10n['bad_password']
+            return None
+        except AccountBlocked:
+            cls.last_error = l10n['account_blocked']
+            return None
         except AuthError as err:
             cls.last_error = err
             return None
@@ -204,15 +214,14 @@ class VK:
         else:
             session = Auth.login(config_filename=config_file)
 
-        listener = MessageListener(session)
-        if listener:
+        if session:
             settings = Settings.get_instance()
-            if settings['token'] != session.token['access_token']:
+            if hasattr(session, "token") and "access_token" in session.token and settings['token'] != session.token['access_token']:
                 settings.set("token", session.token['access_token'])
 
-            self._listener = listener
-            listener.start(self._response_listener)
-            return listener
+            self._listener = MessageListener(session)
+            self._listener.start(self._response_listener)
+            return self._listener
         else:
             return None
 
