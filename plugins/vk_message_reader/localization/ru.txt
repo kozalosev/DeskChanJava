@@ -1,15 +1,29 @@
-login               =   Email
-password            =   Пароль
-token               =   Токен
-token_hint          =   Или можете ввести токен:
-get_token           =   Получить токен
+login                           =   Email
+password                        =   Пароль
+token                           =   Токен
+token_hint                      =   Или можете ввести токен:
+get_token                       =   Получить токен
 
-msg_from_user       =   Сообщение от %s %s:\n\n%s
-msg_from_chat       =   Сообщение от %s %s из чата "%s":\n\n%s
-msg_from_group      =   Сообщение от группы "%s":\n\n%s
+msg_from_user                   =   Сообщение от %s %s:
+msg_from_chat                   =   Сообщение от %s %s из чата "%s":
+msg_from_group                  =   Сообщение от группы "%s":
+msg_from_unsupported_source     =   Сообщение:
 
-auth_attempt_fail   =   Хозяин, я могу получать сообщения из ВК для тебя! Только укажи входные данные в настройках.
-login_fail          =   Что-то не так с введёнными данными:\n\n%s!
+auth_attempt_fail               =   Хозяин, я могу получать сообщения из ВК для тебя! Только укажи входные данные в настройках.
+login_fail                      =   Что-то не так с введёнными данными:\n\n%s!
 
-bad_password        =   Неверный пароль
-account_blocked     =   Аккаунт заблокирован
+bad_password                    =   Неверный пароль
+account_blocked                 =   Аккаунт заблокирован
+
+forwarded_messages              =   Пересланные(-ое) сообщения(-е)
+photo                           =   Изображение
+video                           =   Видео
+audio                           =   Аудиозапись
+doc                             =   Документ
+market                          =   Товар
+market_album                    =   Подборка товаров
+wall                            =   Запись на стене
+wall_reply                      =   Ответ к записи на стене
+sticker                         =   Стикер
+gift                            =   Подарок
+unsupported_attachment          =   Неизвестное вложение

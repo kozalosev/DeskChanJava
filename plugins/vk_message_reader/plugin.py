@@ -1,22 +1,17 @@
-from vk_adapter import VK, MessageSource
+from vk_adapter import VK
 from busproxy import *
 from localization.main import Localization
+from message_processor import MessageProcessor
 
 
 # Localization class.
 l10n = Localization.get_instance()
 
-# Callback which analyzes incoming messages and shows them to the user.
-def show_message(source, text, data):
-    if source == MessageSource.USER:
-        say(l10n["msg_from_user"] % (data['first_name'], data['last_name'], text))
-    elif source == MessageSource.CHAT:
-        say(l10n["msg_from_chat"] % (data['first_name'], data['last_name'], data['chat_name'], text))
-    elif source == MessageSource.GROUP:
-        say(l10n["msg_from_group"] % (data['group_name'], text))
-
 # Initializes vk_adapter and tries to log in using the old data.
-vk = VK(get_data_dir_path(), show_message)
+# VK takes a callback function as the second argument of the constructor. We utilize a special function `get_lambda` of
+# MessageProcessor to get the callback. In its turn, it requires a callback function with one string parameter. Here we
+# use the `say` function to show the message to the user.
+vk = VK(get_data_dir_path(), MessageProcessor.get_lambda(say))
 vk.try_start_listening(lambda msg_error:
     say(l10n["auth_attempt_fail"])
 )

@@ -85,6 +85,7 @@ class MessageListener:
                             api = self._session.get_api()
 
                             text = event.text
+                            attachments = event.attachments
                             group_name, first_name, last_name, chat_name = (None,) * 4
 
                             if event.from_group:
@@ -109,7 +110,7 @@ class MessageListener:
                                 if var in locals():
                                     data[var] = locals()[var]
 
-                            callback(source, text, data)
+                            callback(source, text, attachments, data)
                 # When we close the connection the code will be here, in the loop, in most cases.
                 # Connection loss will be a cause of an exception. So, in this case we just need
                 # to ignore the exception and get out of the loop.

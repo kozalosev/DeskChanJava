@@ -33,7 +33,7 @@ class Localization:
             for line in f:
                 matches = pattern.match(line)
                 if matches:
-                    self.strings[matches.group(1)] = matches.group(2)
+                    self.strings[matches.group(1)] = matches.group(2).rstrip()
 
     @classmethod
     def get_instance(cls):
