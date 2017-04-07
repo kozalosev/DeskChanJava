@@ -6,6 +6,7 @@ from vk_api import VkApi, AuthError
 from vk_api.longpoll import VkLongPoll, VkEventType
 from enum import Enum
 from settings import Settings
+from localization.main import Localization
 import os
 
 
@@ -32,7 +33,7 @@ class MessageListener:
 
     def start(self, listener_callback):
         """Creates a new thread and listening for new messages.
-        :param listener_callback: A callback function which will be called when a message is received.
+        :param listener_callback: A callback function, which will be called when a message is received.
         :type listener_callback: callable
         """
 
@@ -64,7 +65,7 @@ class MessageListener:
         :param longpoll: An instance of VkLongPoll.
         :type longpoll: VkLongPoll
         
-        :param callback: A callback function which will be called when a message is received.
+        :param callback: A callback function, which will be called when a message is received.
         :type callback: callable
         """
 
@@ -123,9 +124,9 @@ class MessageListener:
 
 
 class Auth:
-    """Abstract class which has means to authorize the user."""
+    """Abstract class, which has means to authorize the user."""
 
-    APP_ID = 2895443
+    APP_ID = 5970490
     last_error = None
 
     @classmethod
@@ -157,11 +158,10 @@ redirect_uri=https://oauth.vk.com/blank.html&scope=messages,offline&response_typ
 
         import re
         from vk_api.exceptions import BadPassword, AccountBlocked
-        from localization.main import Localization
 
         if token:
             pattern = "access_token=([a-z0-9]{85})&"
-            matches = re.match(pattern, token)
+            matches = re.search(pattern, token)
             if matches:
                 token = matches.group(1)
 
@@ -187,13 +187,15 @@ redirect_uri=https://oauth.vk.com/blank.html&scope=messages,offline&response_typ
 class VK:
     """Public interface to the end users of the module."""
 
+    last_error = None
+
     def __init__(self, config_dir, response_listener):
         """Constructor.
         
         :param config_dir: A path to the directory where settings and credentials will be saved.
         :type config_dir: str
         
-        :param response_listener: A callback function which will be called for each incoming message.
+        :param response_listener: A callback function, which will be called for each incoming message.
         :type response_listener: callable
         """
 
@@ -209,11 +211,19 @@ class VK:
         :type credentials: dict
         """
 
+        from vk_api.exceptions import ApiError
+
+        # We should stop the previously started listener if it exists.
+        self.stop_listening()
+
         config_file = os.path.join(self._config_dir, "vk_config.json")
         if credentials:
             session = Auth.login(config_filename=config_file, **credentials)
         else:
             session = Auth.login(config_filename=config_file)
+
+        l10n = Localization.get_instance()
+        message_template = "%s\n\n%s"
 
         if session:
             settings = Settings.get_instance()
@@ -221,46 +231,51 @@ class VK:
                 settings.set("token", session.token['access_token'])
 
             self._listener = MessageListener(session)
-            self._listener.start(self._response_listener)
+            try:
+                self._listener.start(self._response_listener)
+            except ApiError as error_msg:
+                self.last_error = message_template % (l10n['api_error'], error_msg)
+                return None
             return self._listener
         else:
+            self.last_error = message_template % (l10n['login_fail'], Auth.last_error)
             return None
 
     def try_start_listening(self, fail_callback):
         """To start listening, try this method first. It uses already saved credentials if they exist.
-        :param fail_callback: A callback which will be called with AuthError exception as an argument in case of a failure.
+        :param fail_callback: A callback, which will be called with AuthError exception as an argument in case of a failure.
         :type fail_callback: callable
         """
 
         settings = self._settings
-        if settings['token'] or settings['login'] and settings['password']:
-            credentials = {
-                'token': settings['token'],
-                'login': settings['login'],
-                'password': settings['password']
-            }
-            if not self._try_start_listening(credentials) and callable(fail_callback):
-                fail_callback(Auth.last_error)
-        elif callable(fail_callback):
-            fail_callback(Auth.last_error)
+        l10n = Localization.get_instance()
 
-    def try_start_listening_again(self, credentials, fail_callback):
+        if settings['token']:
+            credentials = { 'token': settings['token'] }
+            if not self._try_start_listening(credentials) and callable(fail_callback):
+                fail_callback(self.last_error)
+        elif callable(fail_callback):
+            fail_callback(l10n['no_login_data'])
+
+    def try_start_listening_again(self, credentials, success_callback, fail_callback):
         """Use this method to authorize using either login and password, or a token.
         
         :param credentials: Login and password, or a token.
         :type credentials: dict
         
-        :param fail_callback: A callback which will be called with AuthError exception as an argument in case of a failure.
+        :param success_callback: A callback, which will be called if the credentials are right and we logged in successfully.
+        :type success_callback: callable
+        
+        :param fail_callback: A callback, which will be called with AuthError exception as an argument in case of a failure.
         :type fail_callback: callable
         """
 
         if self._try_start_listening(credentials):
-            settings = Settings.get_instance()
-            for key, value in credentials.items():
-                settings[key] = value
-            settings.save()
-        elif callable(fail_callback):
-            fail_callback(Auth.last_error)
+            if callable(success_callback):
+                success_callback()
+        else:
+            if callable(fail_callback):
+                fail_callback(self.last_error)
 
     def stop_listening(self):
         if isinstance(self._listener, MessageListener) and self._listener.listening:

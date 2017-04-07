@@ -9,9 +9,10 @@ msg_from_chat                   =   Message from %s %s via chat "%s":
 msg_from_group                  =   Message from group "%s":
 msg_from_unsupported_source     =   Message:
 
-auth_attempt_fail               =   Master! I can receive messages from VK for you! Just go to options and tell me you credentials.
-login_fail                      =   Something's wrong with your data:\n\n%s!
-
+no_login_data                   =   Master! I can receive messages from VK for you! Just go to options and tell me you credentials.
+logged                          =   OK. I'll try to remember your credentials for the future.
+login_fail                      =   Something's wrong with your data:
+api_error                       =   Oops! Some error occurred while working with VK API!
 bad_password                    =   Bad password
 account_blocked                 =   Your account has been blocked
 
