@@ -10,6 +10,9 @@ from libs.functions import build_tag
 # for some of the functions.
 from busproxy import *
 
+# Some useful classes I provided for you to make your life a bit easier ;)
+from pluginutils import Settings, Localization
+
 # Shows the welcome message.
 bus.sendMessage("DeskChan:say", {'text': 'Hello!'})
 # Use unicode strings for non-ASCII characters.
@@ -28,18 +31,21 @@ func_show_test_message = lambda sender, tag, data: say("It works!")
 addMessageListener(build_tag(TAG_MENUACTION), func_show_test_message)
 add_message_listener("gui-events:character-left-click", func_show_test_message)
 
+# Built-in localization class.
+l10n = Localization.get_instance("localization")
+
 # Adds the options tab.
 send_message("gui:add-options-tab", {'name': 'Test Python', 'msgTag': build_tag(TAG_SAVE_OPTIONS), 'controls': [
     {
-        'type': 'TextField', 'id': TAG_TEXTFIELD, 'label': 'Test',
-        'value': 'Type something here and press the button!'
+        'type': 'TextField', 'id': TAG_TEXTFIELD, 'label': l10n['label'],
+        'value': l10n['placeholder']
     }
 ]})
 
 # Prints a message when user clicks on the "Save" button.
 # Note that I provide you a special method to say something without worrying about tags and string conversions.
 add_message_listener(build_tag(TAG_SAVE_OPTIONS), lambda sender, tag, data:
-    say("You asked me to print: \"%s\"." % data[TAG_TEXTFIELD])
+    say("%s: \"%s\"." % (l10n['message'], data[TAG_TEXTFIELD]))
 )
 
 
@@ -60,3 +66,12 @@ def timer_cleanup():
 
 # Here you should stop any actions and release any resources which the plugin is used.
 add_cleanup_handler(timer_cleanup)
+
+# Sample of usage the Settings class.
+opts = Settings.get_instance()
+if opts['run_counter']:
+    opts['run_counter'] += 1
+else:
+    opts['run_counter'] = 1
+opts.save()
+log("This plugin has been run %i time(s)." % opts['run_counter'])
