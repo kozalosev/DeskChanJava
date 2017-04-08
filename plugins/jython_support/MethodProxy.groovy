@@ -56,8 +56,3 @@ class MethodProxy {
         sendMessage("DeskChan:say", [ text: converted ])
     }
 }
-
-
-interface MethodProxyGetter {
-    MethodProxy get()
-}
