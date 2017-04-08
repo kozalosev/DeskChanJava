@@ -3,13 +3,25 @@ to let you write less redundant code."""
 
 # Proxy methods
 
+def getId():
+    """
+    :returns: The id of the currently executing plugin.
+    :rtype: str
+    """
+
+    return bus.getId()
+
 def sendMessage(tag, data, response_listener = None):
     """Sends a message to other plugins.
     
-    Arguments:
-    tag -- your message will receive all plugins subscribed on this tag.
-    data -- an object with some required data specified by the concrete plugin.
-    response_listener -- callback function; note that not every plugin supports this option and will call your function.
+    :param tag: Your message will receive all plugins subscribed on this tag.
+    :type tag: str
+    
+    :param data: An object with some required data specified by the concrete plugin.
+    :type data: dict
+    
+    :param response_listener: A callback function; note that not every plugin supports this option and will call your function.
+    :type response_listener: callable
     """
 
     if response_listener:
@@ -19,43 +31,70 @@ def sendMessage(tag, data, response_listener = None):
 
 
 def addMessageListener(tag, listener):
-    """Use this function to subscribe on any tag. Your listener will be called when another plugin sends a message \
-    with the same tag."""
+    """Use this function to subscribe on any tag.
+    
+    :param tag: We recommend you use a string in format `your_plugin_id:internal_tag` or `your-plugin-id:internal-tag`.
+    :type tag: str
+    
+    :param listener: Your listener will be called when another plugin sends a message with the specified tag.
+    :type listener: callable
+    """
 
     bus.addMessageListener(tag, listener)
 
 
 def removeMessageListener(tag, listener):
-    """Unsubscribe from the tag."""
+    """Unsubscribe from the tag.
+    
+    :param tag: The tag that you used in the addMessageListener() function.
+    :type tag: str
+    
+    :param listener: The listener that you used in the addMessageListener() function.
+    :type listener: callable
+    """
 
     bus.removeMessageListener(tag, listener)
 
 
 def addCleanupHandler(handler):
-    """Use this function to set a callback which will be called when the plugin is being unloaded."""
+    """Use this function to set a callback, which will be called when the plugin is being unloaded.
+    
+    :param handler: A callback that should release all resources, stop all timers, and so on.
+    :type handler: callable
+    """
 
     bus.addCleanupHandler(handler)
 
 
 def getPluginDirPath():
-    """Returns a path to the directory of the plugin."""
+    """
+    :returns: A path to the directory of the plugin.
+    :rtype: str
+    """
 
     return bus.getPluginDirPath()
 
 
 def getDataDirPath():
-    """Returns a path to the special directory where the plugin are allowed to store any data it wants."""
+    """
+    :returns: A path to the special directory where the plugin are allowed to store any data it wants.
+    :rtype: str
+    """
 
     return bus.getDataDirPath()
 
 
 def log(obj):
+    """Use this function instead of printing text to stdout!
+    :param obj: A string or any object.
+    """
+
     bus.log(obj)
 
 
 def say(message):
     """A shortcut to send a message to the UI plugin to display some message.
-    message -- any object which will be converted to a string.
+    :param message: Any object, which will be converted to a string.
     """
 
     bus.say(message)
@@ -63,6 +102,11 @@ def say(message):
 
 
 # Aliases
+
+def get_id():
+    """Alias for getId()."""
+
+    return getId()
 
 def send_message(tag, data, response_listener = None):
     """Alias for sendMessage()."""

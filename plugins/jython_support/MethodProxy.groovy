@@ -11,6 +11,10 @@ class MethodProxy {
         this.plugin = plugin
     }
 
+    String getId() {
+        return plugin.getPluginProxy().getId()
+    }
+
     void sendMessage (String tag, Object data) {
         plugin.getPluginProxy().sendMessage(tag, data)
     }

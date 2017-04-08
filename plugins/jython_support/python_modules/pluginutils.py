@@ -6,7 +6,7 @@ import os
 import json
 import codecs
 import re
-from busproxy import get_plugin_dir_path, get_data_dir_path
+from busproxy import *
 from java.lang import System
 
 
@@ -38,7 +38,7 @@ class AbstractMultiton:
         :returns: An instance of a specific class.
         """
 
-        key_path = get_plugin_dir_path()
+        key_path = get_id()
 
         if key_path not in cls._instances:
             cls._instances[key_path] = cls(*args, **kwargs)
@@ -101,7 +101,7 @@ class Localization(AbstractMultiton):
         :type localization_dir: str
         """
 
-        assert localization_dir is not None
+        assert localization_dir
         path = os.path.join(get_plugin_dir_path(), localization_dir)
 
         # language = locale.getdefaultlocale()[0]
