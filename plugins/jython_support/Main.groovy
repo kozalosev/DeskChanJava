@@ -50,7 +50,7 @@ class Main implements Plugin, PluginLoader {
         }
         PythonInterpreter interpreter = new PythonInterpreter()
         PySystemState systemState = interpreter.getSystemState()
-        systemState.path.append(Py.java2py(pluginDirPath.toString()))
+        systemState.path.append(Py.java2py(pluginDirPath.resolve("python_modules").toString()))
         systemState.path.append(Py.java2py(path.getParent().toString()))
         systemState.path.append(Py.java2py(path.getParent().resolve("__dependencies__").toString()))
         PyCode script = interpreter.compile(new FileReader(path.toFile()))

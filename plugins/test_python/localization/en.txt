@@ -1,0 +1,3 @@
+label          =   Test
+placeholder    =   Type something here and press the button!
+message        =   You asked me to say
