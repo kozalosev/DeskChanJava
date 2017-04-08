@@ -38,12 +38,17 @@ class AbstractMultiton:
         :returns: An instance of a specific class.
         """
 
-        key_path = get_id()
+        key = get_id()
 
-        if key_path not in cls._instances:
-            cls._instances[key_path] = cls(*args, **kwargs)
+        if key not in cls._instances:
+            cls._instances[key] = cls(*args, **kwargs)
+            add_cleanup_handler(cls.destroy_instance)
 
-        return cls._instances[key_path]
+        return cls._instances[key]
+
+    @classmethod
+    def destroy_instance(cls):
+        del cls._instances[get_id()]
 
 
 class Settings(AbstractMultiton):
