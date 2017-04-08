@@ -5,8 +5,7 @@ Author: Leonid Kozarin <kozalo@nekochan.ru>
 from vk_api import VkApi, AuthError
 from vk_api.longpoll import VkLongPoll, VkEventType
 from enum import Enum
-from settings import Settings
-from localization.main import Localization
+from pluginutils import Settings, Localization
 import os
 
 

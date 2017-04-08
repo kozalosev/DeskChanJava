@@ -1,8 +1,11 @@
 from vk_adapter import VK
 from busproxy import *
-from localization.main import Localization
+from pluginutils import Localization
 from message_processor import MessageProcessor
 
+
+# Initializes localization mechanism
+l10n = Localization.get_instance("localization")
 
 # Initializes vk_adapter and tries to log in using the old data.
 # VK takes a callback function as the second argument of the constructor. We utilize a special function `get_lambda` of
@@ -12,7 +15,6 @@ vk = VK(get_data_dir_path(), MessageProcessor.get_lambda(say))
 vk.try_start_listening(say)
 
 # Adds a tab to the options menu. The user can enter his credentials there.
-l10n = Localization.get_instance()
 send_message("gui:add-options-tab", {'name': 'VK', 'msgTag': "vk:login", 'controls': [
     {'type': 'TextField', 'id': 'login', 'label': l10n["login"]},
     {'type': 'TextField', 'id': 'password', 'label': l10n["password"]},
