@@ -12,7 +12,7 @@ def sendMessage(tag, data, response_listener = None):
     response_listener -- callback function; note that not every plugin supports this option and will call your function.
     """
 
-    if response_listener is not None:
+    if response_listener:
         bus.sendMessage(tag, data, response_listener)
     else:
         bus.sendMessage(tag, data)
