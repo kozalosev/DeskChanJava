@@ -92,12 +92,30 @@ def log(obj):
     bus.log(obj)
 
 
-def say(message):
+def say(text, character_image = None, timeout = None, priority = None):
     """A shortcut to send a message to the UI plugin to display some message.
-    :param message: Any object, which will be converted to a string.
+    
+    :param text: Any object, which will be converted to a string.
+    
+    :param character_image: The name of a character's sprite (emotion).
+    :type character_image: str
+    
+    :param timeout: The message will be closed after a certain amount of time or if the user clicks on it. If the timeout is 0, only the user can close the message.
+    :type timeout: int
+    
+    :param priority: More important messages are shown first. If the priority is less or equal to zero, the message won't be scheduled at all.
+    :type priority: int
     """
 
-    bus.say(message)
+    params = {}
+    if character_image:
+        params['characterImage'] = character_image
+    if timeout:
+        params['timeout'] = timeout
+    if priority:
+        params['priority'] = priority
+
+    bus.say(text, params)
 
 
 

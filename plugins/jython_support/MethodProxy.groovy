@@ -51,12 +51,20 @@ class MethodProxy {
         plugin.getPluginProxy().log(e)
     }
 
-    def say(message) {
-        if (message == null)
+    def say(text, Map<String, Object> parameters) {
+        if (text == null)
             return
+        if (parameters == null)
+            parameters = new HashMap<>()
 
-        byte[] bytes = message.toString().getBytes(Charset.defaultCharset())
+        byte[] bytes = text.toString().getBytes(Charset.defaultCharset())
         String converted = new String(bytes, Charset.forName("UTF-8"))
-        sendMessage("DeskChan:say", [ text: converted ])
+
+        parameters.put("text", converted)
+        sendMessage("DeskChan:say", parameters)
+    }
+
+    def say(text) {
+        say(text, null)
     }
 }
