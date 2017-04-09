@@ -36,16 +36,14 @@ l10n = Localization.get_instance("localization")
 
 # Adds the options tab.
 send_message("gui:add-options-tab", {'name': 'Test Python', 'msgTag': build_tag(TAG_SAVE_OPTIONS), 'controls': [
-    {
-        'type': 'TextField', 'id': TAG_TEXTFIELD, 'label': l10n['label'],
-        'value': l10n['placeholder']
-    }
+    { 'type': 'Label', 'value': l10n['hint_label'] },
+    { 'type': 'TextField', 'id': TAG_CODE, 'label': l10n['code_label'] }
 ]})
 
 # Prints a message when user clicks on the "Save" button.
 # Note that I provide you a special method to say something without worrying about tags and string conversions.
 add_message_listener(build_tag(TAG_SAVE_OPTIONS), lambda sender, tag, data:
-    say("%s: \"%s\"." % (l10n['message'], data[TAG_TEXTFIELD]))
+    eval(data[TAG_CODE])
 )
 
 
