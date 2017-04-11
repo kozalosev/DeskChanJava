@@ -83,6 +83,12 @@ class Settings(AbstractMultiton):
     def __setitem__(self, key, value):
         self._settings[key] = value
 
+    def get(self, item, default=None):
+        """Use this method if there is no value and you don't want to get None anyway."""
+
+        value = self[item]
+        return value if value is not None else default
+
     def set(self, key, value, save=True):
         """Use this method if you want to save the change immediately."""
 

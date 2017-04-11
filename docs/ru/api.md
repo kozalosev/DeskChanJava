@@ -498,14 +498,17 @@ add_message_listener("my_plugin:some_tag", lambda tag, sender, data: say(u"Пр�
 Дальше объект можно использовать, как обычный словарь:
 
 ```python
-from busproxy import say
+from busproxy import say, log
 from pluginutils import Settings
 
 
 opts = Settings.get_instance()
 
+# Если значения нет, то вернётся None...
 if opts['some_key']:
     say(opts['some_key'])
+    # ...но можно воспользоваться специальным методом, чтобы получить какое-то другое значение:
+    log(opts.get("another_key", "<no value>"))
 else:
     opts['some_key'] = "some value"
     # Можно задавать сразу несколько значений, а сохранятся на диск они...
