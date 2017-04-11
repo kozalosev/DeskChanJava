@@ -72,6 +72,9 @@ class Settings(AbstractMultiton):
             with codecs.open(self._file, "r", "utf-8") as f:
                 self._settings = json.load(f)
 
+    def __contains__(self, item):
+        return item in self._settings
+
     def __getitem__(self, item):
         """Returns either a stored object or None."""
 
@@ -82,6 +85,12 @@ class Settings(AbstractMultiton):
 
     def __setitem__(self, key, value):
         self._settings[key] = value
+
+    def __delitem__(self, key):
+        del self._settings[key]
+
+    def __str__(self):
+        return "%s: %s" % (self.__class__, self._settings)
 
     def get(self, item, default=None):
         """Use this method if there is no value and you don't want to get None anyway."""
