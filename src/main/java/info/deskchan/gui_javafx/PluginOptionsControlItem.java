@@ -7,6 +7,9 @@ import javafx.scene.layout.BorderPane;
 import javafx.stage.FileChooser;
 
 import java.io.File;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -51,6 +54,9 @@ interface PluginOptionsControlItem {
 			case "FileField":
 				item = new FileFieldItem();
 				break;
+			case "DatePicker":
+				item = new DatePickerItem();
+				break;
 		}
 		if (item == null) return null;
 		item.init(options);
@@ -79,21 +85,29 @@ interface PluginOptionsControlItem {
 		
 	}
 	
-	class TextFieldItem extends TextField implements PluginOptionsControlItem {
+	class TextFieldItem implements PluginOptionsControlItem {
+
+		TextField textField;
+
+		@Override
+		public void init(Map<String, Object> options) {
+			Boolean isPasswordField = (Boolean) options.getOrDefault("hideText", false);
+			textField = (isPasswordField) ? new PasswordField() : new TextField();
+		}
 		
 		@Override
 		public void setValue(Object value) {
-			setText(value.toString());
+			textField.setText(value.toString());
 		}
 		
 		@Override
 		public Object getValue() {
-			return getText();
+			return textField.getText();
 		}
 		
 		@Override
 		public Node getNode() {
-			return this;
+			return textField;
 		}
 		
 	}
@@ -139,7 +153,7 @@ interface PluginOptionsControlItem {
 		
 		@Override
 		public void setValue(Object value) {
-			comboBox.getSelectionModel().select((Integer) value);
+			comboBox.getSelectionModel().select((int) value);
 		}
 		
 		@Override
@@ -251,6 +265,44 @@ interface PluginOptionsControlItem {
 			return this;
 		}
 		
+	}
+
+	class DatePickerItem implements PluginOptionsControlItem {
+
+		DatePicker picker = new DatePicker();
+		DateTimeFormatter formatter = DateTimeFormatter.ISO_LOCAL_DATE;
+
+        @Override
+        public void init(Map<String, Object> options) {
+            String format = (String) options.getOrDefault("format", null);
+            if (format != null) {
+                formatter = DateTimeFormatter.ofPattern(format);
+            }
+        }
+
+        @Override
+		public Object getValue() {
+			return picker.getValue().format(formatter);
+		}
+
+		@Override
+		public void setValue(Object value) {
+            LocalDate date;
+            try {
+                date = LocalDate.parse(value.toString(), formatter);
+            } catch (DateTimeParseException e) {
+                e.printStackTrace();
+                return;
+            }
+
+			picker.setValue(date);
+		}
+
+		@Override
+		public Node getNode() {
+			return picker;
+		}
+
 	}
 	
 }

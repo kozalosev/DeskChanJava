@@ -16,6 +16,7 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.Window;
 
+import javax.swing.*;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 import java.io.IOException;
@@ -39,7 +40,7 @@ public class App extends Application {
 	);
 	private SystemTray systemTray = null;
 	private SortedMap<String, List<PluginActionInfo>> pluginsActions = new TreeMap<>();
-	private Character character = new Character(Skin.load(Main.getProperty("skin.name", "illia")));
+	private Character character = new Character(Skin.load(Main.getProperty("skin.name", null)));
 	
 	@Override
 	public void start(Stage primaryStage) {
@@ -98,6 +99,24 @@ public class App extends Application {
 				rebuildMenu();
 			});
 		});
+		pluginProxy.addMessageListener("gui:register-simple-actions", (sender, tag, data) -> {
+			Platform.runLater(() -> {
+				List< Map < String, Object > > actionList = (List<Map<String, Object>>) data;
+
+				List<PluginActionInfo> actions = pluginsActions.getOrDefault(sender, null);
+				if (actions == null) {
+					actions = new ArrayList<>();
+					pluginsActions.put(sender, actions);
+				}
+
+				for (Map<String, Object> m : actionList) {
+					PluginActionInfo pluginActionInfo = new PluginActionInfo((String) m.get("name"),
+							(String) m.get("msgTag"), m.get("msgData"));
+					actions.add(pluginActionInfo);
+				}
+				rebuildMenu();
+			});
+		});
 		pluginProxy.addMessageListener("gui:say", (sender, tag, data) -> {
 			Platform.runLater(() -> {
 				character.say((Map<String, Object>) data);
@@ -132,21 +151,35 @@ public class App extends Application {
 				OptionsDialog.unregisterPluginTabs(pluginId);
 			});
 		});
-		pluginProxy.sendMessage("core:register-alternative", new HashMap<String, Object>() {{
-			put("srcTag", "DeskChan:register-simple-action");
-			put("dstTag", "gui:register-simple-action");
-			put("priority", 100);
-		}});
-		pluginProxy.sendMessage("core:register-alternative", new HashMap<String, Object>() {{
-			put("srcTag", "DeskChan:say");
-			put("dstTag", "gui:say");
-			put("priority", 100);
-		}});
+		pluginProxy.sendMessage("core:register-alternatives", Arrays.asList(
+            new HashMap<String, Object>() {{
+                put("srcTag", "DeskChan:register-simple-action");
+                put("dstTag", "gui:register-simple-action");
+                put("priority", 100);
+            }},
+            new HashMap<String, Object>() {{
+                put("srcTag", "DeskChan:register-simple-actions");
+                put("dstTag", "gui:register-simple-actions");
+                put("priority", 100);
+            }},
+            new HashMap<String, Object>() {{
+                put("srcTag", "DeskChan:say");
+                put("dstTag", "gui:say");
+                put("priority", 100);
+            }}
+        ));
 	}
 	
 	private void rebuildMenu() {
 		Menu mainMenu = systemTray.getMenu();
+		if (mainMenu instanceof dorkbox.systemTray.swingUI.SwingUI) {
+			if (!SwingUtilities.isEventDispatchThread()) {
+				SwingUtilities.invokeLater(this::rebuildMenu);
+				return;
+			}
+		}
 		mainMenu.clear();
+		systemTray.setStatus(NAME);
 		mainMenu.add(new MenuItem(Main.getString("options"), event -> {
 			Platform.runLater(this::showOptionsDialog);
 		}));
