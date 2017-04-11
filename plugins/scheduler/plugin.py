@@ -4,57 +4,72 @@ from operator import itemgetter
 from busproxy import *
 from pluginutils import Localization, Settings
 
-from java.time import LocalDateTime, LocalDate, LocalTime, ZoneId, Instant
-from java.time.temporal import ChronoUnit
-
-
-PLUGIN_TAG = "timer_demo"
-TAG_SAVE_OPTIONS = "%s:save-options" % PLUGIN_TAG
-TAG_MESSAGE = "%s:message" % PLUGIN_TAG
-TAG_DATE = "date"
-TAG_HOUR = "hour"
-TAG_MINUTE = "minute"
-TAG_LIST = "notification-list"
-
-DATE_FORMAT = "d.M.y"
+from constants import *
+from functions import *
 
 
 timer = None
+
 opts = Settings.get_instance()
+if not opts['events']:
+    opts['events'] = []
 
-def update_timer(data = None):
-    def action(data):
-        say(data)
-        update_timer()
+clean_expired_events()
 
+
+def timer_action(msg):
+    say(msg)
+    update_timer()
+
+def update_timer(data=None):
     stop_timer()
-    zone = ZoneId.systemDefault()
+
+    clean_expired_events(save=False)
 
     if data:
-        date = LocalDate.parse(data[TAG_DATE], DATE_FORMAT)
-        time = LocalTime.of(data[TAG_HOUR], data[TAG_MINUTE])
-        datetime = LocalDateTime(date, time)
+        if data[TAG_ACTION] == ACTION_ADD:
+            if not data[TAG_MESSAGE]:
+                say("No message!")
+                return
+            if not data[TAG_DATE]:
+                say("No date!")
+                return
 
-        if "events" not in opts:
-            opts['events'] = []
+            datetime = datetime_builder(data[TAG_DATE], data[TAG_HOUR], data[TAG_MINUTE])
+            if not datetime.isAfter(now()):
+                say("I don't have a time machine, senpai!")
+                return
 
-        opts['events'].append({
-            'message': data[TAG_MESSAGE],
-            'timestamp': datetime.atZone(zone).toEpochSecond()
-        })
+            opts['events'].append({
+                'message': data[TAG_MESSAGE],
+                'timestamp': datetime.atZone(get_zone()).toEpochSecond()
+            })
+        elif data[TAG_ACTION] == ACTION_DELETE:
+            if not data[TAG_LIST]:
+                say("You should have selected something!")
+                return
+
+            del opts['events'][data[TAG_LIST]]
+        else:
+            raise NotImplementedError("Unexpected action!")
+
+        opts['events'] = sorted(opts['events'], key=itemgetter('timestamp'))
         opts.save()
 
-    events = sorted(opts['events'], key=itemgetter('timestamp'))
-    closest_event = events[0]
-    event_instant = Instant.ofEpochSecond(closest_event)
-    event_datetime = LocalDate.of(event_instant, zone)
+    closest_event = opts['events'][0]
+    event_datetime = timestamp_to_datetime(closest_event['timestamp'])
     event_message = closest_event['message']
 
-    now = LocalDateTime.now()
-    delta = ChronoUnit.MILLIS.between(now, event_datetime)
+    delta = diff_seconds(event_datetime)
+    log("[delta: %i]: %s" % (delta, event_message))
 
-    timer = Timer(delta, lambda: action(event_message))
-    timer.start()
+    if delta > 0:
+        timer = Timer(delta, lambda: timer_action(event_message))
+        timer.start()
+
+    if data:
+        say("OK! I'll remind you about that!")
+        # I'm not able to update the list due to the fact that API is still pretty poor.
 
 def stop_timer():
     global timer
@@ -62,31 +77,32 @@ def stop_timer():
         timer.cancel()
         timer = None
 
-# I use Java's LocalTime instead of Python's datetime module to don't care about different time format strings.
-now = LocalTime.now()
 
-bus.sendMessage("gui:add-options-tab", {'name': 'Timer Demo', 'msgTag': TAG_SAVE_OPTIONS, 'controls': [
-    {
-        'type': 'ListBox', 'id': TAG_LIST, 'label': 'List of all scheduled notifications',
-        'values': opts.get("events", default=[])
-    },
-    {
-        'type': 'DatePicker', 'id': TAG_DATE, 'label': 'Date',
-        'format': DATE_FORMAT
-    },
-    {
-        'type': 'Spinner', 'id': TAG_HOUR, 'label': 'Hour',
-        'value': now.getHour(), 'min': 0, 'max': 24, 'step': 1
-    },
-    {
-        'type': 'Spinner', 'id': TAG_MINUTE, 'label': 'Minute',
-        'value': now.getMinute(), 'min': 0, 'max': 59, 'step': 1
-    },
-    {
-        'type': 'TextField', 'id': TAG_MESSAGE, 'label': 'Message',
-        'value': 'Water in your kettle is boiling!'
-    }
-]})
+def build_options_menu(datetime):
+    send_message("gui:add-options-tab", {'name': 'Scheduler', 'msgTag': TAG_SAVE_OPTIONS, 'controls': [
+        {
+            'type': 'ComboBox', 'id': TAG_ACTION, 'label': 'Action',
+            'values': ['Add', 'Delete'], 'value': 0
+        },
+        {
+            'type': 'ListBox', 'id': TAG_LIST, 'label': 'List of all scheduled notifications',
+            'values': [event['message'] for event in opts['events']]
+        },
+        {
+            'type': 'DatePicker', 'id': TAG_DATE, 'label': 'Date',
+            'format': DATE_FORMAT, 'value': datetime_to_string(datetime)
+        },
+        {
+            'type': 'Spinner', 'id': TAG_HOUR, 'label': 'Hour',
+            'value': datetime.getHour(), 'min': 0, 'max': 24, 'step': 1
+        },
+        {
+            'type': 'Spinner', 'id': TAG_MINUTE, 'label': 'Minute',
+            'value': datetime.getMinute(), 'min': 0, 'max': 59, 'step': 1
+        },
+        { 'type': 'TextField', 'id': TAG_MESSAGE, 'label': 'Message' }
+    ]})
 
-bus.addMessageListener(TAG_SAVE_OPTIONS, lambda sender, tag, data: update_timer(data))
-bus.addCleanupHandler(stop_timer)
+add_message_listener(TAG_SAVE_OPTIONS, lambda sender, tag, data: update_timer(data))
+add_cleanup_handler(stop_timer)
+build_options_menu(now())
