@@ -6,8 +6,4 @@ TAG_HOUR = "hour"
 TAG_MINUTE = "minute"
 TAG_LIST = "event-list"
 
-TAG_ACTION = "action"
-ACTION_ADD = 0
-ACTION_DELETE = 1
-
 DATE_FORMAT = "d.M.y"

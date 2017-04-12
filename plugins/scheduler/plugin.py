@@ -25,36 +25,22 @@ def update_timer(data=None):
     stop_timer(not data)
 
     if data:
-        if data[TAG_ACTION] == ACTION_ADD:
-            if not data[TAG_MESSAGE]:
-                say("No message!")
-                return
-            if not data[TAG_DATE]:
-                say("No date!")
-                return
+        if not data[TAG_MESSAGE]:
+            say("No message!")
+            return
+        if not data[TAG_DATE]:
+            say("No date!")
+            return
 
-            datetime = build_datetime(data[TAG_DATE], data[TAG_HOUR], data[TAG_MINUTE])
-            if not datetime.isAfter(now()):
-                say("I don't have a time machine, senpai!")
-                return
+        datetime = build_datetime(data[TAG_DATE], data[TAG_HOUR], data[TAG_MINUTE])
+        if not datetime.isAfter(now()):
+            say("I don't have a time machine, senpai!")
+            return
 
-            opts['events'].append({
-                'message': data[TAG_MESSAGE],
-                'timestamp': datetime.atZone(get_zone()).toEpochSecond()
-            })
-        elif data[TAG_ACTION] == ACTION_DELETE:
-            if not data[TAG_LIST]:
-                say("You should have selected something!")
-                return
-
-            for item_id in data[TAG_LIST]:
-                if item_id in opts['events']:
-                    del opts['events'][item_id]
-                    say("Done, my master.")
-                else:
-                    log("Attempt to delete %i in %s." % (item_id, opts['events']))
-        else:
-            raise NotImplementedError("Unexpected action!")
+        opts['events'].append({
+            'message': data[TAG_MESSAGE],
+            'timestamp': datetime.atZone(get_zone()).toEpochSecond()
+        })
 
         opts['events'] = sorted(opts['events'], key=itemgetter('timestamp'))
         opts.save()
@@ -86,10 +72,6 @@ def stop_timer(flush_events=True):
 
 def build_options_menu(datetime):
     send_message("gui:add-options-tab", {'name': 'Scheduler', 'msgTag': TAG_SAVE_OPTIONS, 'controls': [
-        {
-            'type': 'ComboBox', 'id': TAG_ACTION, 'label': 'Action',
-            'values': ['Add', 'Delete'], 'value': 0
-        },
         {
             'type': 'ListBox', 'id': TAG_LIST, 'label': 'List of all scheduled notifications',
             'values': [event['message'] for event in opts['events']]
