@@ -5,5 +5,6 @@ TAG_DATE = "date"
 TAG_HOUR = "hour"
 TAG_MINUTE = "minute"
 TAG_LIST = "event-list"
+TAG_SOUND_FILE = "sound"
 
 DATE_FORMAT = "d.M.y"

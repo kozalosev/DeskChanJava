@@ -9,6 +9,7 @@ from functions import *
 
 
 timer = None
+sound = None
 l10n = Localization.get_instance("localization")
 
 opts = Settings.get_instance()
@@ -16,8 +17,15 @@ if not opts['events']:
     opts['events'] = []
 
 
-def timer_action(msg):
-    say(msg)
+def timer_action(message, sound_path=None):
+    say(message)
+
+    global sound
+    if not sound or not (sound == sound_path):
+        sound = try_get_sound(sound_path)
+    if sound:
+        sound.play()
+
     update_timer()
 
 def update_timer(data=None):
@@ -38,11 +46,17 @@ def update_timer(data=None):
             say(l10n['attempt_to_add_event_in_past'])
             return
 
-        opts['events'].append({
+        new_event = {
             'message': data[TAG_MESSAGE],
             'timestamp': datetime.atZone(get_zone()).toEpochSecond()
-        })
+        }
 
+        if data[TAG_SOUND_FILE]:
+            filepath = data[TAG_SOUND_FILE]
+            new_event['sound'] = filepath
+            opts['last_sound_file'] = filepath
+
+        opts['events'].append(new_event)
         opts['events'] = sorted(opts['events'], key=itemgetter('timestamp'))
         opts.save()
 
@@ -52,11 +66,12 @@ def update_timer(data=None):
     closest_event = opts['events'][0]
     event_datetime = timestamp_to_datetime(closest_event['timestamp'])
     event_message = closest_event['message']
+    event_sound = closest_event['sound'] if "sound" in closest_event else None
 
     delta = diff_seconds(event_datetime)
     if delta > 0:
         global timer
-        timer = Timer(delta, lambda: timer_action(event_message))
+        timer = Timer(delta, lambda: timer_action(event_message, event_sound))
         timer.start()
 
     if data:
@@ -89,7 +104,11 @@ def build_options_menu(datetime):
             'type': 'Spinner', 'id': TAG_MINUTE, 'label': l10n['label_minute'],
             'value': datetime.getMinute(), 'min': 0, 'max': 59, 'step': 1
         },
-        { 'type': 'TextField', 'id': TAG_MESSAGE, 'label': l10n['label_message'] }
+        { 'type': 'TextField', 'id': TAG_MESSAGE, 'label': l10n['label_message'] },
+        {
+            'type': 'FileField', 'id': TAG_SOUND_FILE, 'label': l10n['label_sound'],
+            'value': opts['last_sound_file']
+        }
     ]})
 
 add_message_listener(TAG_SAVE_OPTIONS, lambda sender, tag, data: update_timer(data))
