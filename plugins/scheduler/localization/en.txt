@@ -1,0 +1,10 @@
+attempt_to_add_event_in_past    =   I don't have a time machine, senpai!
+event_saved                     =   OK! I'll remind you about that!
+no_message                      =   You should tell me what I have to remind you!
+no_date                         =   You should set a date, master!
+
+label_events                    =   List of scheduled notifications
+label_date                      =   Date
+label_hour                      =   Hour
+label_minute                    =   Minute
+label_message                   =   Message

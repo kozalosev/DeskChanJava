@@ -9,6 +9,7 @@ from functions import *
 
 
 timer = None
+l10n = Localization.get_instance("localization")
 
 opts = Settings.get_instance()
 if not opts['events']:
@@ -26,15 +27,15 @@ def update_timer(data=None):
 
     if data:
         if not data[TAG_MESSAGE]:
-            say("No message!")
+            say(l10n['no_message'])
             return
         if not data[TAG_DATE]:
-            say("No date!")
+            say(l10n['no_date'])
             return
 
         datetime = build_datetime(data[TAG_DATE], data[TAG_HOUR], data[TAG_MINUTE])
         if not datetime.isAfter(now()):
-            say("I don't have a time machine, senpai!")
+            say(l10n['attempt_to_add_event_in_past'])
             return
 
         opts['events'].append({
@@ -59,7 +60,7 @@ def update_timer(data=None):
         timer.start()
 
     if data:
-        say("OK! I'll remind you about that!")
+        say(l10n['event_saved'])
         # I'm not able to update the list due to the fact that API is still pretty poor.
 
 def stop_timer(flush_events=True):
@@ -73,22 +74,22 @@ def stop_timer(flush_events=True):
 def build_options_menu(datetime):
     send_message("gui:add-options-tab", {'name': 'Scheduler', 'msgTag': TAG_SAVE_OPTIONS, 'controls': [
         {
-            'type': 'ListBox', 'id': TAG_LIST, 'label': 'List of all scheduled notifications',
+            'type': 'ListBox', 'id': TAG_LIST, 'label': l10n['label_events'],
             'values': [event['message'] for event in opts['events']]
         },
         {
-            'type': 'DatePicker', 'id': TAG_DATE, 'label': 'Date',
+            'type': 'DatePicker', 'id': TAG_DATE, 'label': l10n['label_date'],
             'format': DATE_FORMAT, 'value': datetime_to_string(datetime)
         },
         {
-            'type': 'Spinner', 'id': TAG_HOUR, 'label': 'Hour',
+            'type': 'Spinner', 'id': TAG_HOUR, 'label': l10n['label_hour'],
             'value': datetime.getHour(), 'min': 0, 'max': 24, 'step': 1
         },
         {
-            'type': 'Spinner', 'id': TAG_MINUTE, 'label': 'Minute',
+            'type': 'Spinner', 'id': TAG_MINUTE, 'label': l10n['label_minute'],
             'value': datetime.getMinute(), 'min': 0, 'max': 59, 'step': 1
         },
-        { 'type': 'TextField', 'id': TAG_MESSAGE, 'label': 'Message' }
+        { 'type': 'TextField', 'id': TAG_MESSAGE, 'label': l10n['label_message'] }
     ]})
 
 add_message_listener(TAG_SAVE_OPTIONS, lambda sender, tag, data: update_timer(data))

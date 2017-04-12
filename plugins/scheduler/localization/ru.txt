@@ -1,0 +1,10 @@
+attempt_to_add_event_in_past    =   Семпай, у меня нет машины времени!
+event_saved                     =   OK! Я напомню тебе об этом!
+no_message                      =   Ты должен указать мне, о чём я должна напомнить тебе!
+no_date                         =   Ты должен указать дату и время, хозяин!
+
+label_events                    =   Список запланированных уведомлений
+label_date                      =   Дата
+label_hour                      =   Час
+label_minute                    =   Минуты
+label_message                   =   Сообщение
