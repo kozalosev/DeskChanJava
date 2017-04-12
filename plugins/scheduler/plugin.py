@@ -14,17 +14,15 @@ opts = Settings.get_instance()
 if not opts['events']:
     opts['events'] = []
 
-clean_expired_events()
-
 
 def timer_action(msg):
     say(msg)
     update_timer()
 
 def update_timer(data=None):
-    stop_timer()
-
-    clean_expired_events(save=False)
+    # If we came here from the options menu,
+    # we don't need to removed expired events immediately since we'll do it later manually.
+    stop_timer(not data)
 
     if data:
         if data[TAG_ACTION] == ACTION_ADD:
@@ -35,7 +33,7 @@ def update_timer(data=None):
                 say("No date!")
                 return
 
-            datetime = datetime_builder(data[TAG_DATE], data[TAG_HOUR], data[TAG_MINUTE])
+            datetime = build_datetime(data[TAG_DATE], data[TAG_HOUR], data[TAG_MINUTE])
             if not datetime.isAfter(now()):
                 say("I don't have a time machine, senpai!")
                 return
@@ -49,21 +47,28 @@ def update_timer(data=None):
                 say("You should have selected something!")
                 return
 
-            del opts['events'][data[TAG_LIST]]
+            for item_id in data[TAG_LIST]:
+                if item_id in opts['events']:
+                    del opts['events'][item_id]
+                    say("Done, my master.")
+                else:
+                    log("Attempt to delete %i in %s." % (item_id, opts['events']))
         else:
             raise NotImplementedError("Unexpected action!")
 
         opts['events'] = sorted(opts['events'], key=itemgetter('timestamp'))
         opts.save()
 
+    if len(opts['events']) == 0:
+        return
+
     closest_event = opts['events'][0]
     event_datetime = timestamp_to_datetime(closest_event['timestamp'])
     event_message = closest_event['message']
 
     delta = diff_seconds(event_datetime)
-    log("[delta: %i]: %s" % (delta, event_message))
-
     if delta > 0:
+        global timer
         timer = Timer(delta, lambda: timer_action(event_message))
         timer.start()
 
@@ -71,11 +76,12 @@ def update_timer(data=None):
         say("OK! I'll remind you about that!")
         # I'm not able to update the list due to the fact that API is still pretty poor.
 
-def stop_timer():
+def stop_timer(flush_events=True):
     global timer
     if timer:
         timer.cancel()
         timer = None
+    clean_expired_events(flush_events)
 
 
 def build_options_menu(datetime):
@@ -105,4 +111,5 @@ def build_options_menu(datetime):
 
 add_message_listener(TAG_SAVE_OPTIONS, lambda sender, tag, data: update_timer(data))
 add_cleanup_handler(stop_timer)
+update_timer()
 build_options_menu(now())

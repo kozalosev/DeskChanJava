@@ -7,7 +7,7 @@ from constants import DATE_FORMAT
 from pluginutils import Settings
 
 
-def datetime_builder(date_str, hour, minute):
+def build_datetime(date_str, hour, minute):
     formatter = DateTimeFormatter.ofPattern(DATE_FORMAT)
     date = LocalDate.parse(date_str, formatter)
     time = LocalTime.of(hour, minute)
@@ -38,7 +38,8 @@ def clean_expired_events(save=True):
     opts = Settings.get_instance()
     opts_modified = False
     for event in opts['events']:
-        if not timestamp_to_datetime(event['timestamp']).isAfter(now()):
+        datetime = timestamp_to_datetime(event['timestamp'])
+        if diff_seconds(datetime) <= 0:
             opts['events'].remove(event)
             opts_modified = True
     if opts_modified and save:
