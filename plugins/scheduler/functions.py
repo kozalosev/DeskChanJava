@@ -37,7 +37,7 @@ def now():
 def diff_seconds(datetime):
     return ChronoUnit.SECONDS.between(now(), datetime)
 
-def clean_expired_events(save=True):
+def delete_expired_events(save=True):
     opts = Settings.get_instance()
     opts_modified = False
     for event in opts['events']:

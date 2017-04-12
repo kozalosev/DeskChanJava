@@ -78,12 +78,13 @@ def update_timer(data=None):
         say(l10n['event_saved'])
         # I'm not able to update the list due to the fact that API is still pretty poor.
 
-def stop_timer(flush_events=True):
+def stop_timer(flush_events=True, event_cleaning=True):
     global timer
     if timer:
         timer.cancel()
         timer = None
-    clean_expired_events(flush_events)
+    if event_cleaning:
+        delete_expired_events(flush_events)
 
 
 def build_options_menu(datetime):
@@ -112,6 +113,7 @@ def build_options_menu(datetime):
     ]})
 
 add_message_listener(TAG_SAVE_OPTIONS, lambda sender, tag, data: update_timer(data))
-add_cleanup_handler(stop_timer)
+# We can't flush options to the disk because it will be already inaccessible when the handler is running.
+add_cleanup_handler(lambda: stop_timer(event_cleaning=False))
 update_timer()
 build_options_menu(now())
