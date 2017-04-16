@@ -27,8 +27,23 @@ abstract class ResourcesLoader {
         try {
             DirectoryStream<Path> directoryStream = Files.newDirectoryStream(directoryPath)
             for (Path skinPath : directoryStream) {
-                if (!Files.isDirectory(skinPath))
-                    list.add(new SkinInfo(skinPath))
+                boolean isDir = Files.isDirectory(skinPath)
+                if (isDir) {
+                    File dir = new File(skinPath.toUri())
+                    String[] files = dir.list()
+                    boolean hasNormalSprite = false
+
+                    for (String filename : files) {
+                        if (filename.contains("normal")) {
+                            hasNormalSprite = true
+                            break
+                        }
+                    }
+                    if (!hasNormalSprite)
+                        continue
+                }
+
+                list.add(new SkinInfo(skinPath, isDir))
             }
         } catch (IOException e) {
             e.printStackTrace()

@@ -36,7 +36,8 @@ class Character {
 
         SkinInfo[] skins = ResourcesLoader.readSkins(name)
         for (SkinInfo info : skins) {
-            switch (info.name.substring(0, info.name.length() - 4)) {
+            String skinName = (info.isSet) ? info.name : info.name.substring(0, info.name.length() - 4)
+            switch (skinName) {
                 case "normal":
                     defaultSkin = info
                     break
