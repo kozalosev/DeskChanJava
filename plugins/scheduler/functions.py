@@ -39,6 +39,9 @@ def diff_seconds(datetime):
 
 def delete_expired_events(save=True):
     opts = Settings.get_instance()
+    if not opts['events']:
+        return
+
     opts_modified = False
     for event in opts['events']:
         datetime = timestamp_to_datetime(event['timestamp'])
