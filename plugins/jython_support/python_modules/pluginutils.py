@@ -48,7 +48,9 @@ class AbstractMultiton:
 
     @classmethod
     def destroy_instance(cls):
-        del cls._instances[get_id()]
+        plugin_id = get_id()
+        if plugin_id in cls._instances:
+            del cls._instances[plugin_id]
 
 
 class Settings(AbstractMultiton):
