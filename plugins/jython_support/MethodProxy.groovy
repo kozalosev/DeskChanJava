@@ -1,8 +1,6 @@
 import info.deskchan.core.MessageListener
 import info.deskchan.core.ResponseListener
 
-import java.nio.charset.Charset
-
 
 class MethodProxy {
     private JythonPlugin plugin
@@ -57,10 +55,7 @@ class MethodProxy {
         if (parameters == null)
             parameters = new HashMap<>()
 
-        byte[] bytes = text.toString().getBytes(Charset.defaultCharset())
-        String converted = new String(bytes, Charset.forName("UTF-8"))
-
-        parameters.put("text", converted)
+        parameters.put("text", text.toString())
         sendMessage("DeskChan:say", parameters)
     }
 
