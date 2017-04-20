@@ -154,6 +154,6 @@ class Localization(AbstractMultiton):
         """
 
         if item in self.strings:
-            return self.strings[item].decode('string_escape')
+            return self.strings[item].decode("unicode_escape")
         else:
             raise ValueError("No localized string: %s!" % item)
