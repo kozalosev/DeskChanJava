@@ -6,6 +6,7 @@ import org.python.core.PyStringMap
 import org.python.core.PySystemState
 import org.python.util.PythonInterpreter
 
+import java.nio.charset.Charset
 import java.nio.file.Path
 
 
@@ -29,7 +30,10 @@ class JythonPlugin implements Plugin {
         systemState.path.append(Py.java2py(pythonModulesDirPath.toString()))
         systemState.path.append(Py.java2py(pluginPath.getParent().toString()))
         systemState.path.append(Py.java2py(pluginPath.getParent().resolve("__dependencies__").toString()))
-        PyCode script = interpreter.compile(new FileReader(pluginPath.toFile()))
+
+        InputStream scriptStream = new FileInputStream(pluginPath.toFile())
+        InputStreamReader scriptReader = new InputStreamReader(scriptStream, Charset.forName("UTF-8"))
+        PyCode script = interpreter.compile(scriptReader)
 
         MethodProxy methodProxy = new MethodProxy(this)
         systemState.builtins.__setitem__("bus", Py.java2py(methodProxy))
