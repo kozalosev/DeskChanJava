@@ -2,6 +2,7 @@ package info.deskchan.gui_javafx;
 
 import info.deskchan.core.PluginManager;
 import info.deskchan.core.PluginProxy;
+import javafx.application.Platform;
 import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.beans.value.ChangeListener;
 import javafx.collections.FXCollections;
@@ -11,10 +12,10 @@ import javafx.scene.image.Image;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.text.Font;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
-import javafx.scene.text.Font;
 import org.controlsfx.dialog.FontSelectorDialog;
 import org.json.JSONObject;
 
@@ -100,15 +101,19 @@ class OptionsDialog extends Dialog<Void> {
 		pluginsTab.setCenter(pluginsList);
 		pluginsList.setPrefSize(400, 300);
 		pluginProxy.addMessageListener("core-events:plugin-load", (sender, tag, data) -> {
-			for (PluginListItem item : pluginsList.getItems()) {
-				if (item.id.equals(data)) {
-					return;
+			Platform.runLater(() -> {
+				for (PluginListItem item : pluginsList.getItems()) {
+					if (item.id.equals(data)) {
+						return;
+					}
 				}
-			}
-			pluginsList.getItems().add(new PluginListItem(data.toString(), false));
+				pluginsList.getItems().add(new PluginListItem(data.toString(), false));
+			});
 		});
 		pluginProxy.addMessageListener("core-events:plugin-unload", (sender, tag, data) -> {
-			pluginsList.getItems().removeIf(item -> item.id.equals(data) && !item.blacklisted);
+			Platform.runLater(() -> {
+				pluginsList.getItems().removeIf(item -> item.id.equals(data) && !item.blacklisted);
+			});
 		});
 		for (String id : PluginManager.getInstance().getBlacklistedPlugins()) {
 			pluginsList.getItems().add(new PluginListItem(id, true));
@@ -141,9 +146,15 @@ class OptionsDialog extends Dialog<Void> {
 		};
 		unloadPluginButton.setOnAction(event -> {
 			PluginListItem item = pluginsList.getSelectionModel().getSelectedItem();
-			if (item.blacklisted) return;
-			if (item.id.equals("core")) return;
-			if (item.id.equals(Main.getInstance().getPluginProxy().getId())) return;
+			if (item.blacklisted) {
+				return;
+			}
+			if (item.id.equals("core")) {
+				return;
+			}
+			if (item.id.equals(Main.getInstance().getPluginProxy().getId())) {
+				return;
+			}
 			PluginManager.getInstance().unloadPlugin(item.id);
 		});
 		hbox.getChildren().add(unloadPluginButton);
@@ -201,7 +212,7 @@ class OptionsDialog extends Dialog<Void> {
 				root.getChildren().add(group);
 			}
 			alternativesTable.setRoot(root);
- 		});
+		});
 		tabPane.getTabs().add(new Tab(Main.getString("alternatives"), alternativesTab));
 		BorderPane debugTab = new BorderPane();
 		TextField debugMsgTag = new TextField("DeskChan:say");
@@ -241,6 +252,14 @@ class OptionsDialog extends Dialog<Void> {
 		if (tabs == null) {
 			tabs = new ArrayList<>();
 			pluginsTabs.put(plugin, tabs);
+			tabs.add(new PluginOptionsTab(name, controls, msgTag));
+			return;
+		}
+		for (int i = 0; i < tabs.size(); i++) {
+			if (tabs.get(i).name.equals(name)) {
+				tabs.set(i, new PluginOptionsTab(name, controls, msgTag));
+				return;
+			}
 		}
 		tabs.add(new PluginOptionsTab(name, controls, msgTag));
 	}
@@ -305,7 +324,9 @@ class OptionsDialog extends Dialog<Void> {
 				String id = (String) controlInfo.getOrDefault("id", null);
 				String label = (String) controlInfo.getOrDefault("label", null);
 				PluginOptionsControlItem item = PluginOptionsControlItem.create(controlInfo);
-				if (item == null) continue;
+				if (item == null) {
+					continue;
+				}
 				if (id != null) {
 					namedControls.put(id, item);
 				}
