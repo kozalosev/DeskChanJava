@@ -135,19 +135,25 @@ public class App extends Application {
 				}
 			});
 		});
-		pluginProxy.addMessageListener("gui:add-options-tab", (sender, tag, data) -> {
+		pluginProxy.addMessageListener("gui:setup-options-tab", (sender, tag, data) -> {
 			Platform.runLater(() -> {
 				Map<String, Object> m = (Map<String, Object>) data;
 				OptionsDialog.registerPluginTab(sender, (String) m.get("name"),
 						(List<Map<String, Object>>) m.get("controls"), (String) m.getOrDefault("msgTag", null));
 			});
 		});
+		pluginProxy.addMessageListener("gui:show-notification", (sender, tag, data) -> {
+			Platform.runLater(() -> {
+				Map<String, Object> m = (Map<String, Object>) data;
+				MessageBox dialog = new MessageBox((String) m.getOrDefault("name", Main.getString("default_messagebox_name")), (String) m.get("text"));
+				dialog.show();
+			});
+		});
 		pluginProxy.addMessageListener("core-events:plugin-unload", (sender, tag, data) -> {
 			Platform.runLater(() -> {
 				String pluginId = (String) data;
-				pluginsActions.remove(pluginId);
-				rebuildMenu();
 				OptionsDialog.unregisterPluginTabs(pluginId);
+				rebuildMenu();
 			});
 		});
 		pluginProxy.sendMessage("core:register-alternatives", Arrays.asList(

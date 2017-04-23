@@ -109,6 +109,19 @@ public class Main implements Plugin {
 		pluginProxy.addMessageListener("talk:options-saved", (sender, tag, data) -> {
 			saveOptions((Map<String, Object>) data);
 		});
+		pluginProxy.addMessageListener("talk:save_preset", (sender, tag, data) -> {
+			try {
+				currentPreset.saveInFile(getPresetsPath());
+				HashMap<String, Object> list = new HashMap<String, Object>();
+				list.put("text", "Success");
+				pluginProxy.sendMessage("gui:show-notification", list);
+			} catch (Exception e) {
+				HashMap<String, Object> list = new HashMap<String, Object>();
+				list.put("name", "Ошибка");
+				list.put("text", "Error while writing file: " + e.getMessage());
+				pluginProxy.sendMessage("gui:show-notification", list);
+			}
+		});
 		pluginProxy.addMessageListener("talk:register-perk",
 				(sender, tag, data) -> perkContainer.add((String) sender, (Map<String, Object>) data)
 		);
@@ -125,7 +138,7 @@ public class Main implements Plugin {
 				(sender, tag, data) -> perkContainer.getAnswerFromPerk(sender, (Map<String, Object>) data)
 		);
 		pluginProxy.sendMessage("DeskChan:register-simple-action", new HashMap<String, Object>() {{
-			put("name", "Say phrase");
+			put("name", getString("say_phrase"));
 			put("msgTag", "talk:request");
 		}});
 		updateOptionsTab();
@@ -187,10 +200,8 @@ public class Main implements Plugin {
 		pluginProxy.sendMessage("gui:say", ret);
 	}
 	
-	String errorMessage = "";
-	
 	void updateOptionsTab() {
-		pluginProxy.sendMessage("gui:add-options-tab", new HashMap<String, Object>() {{
+		pluginProxy.sendMessage("gui:setup-options-tab", new HashMap<String, Object>() {{
 			put("name", getString("character"));
 			put("msgTag", "talk:options-saved");
 			List<HashMap<String, Object>> list = new LinkedList<HashMap<String, Object>>();
@@ -245,7 +256,7 @@ public class Main implements Plugin {
 				put("id", "file");
 				put("type", "FileField");
 				put("label", getString("load_preset"));
-				put("initialDirectory", pluginProxy.getDataDirPath().toString());
+				put("initialDirectory", getPresetsPath().toString());
 			}});
 			list.add(new HashMap<String, Object>() {{
 				put("id", "message_interval");
@@ -256,35 +267,60 @@ public class Main implements Plugin {
 				put("value", messageTimeout / 1000);
 				put("label", getString("message_interval"));
 			}});
+			list.add(new HashMap<String, Object>() {{
+				put("id", "save_preset");
+				put("type", "Button");
+				put("value", getString("save_preset"));
+				put("msgTag", "talk:save_preset");
+			}});
 			put("controls", list);
 		}});
 	}
 	
 	void saveOptions(Map<String, Object> data) {
 		String val = (String) data.getOrDefault("file", "");
-		errorMessage = "";
+		String errorMessage = "";
 		if (val.isEmpty()) {
-			currentPreset = CharacterPreset.getFromTypeName(
-					CharacterPreset.presetTypeList.get((Integer) data.get("type"))
-			);
-			val = (String) data.getOrDefault("name", "");
-			if (!val.isEmpty()) {
-				currentPreset.name = val;
+			try {
+				currentPreset = CharacterPreset.getFromTypeName(
+						CharacterPreset.presetTypeList.get((Integer) data.get("type"))
+				);
+			} catch (Exception e) {
+				errorMessage += e.getMessage() + "\n";
 			}
-			val = (String) data.getOrDefault("usernames", "");
-			if (!val.isEmpty()) {
-				currentPreset.usernames = getListFromString(val);
-			}
-			val = (String) data.getOrDefault("quotes", "");
-			if (!val.isEmpty()) {
-				currentPreset.quotesBaseList = getListFromString(val);
-			}
-			
-			for (int i = 0; i < CharacterSystem.getFeatureCount(); i++) {
-				val = (String) data.getOrDefault(CharacterSystem.getFeatureName(i), "");
+			try {
+				val = (String) data.getOrDefault("name", "");
 				if (!val.isEmpty()) {
-					currentPreset.MainCharacter.setValues(i, val);
+					currentPreset.name = val;
 				}
+			} catch (Exception e) {
+				errorMessage += e.getMessage() + "\n";
+			}
+			try {
+				val = (String) data.getOrDefault("usernames", "");
+				if (!val.isEmpty()) {
+					currentPreset.usernames = getListFromString(val);
+				}
+			} catch (Exception e) {
+				errorMessage += e.getMessage() + "\n";
+			}
+			try {
+				val = (String) data.getOrDefault("quotes", "");
+				if (!val.isEmpty()) {
+					currentPreset.quotesBaseList = getListFromString(val);
+				}
+			} catch (Exception e) {
+				errorMessage += e.getMessage() + "\n";
+			}
+			try {
+				for (int i = 0; i < CharacterSystem.getFeatureCount(); i++) {
+					val = (String) data.getOrDefault(CharacterSystem.getFeatureName(i), "");
+					if (!val.isEmpty()) {
+						currentPreset.MainCharacter.setValues(i, val);
+					}
+				}
+			} catch (Exception e) {
+				errorMessage += e.getMessage() + "\n";
 			}
 		} else {
 			CharacterPreset newPreset = CharacterPreset.getFromFileUnsafe(Paths.get(val));
@@ -297,8 +333,15 @@ public class Main implements Plugin {
 		try {
 			messageTimeout = (Integer) data.getOrDefault("message_interval", 40) * 1000;
 		} catch (Exception e) {
-			log(e);
+			errorMessage += e.getMessage();
 			messageTimeout = 40000;
+		}
+		if (errorMessage.length() > 1) {
+			HashMap<String, Object> list = new HashMap<String, Object>();
+			list.put("name", "Ошибка");
+			list.put("text", errorMessage);
+			pluginProxy.sendMessage("gui:show-notification", list);
+			//System.out.println(errorMessage);
 		}
 		chatTimer.cancel();
 		chatTimer = new Timer();
@@ -355,6 +398,19 @@ public class Main implements Plugin {
 	
 	public static Path getDataDirPath() {
 		return pluginProxy.getDataDirPath();
+	}
+	
+	public static Path getPresetsPath() {
+		Path path = pluginProxy.getRootDirPath().resolve("presets/");
+		if (!Files.isDirectory(path)) {
+			try {
+				Files.createDirectories(path);
+			} catch (Exception e) {
+				log(e);
+				return pluginProxy.getRootDirPath();
+			}
+		}
+		return path;
 	}
 	
 	@Override

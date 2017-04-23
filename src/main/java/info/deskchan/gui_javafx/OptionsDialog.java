@@ -249,19 +249,34 @@ class OptionsDialog extends Dialog<Void> {
 	
 	static void registerPluginTab(String plugin, String name, List<Map<String, Object>> controls, String msgTag) {
 		List<PluginOptionsTab> tabs = pluginsTabs.getOrDefault(plugin, null);
+		PluginOptionsTab poTab = new PluginOptionsTab(name, controls, msgTag);
 		if (tabs == null) {
 			tabs = new ArrayList<>();
 			pluginsTabs.put(plugin, tabs);
-			tabs.add(new PluginOptionsTab(name, controls, msgTag));
+			tabs.add(poTab);
 			return;
-		}
-		for (int i = 0; i < tabs.size(); i++) {
-			if (tabs.get(i).name.equals(name)) {
-				tabs.set(i, new PluginOptionsTab(name, controls, msgTag));
-				return;
+		} else {
+			boolean found = false;
+			for (int i = 0; i < tabs.size(); i++) {
+				if (tabs.get(i).name.equals(name)) {
+					tabs.set(i, poTab);
+					found = true;
+					break;
+				}
+			}
+			if (!found) {
+				tabs.add(poTab);
 			}
 		}
-		tabs.add(new PluginOptionsTab(name, controls, msgTag));
+		
+		if (instance != null) {
+			for (Tab tab : instance.tabPane.getTabs()) {
+				if (tab.getText().equals(name)) {
+					tab.setContent(poTab.createControlsPane());
+					break;
+				}
+			}
+		}
 	}
 	
 	static void unregisterPluginTabs(String plugin) {
@@ -306,11 +321,16 @@ class OptionsDialog extends Dialog<Void> {
 	private static class PluginOptionsTab {
 		
 		final String name;
-		final List<Map<String, Object>> controls;
-		final String msgTag;
+		List<Map<String, Object>> controls;
+		String msgTag;
 		
 		PluginOptionsTab(String name, List<Map<String, Object>> controls, String msgTag) {
 			this.name = name;
+			this.controls = controls;
+			this.msgTag = msgTag;
+		}
+		
+		void update(List<Map<String, Object>> controls, String msgTag) {
 			this.controls = controls;
 			this.msgTag = msgTag;
 		}
@@ -363,5 +383,4 @@ class OptionsDialog extends Dialog<Void> {
 		}
 		
 	}
-	
 }
