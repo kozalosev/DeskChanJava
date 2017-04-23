@@ -2,6 +2,7 @@ package info.deskchan.gui_javafx;
 
 import info.deskchan.core.PluginManager;
 import info.deskchan.core.PluginProxy;
+import javafx.application.Platform;
 import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.beans.value.ChangeListener;
 import javafx.collections.FXCollections;
@@ -11,10 +12,10 @@ import javafx.scene.image.Image;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.text.Font;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
-import javafx.scene.text.Font;
 import org.controlsfx.dialog.FontSelectorDialog;
 import org.json.JSONObject;
 
@@ -100,15 +101,19 @@ class OptionsDialog extends Dialog<Void> {
 		pluginsTab.setCenter(pluginsList);
 		pluginsList.setPrefSize(400, 300);
 		pluginProxy.addMessageListener("core-events:plugin-load", (sender, tag, data) -> {
-			for (PluginListItem item : pluginsList.getItems()) {
-				if (item.id.equals(data)) {
-					return;
+			Platform.runLater(() -> {
+				for (PluginListItem item : pluginsList.getItems()) {
+					if (item.id.equals(data)) {
+						return;
+					}
 				}
-			}
-			pluginsList.getItems().add(new PluginListItem(data.toString(), false));
+				pluginsList.getItems().add(new PluginListItem(data.toString(), false));
+			});
 		});
 		pluginProxy.addMessageListener("core-events:plugin-unload", (sender, tag, data) -> {
-			pluginsList.getItems().removeIf(item -> item.id.equals(data) && !item.blacklisted);
+			Platform.runLater(() -> {
+				pluginsList.getItems().removeIf(item -> item.id.equals(data) && !item.blacklisted);
+			});
 		});
 		for (String id : PluginManager.getInstance().getBlacklistedPlugins()) {
 			pluginsList.getItems().add(new PluginListItem(id, true));
@@ -141,9 +146,15 @@ class OptionsDialog extends Dialog<Void> {
 		};
 		unloadPluginButton.setOnAction(event -> {
 			PluginListItem item = pluginsList.getSelectionModel().getSelectedItem();
-			if (item.blacklisted) return;
-			if (item.id.equals("core")) return;
-			if (item.id.equals(Main.getInstance().getPluginProxy().getId())) return;
+			if (item.blacklisted) {
+				return;
+			}
+			if (item.id.equals("core")) {
+				return;
+			}
+			if (item.id.equals(Main.getInstance().getPluginProxy().getId())) {
+				return;
+			}
 			PluginManager.getInstance().unloadPlugin(item.id);
 		});
 		hbox.getChildren().add(unloadPluginButton);
@@ -201,7 +212,7 @@ class OptionsDialog extends Dialog<Void> {
 				root.getChildren().add(group);
 			}
 			alternativesTable.setRoot(root);
- 		});
+		});
 		tabPane.getTabs().add(new Tab(Main.getString("alternatives"), alternativesTab));
 		BorderPane debugTab = new BorderPane();
 		TextField debugMsgTag = new TextField("DeskChan:say");
@@ -238,11 +249,34 @@ class OptionsDialog extends Dialog<Void> {
 	
 	static void registerPluginTab(String plugin, String name, List<Map<String, Object>> controls, String msgTag) {
 		List<PluginOptionsTab> tabs = pluginsTabs.getOrDefault(plugin, null);
+		PluginOptionsTab poTab = new PluginOptionsTab(name, controls, msgTag);
 		if (tabs == null) {
 			tabs = new ArrayList<>();
 			pluginsTabs.put(plugin, tabs);
+			tabs.add(poTab);
+			return;
+		} else {
+			boolean found = false;
+			for (int i = 0; i < tabs.size(); i++) {
+				if (tabs.get(i).name.equals(name)) {
+					tabs.set(i, poTab);
+					found = true;
+					break;
+				}
+			}
+			if (!found) {
+				tabs.add(poTab);
+			}
 		}
-		tabs.add(new PluginOptionsTab(name, controls, msgTag));
+		
+		if (instance != null) {
+			for (Tab tab : instance.tabPane.getTabs()) {
+				if (tab.getText().equals(name)) {
+					tab.setContent(poTab.createControlsPane());
+					break;
+				}
+			}
+		}
 	}
 	
 	static void unregisterPluginTabs(String plugin) {
@@ -287,11 +321,16 @@ class OptionsDialog extends Dialog<Void> {
 	private static class PluginOptionsTab {
 		
 		final String name;
-		final List<Map<String, Object>> controls;
-		final String msgTag;
+		List<Map<String, Object>> controls;
+		String msgTag;
 		
 		PluginOptionsTab(String name, List<Map<String, Object>> controls, String msgTag) {
 			this.name = name;
+			this.controls = controls;
+			this.msgTag = msgTag;
+		}
+		
+		void update(List<Map<String, Object>> controls, String msgTag) {
 			this.controls = controls;
 			this.msgTag = msgTag;
 		}
@@ -305,7 +344,9 @@ class OptionsDialog extends Dialog<Void> {
 				String id = (String) controlInfo.getOrDefault("id", null);
 				String label = (String) controlInfo.getOrDefault("label", null);
 				PluginOptionsControlItem item = PluginOptionsControlItem.create(controlInfo);
-				if (item == null) continue;
+				if (item == null) {
+					continue;
+				}
 				if (id != null) {
 					namedControls.put(id, item);
 				}
@@ -323,6 +364,15 @@ class OptionsDialog extends Dialog<Void> {
 					Map<String, Object> data = new HashMap<>();
 					for (Map.Entry<String, PluginOptionsControlItem> entry : namedControls.entrySet()) {
 						data.put(entry.getKey(), entry.getValue().getValue());
+						for (Map<String, Object> control : controls) {
+							String id = (String) control.getOrDefault("id", null);
+							if (id != null) {
+								if (id.equals(entry.getKey())) {
+									control.put("value", entry.getValue().getValue());
+									break;
+								}
+							}
+						}
 					}
 					Main.getInstance().getPluginProxy().sendMessage(msgTag, data);
 				});
@@ -333,5 +383,4 @@ class OptionsDialog extends Dialog<Void> {
 		}
 		
 	}
-	
 }
