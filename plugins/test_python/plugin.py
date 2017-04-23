@@ -35,7 +35,7 @@ add_message_listener("gui-events:character-left-click", func_show_test_message)
 l10n = Localization.get_instance("localization")
 
 # Adds the options tab.
-send_message("gui:add-options-tab", {'name': 'Test Python', 'msgTag': build_tag(TAG_SAVE_OPTIONS), 'controls': [
+send_message("gui:setup-options-tab", {'name': 'Test Python', 'msgTag': build_tag(TAG_SAVE_OPTIONS), 'controls': [
     { 'type': 'Label', 'value': l10n['hint_label'] },
     { 'type': 'TextField', 'id': TAG_CODE, 'label': l10n['code_label'] }
 ]})
