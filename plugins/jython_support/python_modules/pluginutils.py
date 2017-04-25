@@ -6,7 +6,6 @@ import os
 import json
 import codecs
 import re
-from busproxy import *
 from java.lang import System
 
 
@@ -38,17 +37,17 @@ class AbstractMultiton:
         :returns: An instance of a specific class.
         """
 
-        key = get_id()
+        key = bus.getId()
 
         if key not in cls._instances:
             cls._instances[key] = cls(*args, **kwargs)
-            add_cleanup_handler(cls.destroy_instance)
+            bus.addCleanupHandler(cls.destroy_instance)
 
         return cls._instances[key]
 
     @classmethod
     def destroy_instance(cls):
-        plugin_id = get_id()
+        plugin_id = bus.getId()
         if plugin_id in cls._instances:
             del cls._instances[plugin_id]
 
@@ -67,7 +66,7 @@ class Settings(AbstractMultiton):
         :type filename: str
         """
 
-        self._file = os.path.join(get_data_dir_path(), filename)
+        self._file = os.path.join(bus.getDataDirPath(), filename)
         self._settings = {}
 
         if os.path.isfile(self._file):
@@ -124,7 +123,7 @@ class Localization(AbstractMultiton):
         """
 
         assert localization_dir
-        path = os.path.join(get_plugin_dir_path(), localization_dir)
+        path = os.path.join(bus.getPluginDirPath(), localization_dir)
 
         # language = locale.getdefaultlocale()[0]
         # The code above returns a tuple of two None values in Jython. So we have to use a Java equivalent.
