@@ -1,7 +1,6 @@
-attempt_to_add_event_in_past    =   I don't have a time machine, senpai!
-event_saved                     =   OK! I'll remind you about that!
-no_message                      =   You should tell me what I have to remind you!
-no_date                         =   You should set a date, master!
+attempt_to_add_event_in_past    =   The date are already past!
+no_message                      =   The message field needs to be filled up!
+no_date                         =   You should set a date!
 
 label_events                    =   List of scheduled notifications
 label_date                      =   Date

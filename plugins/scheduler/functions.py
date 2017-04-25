@@ -42,13 +42,14 @@ def delete_expired_events(save=True):
     if not opts['events']:
         return
 
-    opts_modified = False
+    marked_events = []
     for event in opts['events']:
         datetime = timestamp_to_datetime(event['timestamp'])
         if diff_seconds(datetime) <= 0:
-            opts['events'].remove(event)
-            opts_modified = True
-    if opts_modified and save:
+            marked_events.append(event)
+    for event in marked_events:
+        opts['events'].remove(event)
+    if marked_events and save:
         opts.save()
 
 

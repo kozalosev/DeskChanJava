@@ -17,8 +17,9 @@ if not opts['events']:
     opts['events'] = []
 
 
-def timer_action(message, sound_path=None):
-    say(message)
+def timer_action(messages, sound_path=None):
+    for message in messages:
+        say(message)
 
     global sound
     if not sound or not (sound == sound_path):
@@ -26,57 +27,33 @@ def timer_action(message, sound_path=None):
     if sound:
         sound.play()
 
-    update_timer()
+    update_state()
 
-def update_timer(data=None):
-    # If we came here from the options menu,
-    # we don't need to removed expired events immediately since we'll do it later manually.
-    stop_timer(not data)
-
-    if data:
-        if not data[TAG_MESSAGE]:
-            say(l10n['no_message'])
-            return
-        if not data[TAG_DATE]:
-            say(l10n['no_date'])
-            return
-
-        datetime = build_datetime(data[TAG_DATE], data[TAG_HOUR], data[TAG_MINUTE])
-        if not datetime.isAfter(now()):
-            say(l10n['attempt_to_add_event_in_past'])
-            return
-
-        new_event = {
-            'message': data[TAG_MESSAGE],
-            'timestamp': datetime.atZone(get_zone()).toEpochSecond()
-        }
-
-        if data[TAG_SOUND_FILE]:
-            filepath = data[TAG_SOUND_FILE]
-            new_event['sound'] = filepath
-            opts['last_sound_file'] = filepath
-
-        opts['events'].append(new_event)
-        opts['events'] = sorted(opts['events'], key=itemgetter('timestamp'))
-        opts.save()
+def update_timer():
+    stop_timer()
 
     if len(opts['events']) == 0:
         return
 
-    closest_event = opts['events'][0]
-    event_datetime = timestamp_to_datetime(closest_event['timestamp'])
-    event_message = closest_event['message']
-    event_sound = closest_event['sound'] if "sound" in closest_event else None
+    # We're going to allow our users to create several events on the same date and time.
+    # Let's consider the first met sound as a sound of an entire notification.
+    events = opts['events']
+    closest_timestamp = min(events, key=itemgetter("timestamp"))['timestamp']
+    closest_events = [x for x in events if x['timestamp'] == closest_timestamp]
+    event_datetime, event_sound = None, None
+    messages = []
+    for event in closest_events:
+        if not event_datetime:
+            event_datetime = timestamp_to_datetime(event['timestamp'])
+        if not event_sound:
+            event_sound = event['sound'] if "sound" in event else None
+        messages.append(event['message'])
 
     delta = diff_seconds(event_datetime)
     if delta > 0:
         global timer
-        timer = Timer(delta, lambda: timer_action(event_message, event_sound))
+        timer = Timer(delta, lambda: timer_action(messages, event_sound))
         timer.start()
-
-    if data:
-        say(l10n['event_saved'])
-        # I'm not able to update the list due to the fact that API is still pretty poor.
 
 def stop_timer(flush_events=True, event_cleaning=True):
     global timer
@@ -86,9 +63,37 @@ def stop_timer(flush_events=True, event_cleaning=True):
     if event_cleaning:
         delete_expired_events(flush_events)
 
+def add_event(data):
+    if not data[TAG_MESSAGE]:
+        send_message("gui:show-notification", {'text': l10n['no_message']})
+        return
+    if not data[TAG_DATE]:
+        send_message("gui:show-notification", {'text': l10n['no_date']})
+        return
 
-def build_options_menu(datetime):
-    send_message("gui:add-options-tab", {'name': 'Scheduler', 'msgTag': TAG_SAVE_OPTIONS, 'controls': [
+    datetime = build_datetime(data[TAG_DATE], data[TAG_HOUR], data[TAG_MINUTE])
+    if not datetime.isAfter(now()):
+        send_message("gui:show-notification", {'text': l10n['attempt_to_add_event_in_past']})
+        return
+
+    new_event = {
+        'message': data[TAG_MESSAGE],
+        'timestamp': datetime.atZone(get_zone()).toEpochSecond()
+    }
+
+    if data[TAG_SOUND_FILE]:
+        filepath = data[TAG_SOUND_FILE]
+        new_event['sound'] = filepath
+        opts['last_sound_file'] = filepath
+
+    opts['events'].append(new_event)
+    opts['events'] = sorted(opts['events'], key=itemgetter('timestamp'))
+    opts.save()
+
+    update_state()
+
+def rebuild_options_menu(datetime):
+    send_message("gui:setup-options-tab", {'name': 'Scheduler', 'msgTag': TAG_SAVE_OPTIONS, 'controls': [
         {
             'type': 'ListBox', 'id': TAG_LIST, 'label': l10n['label_events'],
             'values': [event['message'] for event in opts['events']]
@@ -112,8 +117,12 @@ def build_options_menu(datetime):
         }
     ]})
 
-add_message_listener(TAG_SAVE_OPTIONS, lambda sender, tag, data: update_timer(data))
+def update_state():
+    update_timer()
+    rebuild_options_menu(now())
+
+
+add_message_listener(TAG_SAVE_OPTIONS, lambda sender, tag, data: add_event(data))
 # We can't flush options to the disk because it will be already inaccessible when the handler is running.
 add_cleanup_handler(lambda: stop_timer(event_cleaning=False))
-update_timer()
-build_options_menu(now())
+update_state()
