@@ -34,6 +34,7 @@ def init(global_dict, *methods):
             'addCleanupHandler', 'add_cleanup_handler',
             'getPluginDirPath', 'get_plugin_dir_path',
             'getDataDirPath', 'get_data_dir_path',
+            'getRootDirPath', 'get_root_dir_path',
             'log', 'say'
         ]
 

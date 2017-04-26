@@ -24,6 +24,7 @@ say(u'And again but in Russian: "Привет!"')
 # Note, how we can use aliases from the busproxy.
 bus.log("Plugin directory: %s." % bus.getPluginDirPath())
 log("Data directory: %s." % get_data_dir_path())
+log("Root directory: %s." % get_root_dir_path())
 # Adds the "Test" item into the popup menu.
 send_message("DeskChan:register-simple-action", {'name': 'Test', 'msgTag': build_tag(TAG_MENUACTION)})
 
