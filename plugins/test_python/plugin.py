@@ -8,7 +8,8 @@ from libs.functions import build_tag
 # `busproxy` is a special module that you may use to include all functions of the bus to the scope. After that you
 # won't have to use `bus` explicitly. Moreover, it provides more Pythonic aliases (lower case names with underscores)
 # for some of the functions.
-from busproxy import *
+import busproxy
+busproxy.init(globals())
 
 # Some useful classes I provided for you to make your life a bit easier ;)
 from pluginutils import Settings, Localization
