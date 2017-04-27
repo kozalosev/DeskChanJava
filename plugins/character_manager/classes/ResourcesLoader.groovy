@@ -111,6 +111,8 @@ abstract class ResourcesLoader {
                         phraseAction = PhraseAction.FEED
                     else if (action == "NAUGHTY")
                         phraseAction = PhraseAction.NAUGHTY
+                    else if (action == "WALK")
+                        phraseAction = PhraseAction.WALK
 
                     if (condition == "FED")
                         phraseCondition = PhraseCondition.FED
@@ -120,6 +122,10 @@ abstract class ResourcesLoader {
                         phraseCondition = PhraseCondition.SEXUALLY_SATISFIED
                     else if (condition == "SEXUALLY_HUNGRY")
                         phraseCondition = PhraseCondition.SEXUALLY_HUNGRY
+                    else if (condition == "WANNA_SIT_HOME")
+                        phraseCondition = PhraseCondition.WANNA_SIT_HOME
+                    else if (condition == "WANNA_GO_OUTSIDE")
+                        phraseCondition = PhraseCondition.WANNA_GO_OUTSIDE
                     else
                         phraseCondition = PhraseCondition.DEFAULT
 

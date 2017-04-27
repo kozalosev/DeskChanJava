@@ -11,8 +11,10 @@ class Character {
     // Некоторые параметры.
     final private static int MAX_SATIETY = 100
     final private static int MAX_PLEASURE = 100
+    final private static int MAX_OXYGEN_SATURATION = 100
     final private static int SATIETY_ACCRETION = 10
     final private static int PLEASURE_ACCRETION = 10
+    final private static int OXYGEN_SATURATION_ACCRETION = 10
 
     private String name
     // Для каждого персонажа можно задать до 4 спрайтов, отображаемых в зависимости от времени суток.
@@ -26,6 +28,7 @@ class Character {
     // или выставляется по умолчанию в половину максимального.
     private int satiety
     private int pleasure
+    private int oxygenSaturation
 
     // Конструктор проверяет наличие необходимых ресурсов в resources/characters/%name%.
     // Если там нет sprites/normal.png или phrases/default.txt, то выбрасывается WrongCharacterException.
@@ -97,12 +100,14 @@ class Character {
 
     String getClickPhrase() {
         increasePleasure()
+        decreaseOxygenSaturation()
         return getRandomPhrase(getPhrases(PhraseAction.CLICK))
     }
 
     // ...а некоторые ещё изменяют параметры персонажа.
     String feed() {
         increaseSatiety()
+        decreaseOxygenSaturation()
         return getRandomPhrase(getPhrases(PhraseAction.FEED))
     }
 
@@ -110,6 +115,7 @@ class Character {
         increasePleasure()
         increasePleasure()
         decreaseSatiety()
+        decreaseOxygenSaturation()
         return getRandomPhrase(getPhrases(PhraseAction.NAUGHTY))
     }
 
@@ -117,12 +123,16 @@ class Character {
         increasePleasure()
         decreaseSatiety()
         decreaseSatiety()
+        increaseOxygenSaturation()
         // TODO: Implement and fill new actions up!
         return getRandomPhrase(getPhrases(PhraseAction.WALK))
     }
 
     void play() {
         increasePleasure()
+        decreaseSatiety()
+        decreaseOxygenSaturation()
+        decreaseOxygenSaturation()
 
         // TODO: Read ids from the disk.
         Set<String> gameIds = Arrays.asList("385800", "333600", "420110")
@@ -132,6 +142,8 @@ class Character {
 
     void watch() {
         increasePleasure()
+        decreaseSatiety()
+        decreaseOxygenSaturation()
 
         // TODO: Read a URL from the disk.
         BrowserAdapter.openWebpage("http://www.animespirit.ru")
@@ -185,6 +197,7 @@ class Character {
     private Set<String> getPhrases(PhraseAction action) {
         int satietyMeasure = Math.ceil(MAX_SATIETY / 3)
         int pleasureMeasure = Math.ceil(MAX_PLEASURE / 3)
+        int oxygenSaturationMeasure = Math.ceil(MAX_OXYGEN_SATURATION / 3)
 
         if (satiety < satietyMeasure)
             return phrases.getHungryPhrases(action)
@@ -194,6 +207,10 @@ class Character {
             return phrases.getSexuallyHungryPhrases(action)
         else if (pleasure > pleasureMeasure * 2)
             return phrases.getSexuallySatisfiedPhrases(action)
+        else if (oxygenSaturation < oxygenSaturationMeasure)
+            return phrases.getWannaGoOutsidePhrases(action)
+        else if (oxygenSaturation > oxygenSaturationMeasure * 2)
+            return phrases.getWannaSitHomePhrases(action)
         else
             return phrases.getDefaultPhrases(action)
     }
@@ -209,6 +226,11 @@ class Character {
             pleasure--
     }
 
+    private decreaseOxygenSaturation() {
+        if (oxygenSaturation > 0)
+            oxygenSaturation--
+    }
+
     private increaseSatiety() {
         if (satiety + SATIETY_ACCRETION <= MAX_SATIETY)
             satiety += SATIETY_ACCRETION
@@ -217,5 +239,10 @@ class Character {
     private increasePleasure() {
         if (pleasure + PLEASURE_ACCRETION <= MAX_PLEASURE)
             pleasure += PLEASURE_ACCRETION
+    }
+
+    private increaseOxygenSaturation() {
+        if (oxygenSaturation + OXYGEN_SATURATION_ACCRETION <= MAX_OXYGEN_SATURATION)
+            oxygenSaturation += OXYGEN_SATURATION_ACCRETION
     }
 }

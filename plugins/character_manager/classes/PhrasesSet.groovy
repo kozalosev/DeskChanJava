@@ -13,6 +13,9 @@ class PhrasesSet {
     private Phrases sexuallySatisfiedPhrases = new Phrases()
     private Phrases sexuallyHungryPhrases = new Phrases()
 
+    private Phrases wannaSitHomePhrases = new Phrases()
+    private Phrases wannaGoOutside = new Phrases()
+
     // Геттеры, которые при отсутствии фраз в каком-либо наборе, возвращают фразы по умолчанию.
     Set<String> getDefaultPhrases(PhraseAction action) {
         return defaultPhrases.get(action)
@@ -34,6 +37,14 @@ class PhrasesSet {
         return baseGetter(sexuallyHungryPhrases, action)
     }
 
+    Set<String> getWannaSitHomePhrases(PhraseAction action) {
+        return baseGetter(wannaSitHomePhrases, action)
+    }
+
+    Set<String> getWannaGoOutsidePhrases(PhraseAction action) {
+        return baseGetter(wannaGoOutside, action)
+    }
+
     // Метод для объединения фраз из двух объектов.
     void concat(PhrasesSet another) {
         defaultPhrases.concat(another.defaultPhrases)
@@ -41,6 +52,8 @@ class PhrasesSet {
         hungryPhrases.concat(another.hungryPhrases)
         sexuallySatisfiedPhrases.concat(another.sexuallySatisfiedPhrases)
         sexuallyHungryPhrases.concat(another.sexuallyHungryPhrases)
+        wannaSitHomePhrases.concat(another.wannaSitHomePhrases)
+        wannaGoOutside.concat(another.wannaGoOutside)
     }
 
     // Добавляет новые фразы под указанное условие.
@@ -60,6 +73,12 @@ class PhrasesSet {
                 break
             case PhraseCondition.SEXUALLY_HUNGRY:
                 sexuallyHungryPhrases.concat(phrases)
+                break
+            case PhraseCondition.WANNA_SIT_HOME:
+                wannaSitHomePhrases.concat(phrases)
+                break
+            case PhraseCondition.WANNA_GO_OUTSIDE:
+                wannaGoOutside.concat(phrases)
                 break
         }
     }
@@ -81,6 +100,12 @@ class PhrasesSet {
                 break
             case PhraseCondition.SEXUALLY_HUNGRY:
                 sexuallyHungryPhrases.add(action, phrase)
+                break
+            case PhraseCondition.WANNA_SIT_HOME:
+                wannaSitHomePhrases.add(action, phrase)
+                break
+            case PhraseCondition.WANNA_GO_OUTSIDE:
+                wannaGoOutside.add(action, phrase)
                 break
         }
     }
