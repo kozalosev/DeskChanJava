@@ -36,9 +36,8 @@ class JythonPlugin implements Plugin {
         PyCode script = interpreter.compile(scriptReader)
 
         MethodProxy methodProxy = new MethodProxy(this)
-        systemState.builtins.__setitem__("bus", Py.java2py(methodProxy))
-
         PyStringMap globals = new PyStringMap()
+        globals.__setitem__("bus", Py.java2py(methodProxy))
         try {
             Py.runCode(script, globals, globals)
         }

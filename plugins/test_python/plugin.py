@@ -8,7 +8,8 @@ from libs.functions import build_tag
 # `busproxy` is a special module that you may use to include all functions of the bus to the scope. After that you
 # won't have to use `bus` explicitly. Moreover, it provides more Pythonic aliases (lower case names with underscores)
 # for some of the functions.
-from busproxy import *
+import busproxy
+busproxy.inject(bus, globals())
 
 # Some useful classes I provided for you to make your life a bit easier ;)
 from pluginutils import Settings, Localization
@@ -23,6 +24,7 @@ say(u'And again but in Russian: "Привет!"')
 # Note, how we can use aliases from the busproxy.
 bus.log("Plugin directory: %s." % bus.getPluginDirPath())
 log("Data directory: %s." % get_data_dir_path())
+log("Root directory: %s." % get_root_dir_path())
 # Adds the "Test" item into the popup menu.
 send_message("DeskChan:register-simple-action", {'name': 'Test', 'msgTag': build_tag(TAG_MENUACTION)})
 
@@ -32,7 +34,7 @@ addMessageListener(build_tag(TAG_MENUACTION), func_show_test_message)
 add_message_listener("gui-events:character-left-click", func_show_test_message)
 
 # Built-in localization class.
-l10n = Localization.get_instance("localization")
+l10n = Localization.get_instance(bus, "localization")
 
 # Adds the options tab.
 send_message("gui:setup-options-tab", {'name': 'Test Python', 'msgTag': build_tag(TAG_SAVE_OPTIONS), 'controls': [
@@ -66,7 +68,7 @@ def timer_cleanup():
 add_cleanup_handler(timer_cleanup)
 
 # Sample of usage the Settings class.
-opts = Settings.get_instance()
+opts = Settings.get_instance(bus)
 if opts['run_counter']:
     opts['run_counter'] += 1
 else:

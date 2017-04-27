@@ -41,6 +41,10 @@ class MethodProxy {
         return plugin.getPluginProxy().getDataDirPath().toString()
     }
 
+    String getRootDirPath() {
+        return plugin.getPluginProxy().getRootDirPath().toString()
+    }
+
     def log(obj) {
         plugin.getPluginProxy().log(obj.toString())
     }
