@@ -23,6 +23,7 @@ class Character {
     // Для фраз также можно задавать различные наборы.
     private PhrasesSet phrases
     private String lastRandomPhrase = ""
+    private CharacterSettings characterSettings = null
 
     // Состояние персонажа при запуске считывается из файла настроек
     // или выставляется по умолчанию в половину максимального.
@@ -64,9 +65,13 @@ class Character {
         Settings settings = Settings.getInstance()
         String storedSatiety = settings.get("satiety")
         String storedPleasure = settings.get("pleasure")
+        String storedOxygenSaturation = settings.get("oxygen-saturation")
 
         satiety = (storedSatiety != null) ? Integer.parseInt(storedSatiety) : Math.ceil(MAX_SATIETY / 2)
         pleasure = (storedPleasure != null) ? Integer.parseInt(storedPleasure) : Math.ceil(MAX_PLEASURE / 2)
+        oxygenSaturation = (storedOxygenSaturation != null) ? Integer.parseInt(storedOxygenSaturation) : Math.ceil(MAX_OXYGEN_SATURATION / 2)
+
+        characterSettings = ResourcesLoader.readCharacterSettings(name)
     }
 
     String getName() { return name }
@@ -124,7 +129,6 @@ class Character {
         decreaseSatiety()
         decreaseSatiety()
         increaseOxygenSaturation()
-        // TODO: Implement and fill new actions up!
         return getRandomPhrase(getPhrases(PhraseAction.WALK))
     }
 
@@ -134,10 +138,9 @@ class Character {
         decreaseOxygenSaturation()
         decreaseOxygenSaturation()
 
-        // TODO: Read ids from the disk.
-        Set<String> gameIds = Arrays.asList("385800", "333600", "420110")
-        String gameUrl = "steam://rungameid/" + getRandomPhrase(gameIds)
-        BrowserAdapter.openWebpage(gameUrl)
+        URI gameURI = characterSettings.getRandomSteamId()
+        if (gameURI != null)
+            BrowserAdapter.openWebpage(gameURI)
     }
 
     void watch() {
@@ -145,8 +148,9 @@ class Character {
         decreaseSatiety()
         decreaseOxygenSaturation()
 
-        // TODO: Read a URL from the disk.
-        BrowserAdapter.openWebpage("http://www.animespirit.ru")
+        URL websiteURL = characterSettings.getRandomAnimeWebsite()
+        if (websiteURL != null)
+            BrowserAdapter.openWebpage(websiteURL)
     }
 
     String getRandomPhrase() {

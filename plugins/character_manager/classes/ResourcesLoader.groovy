@@ -140,4 +140,11 @@ abstract class ResourcesLoader {
 
         return set
     }
+
+
+    static CharacterSettings readCharacterSettings(String name) {
+        Path settingsPath = CHARACTERS_PATH.resolve(name).resolve('settings.txt')
+        CharacterSettings settings = new CharacterSettings(settingsPath)
+        return settings
+    }
 }
