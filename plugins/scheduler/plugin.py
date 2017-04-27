@@ -1,18 +1,21 @@
 from threading import Timer
 from operator import itemgetter
 
-from busproxy import *
+import busproxy
+busproxy.inject(bus, globals())
 from pluginutils import Localization, Settings
 
 from constants import *
 from functions import *
+import functions
+busproxy.inject(bus, functions.__dict__, "log")
 
 
 timer = None
 sound = None
-l10n = Localization.get_instance("localization")
+l10n = Localization.get_instance(bus, "localization")
 
-opts = Settings.get_instance()
+opts = Settings.get_instance(bus)
 if not opts['events']:
     opts['events'] = []
 
@@ -61,7 +64,7 @@ def stop_timer(flush_events=True, event_cleaning=True):
         timer.cancel()
         timer = None
     if event_cleaning:
-        delete_expired_events(flush_events)
+        delete_expired_events(bus, flush_events)
 
 def add_event(data):
     if not data[TAG_MESSAGE]:

@@ -7,7 +7,6 @@ from java.io import File
 
 from constants import DATE_FORMAT
 from pluginutils import Settings
-from busproxy import log
 
 
 def build_datetime(date_str, hour, minute):
@@ -37,8 +36,8 @@ def now():
 def diff_seconds(datetime):
     return ChronoUnit.SECONDS.between(now(), datetime)
 
-def delete_expired_events(save=True):
-    opts = Settings.get_instance()
+def delete_expired_events(bus, save=True):
+    opts = Settings.get_instance(bus)
     if not opts['events']:
         return
 
