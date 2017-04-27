@@ -24,32 +24,38 @@ class AbstractMultiton:
 
     __metaclass__ = AbstractMultitonMetaclass
 
-    def __init__(self):
-        """Don't call this constructor in descendants! And don't try to create an instance of this class!
-        :raises: NotImplementedError
+    def __init__(self, bus):
+        """
+        :param bus: A bus object.
+        :type bus: MethodProxy
         """
 
-        raise NotImplementedError("Attempt to create an instance of the abstract class!")
+        assert bus
+        self.bus = bus
 
     @classmethod
-    def get_instance(cls, *args, **kwargs):
+    def get_instance(cls, bus, *args, **kwargs):
         """Use this method instead of the constructor! Pass here the same arguments as the constructor takes.
+        
+        :param bus: A bus object.
+        :type bus: MethodProxy
+        
         :returns: An instance of a specific class.
         """
 
         key = bus.getId()
 
         if key not in cls._instances:
-            cls._instances[key] = cls(*args, **kwargs)
-            bus.addCleanupHandler(cls.destroy_instance)
+            instance = cls(bus, *args, **kwargs)
+            cls._instances[key] = instance
+            bus.addCleanupHandler(instance.destroy_instance)
 
         return cls._instances[key]
 
-    @classmethod
-    def destroy_instance(cls):
-        plugin_id = bus.getId()
-        if plugin_id in cls._instances:
-            del cls._instances[plugin_id]
+    def destroy_instance(self):
+        plugin_id = self.bus.getId()
+        if plugin_id in self._instances:
+            del self._instances[plugin_id]
 
 
 class Settings(AbstractMultiton):
@@ -60,11 +66,17 @@ class Settings(AbstractMultiton):
         settings.save() # Dumps changes on the disk.
     """
 
-    def __init__(self, filename="settings.json"):
+    def __init__(self, bus, filename="settings.json"):
         """Constructor. Don't use it directly! Use get_instance() instead!
+        
+        :param bus: A bus object.
+        :type bus: MethodProxy
+        
         :param filename: The name of a file to store the settings.
         :type filename: str
         """
+
+        super(Settings, self).__init__(bus)
 
         self._file = os.path.join(bus.getDataDirPath(), filename)
         self._settings = {}
@@ -116,11 +128,17 @@ class Settings(AbstractMultiton):
 class Localization(AbstractMultiton):
     """This multiton class provides a simple localization mechanism, which loads a locale-specific text file and returns localized strings."""
 
-    def __init__(self, localization_dir):
+    def __init__(self, bus, localization_dir):
         """Constructor. Don't use it directly! Use get_instance() instead!
+        
+        :param bus: A bus object.
+        :type bus: MethodProxy
+        
         :param localization_dir: A path to the directory where localization files are stored.
         :type localization_dir: str
         """
+
+        super(Localization, self).__init__(bus)
 
         assert localization_dir
         path = os.path.join(bus.getPluginDirPath(), localization_dir)

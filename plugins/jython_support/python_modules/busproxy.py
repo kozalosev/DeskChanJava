@@ -1,8 +1,11 @@
 """This is a special module for the plugin named jython_support. It provides a bunch of aliases for the bus object \
 to let you write less redundant code."""
 
-def init(global_dict, *methods):
+def inject(bus, global_dict, *methods):
     """Call this function to inject bus functions into your global or local dictionary.
+    
+    :param bus: A bus object.
+    :type bus: MethodProxy
     
     :param global_dict: Most likely you should pass either globals() or locals() here. The functions will be injected into a specified dictionary.
     :type global_dict: dict
@@ -11,6 +14,7 @@ def init(global_dict, *methods):
     :type methods: str
     """
 
+    assert bus
     assert type(global_dict) == dict
 
     def py2ja(pythonic_name):
