@@ -1,0 +1,7 @@
+[GAME_STEAM_IDS]
+385800
+333600
+420110
+
+[ANIME_WEBSITE_URLS]
+http://animespirit.ru
