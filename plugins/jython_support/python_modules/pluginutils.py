@@ -30,7 +30,7 @@ class AbstractMultiton:
         :type bus: MethodProxy
         """
 
-        assert bus
+        assert bus, "The bus is not passed!"
         self.bus = bus
 
     @classmethod
@@ -140,7 +140,7 @@ class Localization(AbstractMultiton):
 
         super(Localization, self).__init__(bus)
 
-        assert localization_dir
+        assert localization_dir, "Localization directory is not passed!"
         path = os.path.join(bus.getPluginDirPath(), localization_dir)
 
         # language = locale.getdefaultlocale()[0]

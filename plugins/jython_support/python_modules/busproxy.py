@@ -1,21 +1,21 @@
 """This is a special module for the plugin named jython_support. It provides a bunch of aliases for the bus object \
 to let you write less redundant code."""
 
-def inject(bus, global_dict, *methods):
-    """Call this function to inject bus functions into your global or local dictionary.
+def inject(bus, dct, *methods):
+    """Call this function to inject bus functions into a dictionary.
     
     :param bus: A bus object.
     :type bus: MethodProxy
     
-    :param global_dict: Most likely you should pass either globals() or locals() here. The functions will be injected into a specified dictionary.
-    :type global_dict: dict
+    :param dct: Most likely you should pass either globals() or locals() here. The functions will be injected into a specified dictionary.
+    :type dct: dict
     
     :param methods: Names of the methods you want to inject. Don't pass anything to import all functions.
     :type methods: str
     """
 
-    assert bus
-    assert type(global_dict) == dict
+    assert bus, "The bus is not passed!"
+    assert type(dct) == dict, "dct is not a dict!"
 
     def py2ja(pythonic_name):
         """String function that is used to covert pythonic_names to javaOnes."""
@@ -45,6 +45,6 @@ def inject(bus, global_dict, *methods):
     for method in methods:
         java_name = py2ja(method)
         if java_name in dir(bus):
-            global_dict[method] = bus.__getattribute__(java_name)
+            dct[method] = bus.__getattribute__(java_name)
         else:
             raise ValueError("Unknown bus method: %s!" % method)
