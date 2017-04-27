@@ -57,6 +57,18 @@ addMessageListener("$TAG_PLUGIN:naughty", { sender, tag, data ->
     showMessage(character.doNaughtyThings())
 })
 
+addMessageListener("$TAG_PLUGIN:walk", { sender, tag, data ->
+    showMessage(character.walk())
+})
+
+addMessageListener("$TAG_PLUGIN:play", { sender, tag, data ->
+    character.play()
+})
+
+addMessageListener("$TAG_PLUGIN:watch", { sender, tag, data ->
+    character.watch()
+})
+
 
 // Обработчик кликов по персонажу.
 addMessageListener('gui-events:character-left-click', { sender, tag, data ->
@@ -85,7 +97,10 @@ addMessageListener("$TAG_PLUGIN:save-settings", { sender, tag, data ->
 // Добавляем пункты в меню.
 sendMessage('DeskChan:register-simple-actions', [
     [name: localization.get('feed'), msgTag: "$TAG_PLUGIN:feed".toString()],
-    [name: localization.get('naughty'), msgTag: "$TAG_PLUGIN:naughty".toString()]
+    [name: localization.get('naughty'), msgTag: "$TAG_PLUGIN:naughty".toString()],
+    [name: localization.get('walk'), msgTag: "$TAG_PLUGIN:walk".toString()],
+    [name: localization.get('play'), msgTag: "$TAG_PLUGIN:play".toString()],
+    [name: localization.get('watch'), msgTag: "$TAG_PLUGIN:watch".toString()]
 ])
 
 // Добавляем вкладку с настройками.

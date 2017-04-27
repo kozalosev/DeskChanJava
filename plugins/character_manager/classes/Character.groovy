@@ -108,8 +108,33 @@ class Character {
 
     String doNaughtyThings() {
         increasePleasure()
+        increasePleasure()
         decreaseSatiety()
         return getRandomPhrase(getPhrases(PhraseAction.NAUGHTY))
+    }
+
+    String walk() {
+        increasePleasure()
+        decreaseSatiety()
+        decreaseSatiety()
+        // TODO: Implement and fill new actions up!
+        return getRandomPhrase(getPhrases(PhraseAction.WALK))
+    }
+
+    void play() {
+        increasePleasure()
+
+        // TODO: Read ids from the disk.
+        Set<String> gameIds = Arrays.asList("385800", "333600", "420110")
+        String gameUrl = "steam://rungameid/" + getRandomPhrase(gameIds)
+        BrowserAdapter.openWebpage(gameUrl)
+    }
+
+    void watch() {
+        increasePleasure()
+
+        // TODO: Read a URL from the disk.
+        BrowserAdapter.openWebpage("http://www.animespirit.ru")
     }
 
     String getRandomPhrase() {

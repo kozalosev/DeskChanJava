@@ -1,5 +1,8 @@
 plugin-name        = Character Manager
 feed               = Feed
 naughty            = Do naughty things
+walk               = Walk outside
+play               = Play some game
+watch              = Watch anime
 settings-delay     = Delay between messages (in minutes)
 settings-character = Chosen character
