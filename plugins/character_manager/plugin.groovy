@@ -1,4 +1,3 @@
-import classes.BrowserAdapter
 import classes.CharacterManager
 import classes.Character
 import classes.Localization
@@ -6,6 +5,7 @@ import classes.Settings
 
 
 // Тэги для пунктов меню и сохранения настроек.
+final String TAG_PLUGIN = 'character_manager'
 final String TAG_DELAY_MESSAGES = 'delay-between-messages'
 final String TAG_CHOSEN_CHARACTER = 'chosen-character'
 // Задержка между случайными сообщениями по умолчанию.
@@ -49,16 +49,12 @@ addCleanupHandler({
 
 
 // Добавляем обработчики пунктов меню.
-addMessageListener('character_manager:feed', { sender, tag, data ->
+addMessageListener("$TAG_PLUGIN:feed", { sender, tag, data ->
     showMessage(character.feed())
 })
 
-addMessageListener('character_manager:naughty', { sender, tag, data ->
+addMessageListener("$TAG_PLUGIN:naughty", { sender, tag, data ->
     showMessage(character.doNaughtyThings())
-})
-
-addMessageListener('character_manager:about', {sender, tag, data ->
-    BrowserAdapter.openWebpage("http://deskchan.info/")
 })
 
 
@@ -68,7 +64,7 @@ addMessageListener('gui-events:character-left-click', { sender, tag, data ->
 })
 
 // Обработчик сохранения настроек.
-addMessageListener('character_manager:save-settings', { sender, tag, data ->
+addMessageListener("$TAG_PLUGIN:save-settings", { sender, tag, data ->
     Settings settings = Settings.getInstance()
 
     if (data.containsKey(TAG_DELAY_MESSAGES)) {
@@ -87,12 +83,13 @@ addMessageListener('character_manager:save-settings', { sender, tag, data ->
 
 
 // Добавляем пункты в меню.
-sendMessage('DeskChan:register-simple-action', [name: localization.get('feed'), 'msgTag': 'character_manager:feed'])
-sendMessage('DeskChan:register-simple-action', [name: localization.get('naughty'), 'msgTag': 'character_manager:naughty'])
-sendMessage('DeskChan:register-simple-action', [name: localization.get('about'), 'msgTag': 'character_manager:about'])
+sendMessage('DeskChan:register-simple-actions', [
+    [name: localization.get('feed'), msgTag: "$TAG_PLUGIN:feed".toString()],
+    [name: localization.get('naughty'), msgTag: "$TAG_PLUGIN:naughty".toString()]
+])
 
 // Добавляем вкладку с настройками.
-sendMessage('gui:add-options-tab', [name: 'character_manager', msgTag: 'character_manager:save-settings', controls: [
+sendMessage('gui:add-options-tab', [name: localization.get('plugin-name'), msgTag: "$TAG_PLUGIN:save-settings".toString(), controls: [
     [
         type: 'Spinner', id: TAG_DELAY_MESSAGES, label: localization.get('settings-delay'),
         value: delayBetweenMessages, min: 5, max: 180, step: 5

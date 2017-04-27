@@ -1,5 +1,5 @@
+plugin-name        = Менеджер персонажей
 feed               = Покормить
 naughty            = Пошалить
-about              = Страница проекта
 settings-delay     = Задержка между сообщениями (в минутах)
 settings-character = Выбранный персонаж
