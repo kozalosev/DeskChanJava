@@ -27,8 +27,8 @@ class BrowserAdapter {
 
     static void openWebpage(String url) {
         try {
-            openWebpage(new URL(url))
-        } catch (MalformedURLException e) {
+            openWebpage(new URI(url))
+        } catch (URISyntaxException e) {
             e.printStackTrace()
         }
     }

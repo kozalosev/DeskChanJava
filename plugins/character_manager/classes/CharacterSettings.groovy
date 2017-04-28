@@ -14,6 +14,7 @@ class CharacterSettings {
         if (!Files.isRegularFile(filepath)) {
             animeWebsiteURLs.add("http://animespirit.ru")
             animeWebsiteURLs.add("http://animeonline.su")
+            animeWebsiteURLs.add("http://yummyanime.com")
             return
         }
 
@@ -63,7 +64,7 @@ class CharacterSettings {
 
         Random random = new Random()
         int randId = random.nextInt(gameSteamIds.size())
-        String link = "steam://rungameid/" + randId
+        String link = "steam://rungameid/" + gameSteamIds[randId]
         URI uri = new URI(link)
         return uri
     }
