@@ -23,7 +23,7 @@ class Character {
     // Для фраз также можно задавать различные наборы.
     private PhrasesSet phrases
     private String lastRandomPhrase = ""
-    private CharacterSettings characterSettings = null
+    private CharacterInfo characterInfo = null
 
     // Состояние персонажа при запуске считывается из файла настроек
     // или выставляется по умолчанию в половину максимального.
@@ -71,7 +71,7 @@ class Character {
         pleasure = (storedPleasure != null) ? Integer.parseInt(storedPleasure) : Math.ceil(MAX_PLEASURE / 2)
         oxygenSaturation = (storedOxygenSaturation != null) ? Integer.parseInt(storedOxygenSaturation) : Math.ceil(MAX_OXYGEN_SATURATION / 2)
 
-        characterSettings = ResourcesLoader.readCharacterSettings(name)
+        characterInfo = ResourcesLoader.readCharacterInfo(name)
     }
 
     String getName() { return name }
@@ -138,7 +138,7 @@ class Character {
         decreaseOxygenSaturation()
         decreaseOxygenSaturation()
 
-        URI gameURI = characterSettings.getRandomSteamId()
+        URI gameURI = characterInfo.getRandomSteamId()
         if (gameURI != null)
             BrowserAdapter.openWebpage(gameURI)
     }
@@ -148,7 +148,7 @@ class Character {
         decreaseSatiety()
         decreaseOxygenSaturation()
 
-        URL websiteURL = characterSettings.getRandomAnimeWebsite()
+        URL websiteURL = characterInfo.getRandomAnimeWebsite()
         if (websiteURL != null)
             BrowserAdapter.openWebpage(websiteURL)
     }

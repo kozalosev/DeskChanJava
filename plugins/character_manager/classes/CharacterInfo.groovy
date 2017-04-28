@@ -6,11 +6,11 @@ import java.util.regex.Matcher
 import java.util.regex.Pattern
 
 
-class CharacterSettings {
+class CharacterInfo {
     private Set<String> animeWebsiteURLs = new HashSet<>()
     private Set<Integer> gameSteamIds = new HashSet<>()
 
-    CharacterSettings(Path filepath) {
+    CharacterInfo(Path filepath) {
         if (!Files.isRegularFile(filepath)) {
             animeWebsiteURLs.add("http://animespirit.ru")
             animeWebsiteURLs.add("http://animeonline.su")

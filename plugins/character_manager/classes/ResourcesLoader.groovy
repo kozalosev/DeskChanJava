@@ -142,9 +142,9 @@ abstract class ResourcesLoader {
     }
 
 
-    static CharacterSettings readCharacterSettings(String name) {
-        Path settingsPath = CHARACTERS_PATH.resolve(name).resolve('settings.txt')
-        CharacterSettings settings = new CharacterSettings(settingsPath)
+    static CharacterInfo readCharacterInfo(String name) {
+        Path settingsPath = CHARACTERS_PATH.resolve(name).resolve('info.txt')
+        CharacterInfo settings = new CharacterInfo(settingsPath)
         return settings
     }
 }
