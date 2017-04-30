@@ -45,6 +45,7 @@ function scanPage() {
                 if (success)
                     action_func(socket);
             });
+            return;
         }
 
         action_func(socket);
