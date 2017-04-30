@@ -1,0 +1,19 @@
+{
+  "manifest_version": 2,
+
+  "name": "test_server",
+  "description": "It scans VK pages and tells the name of the owner of a page to a special plugin for DeskChan.",
+  "version": "1.0",
+  "author": "Leonid Kozarin <kozalo@nekochan.ru>",
+
+  "content_scripts": [
+    {
+      "matches": ["https://vk.com/*"],
+      "js": ["test_server.js"]
+    }
+  ],
+
+  "permissions": [
+    "https://vk.com/*"
+  ]
+}
