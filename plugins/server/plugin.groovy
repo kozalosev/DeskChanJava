@@ -2,6 +2,7 @@ import org.json.JSONException
 import org.json.JSONObject
 
 import javax.xml.bind.DatatypeConverter
+import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 import java.util.regex.Pattern
 
@@ -133,5 +134,5 @@ String websocketDecode(InputStream inputStream) {
     for (def i = 0; i < length; i++)
         decoded[i] = dataStream.readUnsignedByte() ^ mask[i % 4]
 
-    return new String(decoded)
+    return new String(decoded, StandardCharsets.UTF_8)
 }
