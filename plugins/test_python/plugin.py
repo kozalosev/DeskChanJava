@@ -17,8 +17,7 @@ from pluginutils import Settings, Localization
 # Shows the welcome message.
 bus.sendMessage("DeskChan:say", {'text': 'Hello!'})
 # Use unicode strings for non-ASCII characters.
-# The method say() automatically converts strings from a default encoding into UTF-8. Thus, you should always use it
-# to show balloons instead of sending messages manually.
+# The method say() is a shortcut and sending a message as well.
 say(u'And again but in Russian: "Привет!"')
 # Prints information messages to the console.
 # Note, how we can use aliases from the busproxy.
@@ -42,11 +41,13 @@ send_message("gui:setup-options-tab", {'name': 'Test Python', 'msgTag': build_ta
     { 'type': 'TextField', 'id': TAG_CODE, 'label': l10n['code_label'] }
 ]})
 
-# Prints a message when user clicks on the "Save" button.
-# Note that I provide you a special method to say something without worrying about tags and string conversions.
-add_message_listener(build_tag(TAG_SAVE_OPTIONS), lambda sender, tag, data:
-    eval(data[TAG_CODE])
-)
+# Interpreters any input code and tries to execute it.
+def eval_msg(sender, tag, data):
+    try:
+        eval(data[TAG_CODE])
+    except Exception as err:
+        log(err)
+add_message_listener(build_tag(TAG_SAVE_OPTIONS), eval_msg)
 
 
 # This piece of code demonstrates how we can use Python and Java modules.
