@@ -1,3 +1,5 @@
+@Grab('org.python:jython-standalone:2.7.1b3')
+
 import info.deskchan.core.Plugin
 import info.deskchan.core.PluginProxy
 import org.python.core.Py

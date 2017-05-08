@@ -1,34 +1,17 @@
-@Grab('org.python:jython-standalone:2.7.1b3')
-
-import info.deskchan.core.Plugin
 import info.deskchan.core.PluginLoader
 import info.deskchan.core.PluginManager
-import info.deskchan.core.PluginProxy
 
 import java.nio.file.Files
 import java.nio.file.Path
 
 
-class Main implements Plugin, PluginLoader {
+class JythonPluginLoader implements PluginLoader {
     private Path pluginDirPath
+    private Closure logger
 
-    Main(Path pluginDirPath) {
+    JythonPluginLoader(Path pluginDirPath, Closure logger) {
         this.pluginDirPath = pluginDirPath
-    }
-
-    @Override
-    boolean initialize(PluginProxy proxy) {
-        PluginManager.getInstance().registerPluginLoader(this)
-        return true
-    }
-
-    boolean initialize() {
-        return initialize(null)
-    }
-
-    @Override
-    void unload() {
-        PluginManager.getInstance().unregisterPluginLoader(this)
+        this.logger = logger
     }
 
     @Override
@@ -47,6 +30,7 @@ class Main implements Plugin, PluginLoader {
         }
 
         Path pythonModulesDirPath = pluginDirPath.resolve("python_modules")
+        logger.call("Trying to load plugin \"$id\"...")
         JythonPlugin plugin = new JythonPlugin(path, pythonModulesDirPath)
 
         PluginManager.getInstance().initializePlugin(id, plugin)
