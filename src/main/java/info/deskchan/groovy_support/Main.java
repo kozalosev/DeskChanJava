@@ -1,11 +1,11 @@
 package info.deskchan.groovy_support;
 
+import groovy.lang.GroovyShell;
+import groovy.lang.Script;
 import info.deskchan.core.Plugin;
 import info.deskchan.core.PluginLoader;
 import info.deskchan.core.PluginManager;
 import info.deskchan.core.PluginProxy;
-import groovy.lang.GroovyShell;
-import groovy.lang.Script;
 import org.codehaus.groovy.control.CompilerConfiguration;
 
 import java.nio.file.Files;
@@ -40,6 +40,7 @@ public class Main implements Plugin, PluginLoader {
 			path = path.resolve("plugin.groovy");
 		}
 		CompilerConfiguration compilerConfiguration = new CompilerConfiguration();
+		compilerConfiguration.setSourceEncoding("UTF-8");
 		compilerConfiguration.setScriptBaseClass("info.deskchan.groovy_support.GroovyPlugin");
 		compilerConfiguration.setClasspath(path.getParent().toString());
 		GroovyShell groovyShell = new GroovyShell(compilerConfiguration);

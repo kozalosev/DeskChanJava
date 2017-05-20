@@ -3,6 +3,7 @@ package info.deskchan.gui_javafx;
 import info.deskchan.core.Plugin;
 import info.deskchan.core.PluginManager;
 import info.deskchan.core.PluginProxy;
+import org.apache.commons.lang3.SystemUtils;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -15,7 +16,7 @@ public class Main implements Plugin {
 	private static Main instance;
 	private PluginProxy pluginProxy;
 	private Semaphore appInitSem = new Semaphore(0);
-	private static final ResourceBundle strings = ResourceBundle.getBundle("gui-strings");
+	private static final ResourceBundle strings = ResourceBundle.getBundle("info/deskchan/gui_javafx/gui-strings");
 	private static final Properties properties = new Properties();
 	
 	@Override
@@ -47,6 +48,10 @@ public class Main implements Plugin {
 			} catch (IOException e) {
 				log(e);
 			}
+		}
+
+		if (SystemUtils.IS_OS_WINDOWS) {
+			MouseEventNotificator.disableHooks();
 		}
 	}
 	

@@ -1,8 +1,11 @@
 package info.deskchan.core;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.IOException;
+import org.apache.commons.io.IOUtils;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.*;
 import java.net.URISyntaxException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
@@ -18,6 +21,7 @@ public class PluginManager {
 	private final List<PluginLoader> loaders = new ArrayList<>();
 	private final Set<String> blacklistedPlugins = new HashSet<>();
 	private String[] args;
+	private static OutputStream logStream = null;
 	
 	/* Singleton */
 	
@@ -32,6 +36,12 @@ public class PluginManager {
 	
 	void initialize(String[] args) {
 		this.args = args;
+		try {
+			logStream = Files.newOutputStream(getDataDirPath().resolve("DeskChan.log"));
+		} catch (IOException e) {
+			log(e);
+		}
+		CoreInfo.printInfo();
 		tryLoadPluginByClass(CorePlugin.class);
 		loadPluginsBlacklist();
 	}
@@ -164,6 +174,30 @@ public class PluginManager {
 	}
 	
 	public synchronized boolean loadPluginByPath(Path path) throws Throwable {
+		if (Files.isDirectory(path)) {
+			Path manifestPath = path.resolve("manifest.json");
+			if (Files.isReadable(manifestPath)) {
+				try (final InputStream manifestInputStream = Files.newInputStream(manifestPath)) {
+					final String manifestStr = IOUtils.toString(manifestInputStream, "UTF-8");
+					manifestInputStream.close();
+					final JSONObject manifest = new JSONObject(manifestStr);
+					if (manifest.has("deps")) {
+						final JSONArray deps = manifest.getJSONArray("deps");
+						for (Object dep : deps) {
+							if (dep instanceof String) {
+								String depID = dep.toString();
+								if (!tryLoadPluginByName(depID)) {
+									throw new Exception("Failed to load dependency " + depID +
+											" of plugin " + path.toString());
+								}
+							}
+						}
+					}
+				} catch (IOException | JSONException e) {
+					e.printStackTrace();
+				}
+			}
+		}
 		for (PluginLoader loader : loaders) {
 			if (loader.matchPath(path)) {
 				loader.loadByPath(path);
@@ -210,6 +244,14 @@ public class PluginManager {
 		pluginsToUnload.clear();
 		plugins.get("core").unload();
 		savePluginsBlacklist();
+		if (logStream != null) {
+			try {
+				logStream.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			logStream = null;
+		}
 		System.exit(0);
 	}
 	
@@ -238,12 +280,14 @@ public class PluginManager {
 			);
 			String line;
 			while ((line = reader.readLine()) != null) {
-				if (line.length() == 0) continue;
+				if (line.length() == 0) {
+					continue;
+				}
 				blacklistedPlugins.add(line);
 			}
 			reader.close();
 		} catch (IOException e) {
-			// Do nothing
+			blacklistedPlugins.add("random_phrases");
 		}
 	}
 	
@@ -296,6 +340,21 @@ public class PluginManager {
 		} else {
 			path = corePath.getParent().resolve("../data");
 		}
+		if (!Files.isDirectory(path)) {
+			path.toFile().mkdir();
+			log("Created directory: " + path);
+		}
+		return path;
+	}
+	
+	public static Path getRootDirPath() {
+		Path corePath = getCorePath();
+		Path path;
+		if (Files.isDirectory(corePath)) {
+			path = corePath.resolve("../../");
+		} else {
+			path = corePath.getParent().resolve("../");
+		}
 		return path;
 	}
 	
@@ -312,11 +371,26 @@ public class PluginManager {
 	/* Logging */
 	
 	static void log(String id, String message) {
-		System.err.println(id + ": " + message);
+		String text = id + ": " + message;
+		System.err.println(text);
+		if (logStream != null) {
+			try {
+				logStream.write((text + "\n").getBytes("UTF-8"));
+			} catch (IOException e) {
+				logStream = null;
+				log(e);
+			}
+		}
 	}
 	
 	static void log(String id, Throwable e) {
-		e.printStackTrace();
+		StringWriter stringWriter = new StringWriter();
+		PrintWriter printWriter = new PrintWriter(stringWriter);
+		e.printStackTrace(printWriter);
+		String[] lines = stringWriter.toString().split("\n");
+		for (String line : lines) {
+			log(id, line);
+		}
 	}
 	
 	static void log(String message) {

@@ -1,20 +1,19 @@
 package info.deskchan.gui_javafx;
 
+import info.deskchan.core.CoreInfo;
 import info.deskchan.core.PluginManager;
 import info.deskchan.core.PluginProxy;
+import javafx.application.Platform;
 import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.beans.value.ChangeListener;
 import javafx.collections.FXCollections;
-import javafx.scene.Node;
 import javafx.scene.control.*;
-import javafx.scene.image.Image;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
-import javafx.stage.DirectoryChooser;
-import javafx.stage.Modality;
-import javafx.stage.Stage;
 import javafx.scene.text.Font;
+import javafx.stage.DirectoryChooser;
+import javafx.stage.Stage;
 import org.controlsfx.dialog.FontSelectorDialog;
 import org.json.JSONObject;
 
@@ -22,26 +21,22 @@ import java.io.File;
 import java.nio.file.Path;
 import java.util.*;
 
-class OptionsDialog extends Dialog<Void> {
+class OptionsDialog extends TemplateBox {
 	
 	private static OptionsDialog instance = null;
 	private TabPane tabPane = new TabPane();
 	private Button skinManagerButton = new Button();
 	private ListView<PluginListItem> pluginsList = new ListView<>();
 	private TreeTableView<AlternativeTreeItem> alternativesTable = new TreeTableView<>();
-	private static Map<String, List<PluginOptionsTab>> pluginsTabs = new HashMap<>();
+	private static Map<String, List<ControlsContainer>> pluginsTabs = new HashMap<>();
 	
 	OptionsDialog() {
+		super(Main.getString("deskchan_options"));
 		instance = this;
-		setTitle(Main.getString("deskchan_options"));
-		initModality(Modality.NONE);
 		Stage stage = (Stage) getDialogPane().getScene().getWindow();
-		stage.setAlwaysOnTop(true);
-		stage.getIcons().add(new Image(App.ICON_URL.toString()));
 		tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
 		initTabs();
 		getDialogPane().setContent(tabPane);
-		getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
 		setOnHidden(event -> {
 			instance = null;
 		});
@@ -59,7 +54,17 @@ class OptionsDialog extends Dialog<Void> {
 		skinManagerButton.setText(App.getInstance().getCharacter().getSkin().toString());
 		skinManagerButton.setOnAction(event -> openSkinManager());
 		gridPane.add(skinManagerButton, 1, 0);
-		gridPane.add(new Label(Main.getString("balloon_font")), 0, 1);
+		gridPane.add(new Label(Main.getString("scale_factor")), 0, 1);
+		double scaleFactorValue = Float.parseFloat(Main.getProperty("skin.scale_factor", "1.0"));
+		// e.g. 1.74 -> 1.75
+		scaleFactorValue = Math.round(scaleFactorValue * 20.0f) / 20.0f;
+		Spinner<Double> scaleFactorSpinner = new Spinner<>(0.1, 10.0, scaleFactorValue, 0.05);
+		scaleFactorSpinner.valueProperty().addListener((property, oldValue, value) -> {
+			Main.setProperty("skin.scale_factor", value.toString());
+			App.getInstance().getCharacter().resizeSprite(value.floatValue());
+		});
+		gridPane.add(scaleFactorSpinner, 1, 1);
+		gridPane.add(new Label(Main.getString("balloon_font")), 0, 2);
 		Button balloonFontButton = new Button(
 				Balloon.getDefaultFont().getFamily() + ", " + Balloon.getDefaultFont().getSize()
 		);
@@ -75,10 +80,11 @@ class OptionsDialog extends Dialog<Void> {
 				balloonFontButton.setText(Balloon.getDefaultFont().getFamily() + ", " + Balloon.getDefaultFont().getSize());
 			}
 		});
-		gridPane.add(balloonFontButton, 1, 1);
-		gridPane.add(new Label(Main.getString("character.layer_mode")), 0, 2);
+		gridPane.add(balloonFontButton, 1, 2);
+		gridPane.add(new Label(Main.getString("character.layer_mode")), 0, 3);
 		ComboBox<Character.LayerMode> characterLayerModeComboBox = new ComboBox<>();
-		characterLayerModeComboBox.setItems(FXCollections.observableList(Arrays.asList(Character.LayerMode.values())));
+		characterLayerModeComboBox.setItems(FXCollections.observableList(Arrays.asList(
+				Character.LayerMode.values())));
 		characterLayerModeComboBox.getSelectionModel().select(App.getInstance().getCharacter().getLayerMode());
 		characterLayerModeComboBox.getSelectionModel().selectedItemProperty().addListener(
 				(property, oldValue, value) -> {
@@ -86,29 +92,52 @@ class OptionsDialog extends Dialog<Void> {
 					Main.setProperty("character.layer_mode", value.toString());
 				}
 		);
-		gridPane.add(characterLayerModeComboBox, 1, 2);
-		gridPane.add(new Label(Main.getString("balloon_default_timeout")), 0, 3);
+		gridPane.add(characterLayerModeComboBox, 1, 3);
+		gridPane.add(new Label(Main.getString("balloon_default_timeout")), 0, 4);
 		Spinner<Integer> balloonDefaultTimeoutSpinner = new Spinner<>(0, 120000,
-				Integer.parseInt(Main.getProperty("balloon.default_timeout", "15000")), 1000);
+				Integer.parseInt(Main.getProperty("balloon.default_timeout", "300")), 100);
 		balloonDefaultTimeoutSpinner.valueProperty().addListener((property, oldValue, value) -> {
 			Main.setProperty("balloon.default_timeout", value.toString());
 		});
-		gridPane.add(balloonDefaultTimeoutSpinner, 1, 3);
+		gridPane.add(balloonDefaultTimeoutSpinner, 1, 4);
+		gridPane.add(new Label(Main.getString("balloon_position_mode")), 0, 5);
+		ComboBox<Balloon.PositionMode> balloonPositionModeComboBox = new ComboBox<>();
+		balloonPositionModeComboBox.setItems(FXCollections.observableList(Arrays.asList(
+				Balloon.PositionMode.values())));
+		balloonPositionModeComboBox.getSelectionModel().select(
+				App.getInstance().getCharacter().getBalloonPositionMode());
+		balloonPositionModeComboBox.getSelectionModel().selectedItemProperty().addListener(
+				(property, oldValue, value) -> {
+					App.getInstance().getCharacter().setBalloonPositionMode(value);
+				}
+		);
+		gridPane.add(balloonPositionModeComboBox, 1, 5);
+		gridPane.add(new Label(Main.getString("enable_context_menu")), 0, 6);
+		CheckBox showContextMenuCheckBox = new CheckBox();
+		showContextMenuCheckBox.setSelected(Main.getProperty("character.enable_context_menu", "0").equals("1"));
+		showContextMenuCheckBox.selectedProperty().addListener((property, oldValue, newValue) -> {
+			Main.setProperty("character.enable_context_menu", (newValue) ? "1" : "0");
+		});
+		gridPane.add(showContextMenuCheckBox, 1, 6);
 		//appearanceTab.setTop(gridPane);
 		tabPane.getTabs().add(new Tab(Main.getString("appearance"), gridPane));
 		BorderPane pluginsTab = new BorderPane();
 		pluginsTab.setCenter(pluginsList);
 		pluginsList.setPrefSize(400, 300);
 		pluginProxy.addMessageListener("core-events:plugin-load", (sender, tag, data) -> {
-			for (PluginListItem item : pluginsList.getItems()) {
-				if (item.id.equals(data)) {
-					return;
+			Platform.runLater(() -> {
+				for (PluginListItem item : pluginsList.getItems()) {
+					if (item.id.equals(data)) {
+						return;
+					}
 				}
-			}
-			pluginsList.getItems().add(new PluginListItem(data.toString(), false));
+				pluginsList.getItems().add(new PluginListItem(data.toString(), false));
+			});
 		});
 		pluginProxy.addMessageListener("core-events:plugin-unload", (sender, tag, data) -> {
-			pluginsList.getItems().removeIf(item -> item.id.equals(data) && !item.blacklisted);
+			Platform.runLater(() -> {
+				pluginsList.getItems().removeIf(item -> item.id.equals(data) && !item.blacklisted);
+			});
 		});
 		for (String id : PluginManager.getInstance().getBlacklistedPlugins()) {
 			pluginsList.getItems().add(new PluginListItem(id, true));
@@ -141,9 +170,15 @@ class OptionsDialog extends Dialog<Void> {
 		};
 		unloadPluginButton.setOnAction(event -> {
 			PluginListItem item = pluginsList.getSelectionModel().getSelectedItem();
-			if (item.blacklisted) return;
-			if (item.id.equals("core")) return;
-			if (item.id.equals(Main.getInstance().getPluginProxy().getId())) return;
+			if (item.blacklisted) {
+				return;
+			}
+			if (item.id.equals("core")) {
+				return;
+			}
+			if (item.id.equals(Main.getInstance().getPluginProxy().getId())) {
+				return;
+			}
 			PluginManager.getInstance().unloadPlugin(item.id);
 		});
 		hbox.getChildren().add(unloadPluginButton);
@@ -201,7 +236,7 @@ class OptionsDialog extends Dialog<Void> {
 				root.getChildren().add(group);
 			}
 			alternativesTable.setRoot(root);
- 		});
+		});
 		tabPane.getTabs().add(new Tab(Main.getString("alternatives"), alternativesTab));
 		BorderPane debugTab = new BorderPane();
 		TextField debugMsgTag = new TextField("DeskChan:say");
@@ -222,11 +257,31 @@ class OptionsDialog extends Dialog<Void> {
 		});
 		debugTab.setBottom(button);
 		tabPane.getTabs().add(new Tab(Main.getString("debug"), debugTab));
-		for (Map.Entry<String, List<PluginOptionsTab>> entry : pluginsTabs.entrySet()) {
-			for (PluginOptionsTab tab : entry.getValue()) {
+		for (Map.Entry<String, List<ControlsContainer>> entry : pluginsTabs.entrySet()) {
+			for (ControlsContainer tab : entry.getValue()) {
 				tabPane.getTabs().add(new Tab(tab.name, tab.createControlsPane()));
 			}
 		}
+		gridPane = new GridPane();
+		gridPane.setHgap(6);
+		gridPane.setVgap(6);
+		Label label = new Label(CoreInfo.get("NAME") + " " + CoreInfo.get("VERSION"));
+		label.setFont(Font.font(20));
+		gridPane.add(label, 0, 0, 2, 1);
+		gridPane.add(new Label(Main.getString("about.site")), 0, 1);
+		Hyperlink hyperlink = new Hyperlink();
+		hyperlink.setText(CoreInfo.get("PROJECT_SITE_URL"));
+		hyperlink.setOnAction(event -> {
+			App.getInstance().getHostServices().showDocument(hyperlink.getText());
+		});
+		gridPane.add(hyperlink, 1, 1);
+		gridPane.add(new Label(Main.getString("about.git_branch")), 0, 2);
+		gridPane.add(new Label(CoreInfo.get("GIT_BRANCH_NAME")), 1, 2);
+		gridPane.add(new Label(Main.getString("about.git_commit_hash")), 0, 3);
+		gridPane.add(new Label(CoreInfo.get("GIT_COMMIT_HASH")), 1, 3);
+		gridPane.add(new Label(Main.getString("about.build_datetime")), 0, 4);
+		gridPane.add(new Label(CoreInfo.get("BUILD_DATETIME")), 1, 4);
+		tabPane.getTabs().add(new Tab(Main.getString("about"), gridPane));
 	}
 	
 	private void openSkinManager() {
@@ -237,12 +292,35 @@ class OptionsDialog extends Dialog<Void> {
 	}
 	
 	static void registerPluginTab(String plugin, String name, List<Map<String, Object>> controls, String msgTag) {
-		List<PluginOptionsTab> tabs = pluginsTabs.getOrDefault(plugin, null);
+		List<ControlsContainer> tabs = pluginsTabs.getOrDefault(plugin, null);
+		ControlsContainer poTab = new ControlsContainer(name, controls, msgTag);
 		if (tabs == null) {
 			tabs = new ArrayList<>();
 			pluginsTabs.put(plugin, tabs);
+			tabs.add(poTab);
+			return;
+		} else {
+			boolean found = false;
+			for (int i = 0; i < tabs.size(); i++) {
+				if (tabs.get(i).name.equals(name)) {
+					tabs.set(i, poTab);
+					found = true;
+					break;
+				}
+			}
+			if (!found) {
+				tabs.add(poTab);
+			}
 		}
-		tabs.add(new PluginOptionsTab(name, controls, msgTag));
+		
+		if (instance != null) {
+			for (Tab tab : instance.tabPane.getTabs()) {
+				if (tab.getText().equals(name)) {
+					tab.setContent(poTab.createControlsPane());
+					break;
+				}
+			}
+		}
 	}
 	
 	static void unregisterPluginTabs(String plugin) {
@@ -283,64 +361,4 @@ class OptionsDialog extends Dialog<Void> {
 		}
 		
 	}
-	
-	private static class PluginOptionsTab {
-		
-		final String name;
-		final List<Map<String, Object>> controls;
-		final String msgTag;
-		
-		PluginOptionsTab(String name, List<Map<String, Object>> controls, String msgTag) {
-			this.name = name;
-			this.controls = controls;
-			this.msgTag = msgTag;
-		}
-		
-		Node createControlsPane() {
-			final Map<String, PluginOptionsControlItem> namedControls = new HashMap<>();
-			BorderPane borderPane = new BorderPane();
-			GridPane gridPane = new GridPane();
-			int row = 0;
-			for (Map<String, Object> controlInfo : controls) {
-				String id = (String) controlInfo.getOrDefault("id", null);
-				String label = (String) controlInfo.getOrDefault("label", null);
-				PluginOptionsControlItem item = PluginOptionsControlItem.create(controlInfo);
-				if (item == null) continue;
-				if (id != null) {
-					namedControls.put(id, item);
-				}
-				if (label == null) {
-					gridPane.add(item.getNode(), 0, row, 2, 1);
-				} else {
-					gridPane.add(new Label(label + ":"), 0, row);
-					gridPane.add(item.getNode(), 1, row);
-				}
-				row++;
-			}
-			if (msgTag != null) {
-				Button saveButton = new Button(Main.getString("save"));
-				saveButton.setOnAction(event -> {
-					Map<String, Object> data = new HashMap<>();
-					for (Map.Entry<String, PluginOptionsControlItem> entry : namedControls.entrySet()) {
-						data.put(entry.getKey(), entry.getValue().getValue());
-						for (Map<String, Object> control : controls) {
-							String id = (String) control.getOrDefault("id", null);
-							if (id != null) {
-								if (id.equals(entry.getKey())) {
-									control.put("value", entry.getValue().getValue());
-									break;
-								}
-							}
-						}
-					}
-					Main.getInstance().getPluginProxy().sendMessage(msgTag, data);
-				});
-				gridPane.add(saveButton, 0, row, 2, 1);
-			}
-			borderPane.setTop(gridPane);
-			return borderPane;
-		}
-		
-	}
-	
 }
