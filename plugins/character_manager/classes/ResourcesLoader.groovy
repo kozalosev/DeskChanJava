@@ -113,6 +113,10 @@ abstract class ResourcesLoader {
                         phraseAction = PhraseAction.NAUGHTY
                     else if (action == "WALK")
                         phraseAction = PhraseAction.WALK
+                    else if (action == "PLAY")
+                        phraseAction = PhraseAction.PLAY
+                    else if (action == "WATCH")
+                        phraseAction = PhraseAction.WATCH
 
                     if (condition == "FED")
                         phraseCondition = PhraseCondition.FED
@@ -142,6 +146,7 @@ abstract class ResourcesLoader {
     }
 
 
+    // Читает файл info.txt, где расположены ссылки на аниме и/или игры, связанные с персонажем
     static CharacterInfo readCharacterInfo(String name) {
         Path settingsPath = CHARACTERS_PATH.resolve(name).resolve('info.txt')
         CharacterInfo settings = new CharacterInfo(settingsPath)

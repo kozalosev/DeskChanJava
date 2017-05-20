@@ -62,11 +62,11 @@ addMessageListener("$TAG_PLUGIN:walk", { sender, tag, data ->
 })
 
 addMessageListener("$TAG_PLUGIN:play", { sender, tag, data ->
-    character.play()
+    showMessage(character.play())
 })
 
 addMessageListener("$TAG_PLUGIN:watch", { sender, tag, data ->
-    character.watch()
+    showMessage(character.watch())
 })
 
 

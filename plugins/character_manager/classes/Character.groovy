@@ -132,25 +132,33 @@ class Character {
         return getRandomPhrase(getPhrases(PhraseAction.WALK))
     }
 
-    void play() {
+    String play() {
         increasePleasure()
         decreaseSatiety()
         decreaseOxygenSaturation()
         decreaseOxygenSaturation()
 
         URI gameURI = characterInfo.getRandomSteamId()
-        if (gameURI != null)
+        if (gameURI != null) {
             BrowserAdapter.openWebpage(gameURI)
+            return null
+        } else {
+            return getRandomPhrase(getPhrases(PhraseAction.PLAY))
+        }
     }
 
-    void watch() {
+    String watch() {
         increasePleasure()
         decreaseSatiety()
         decreaseOxygenSaturation()
 
         URL websiteURL = characterInfo.getRandomAnimeWebsite()
-        if (websiteURL != null)
+        if (websiteURL != null) {
             BrowserAdapter.openWebpage(websiteURL)
+            return null
+        } else {
+            return getRandomPhrase(getPhrases(PhraseAction.WATCH))
+        }
     }
 
     String getRandomPhrase() {
