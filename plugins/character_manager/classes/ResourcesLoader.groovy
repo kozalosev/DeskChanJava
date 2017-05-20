@@ -4,6 +4,8 @@ import enums.PhraseAction
 import enums.PhraseCondition
 import enums.TimeOfDay
 import exceptions.WrongCharacterException
+import javafx.scene.media.Media
+import javafx.scene.media.MediaException
 
 import java.nio.file.DirectoryStream
 import java.nio.file.Files
@@ -151,5 +153,29 @@ abstract class ResourcesLoader {
         Path settingsPath = CHARACTERS_PATH.resolve(name).resolve('info.txt')
         CharacterInfo settings = new CharacterInfo(settingsPath)
         return settings
+    }
+
+
+    // Читает список музыки, ассоциированной с персонажем
+    static List<Media> readCharacterMusic(String name) {
+        List<Media> musicList = new ArrayList<>()
+        Path musicDirPath = CHARACTERS_PATH.resolve(name).resolve('music')
+        if (!Files.isDirectory(musicDirPath))
+            return musicList
+
+        try {
+            DirectoryStream<Path> directoryStream = Files.newDirectoryStream(musicDirPath)
+            for (Path musicFilePath : directoryStream) {
+                try {
+                    musicList.add(new Media(musicFilePath.toUri().toString()))
+                } catch (MediaException e) {
+                    e.printStackTrace()
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace()
+        }
+
+        return musicList
     }
 }

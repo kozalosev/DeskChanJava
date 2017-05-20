@@ -44,7 +44,7 @@ addCleanupHandler({
     skinUpdateTimer.purge()
     messageShowTimer.cancel()
     messageShowTimer.purge()
-    character.saveState()
+    character.unload()
 })
 
 
@@ -67,6 +67,17 @@ addMessageListener("$TAG_PLUGIN:play", { sender, tag, data ->
 
 addMessageListener("$TAG_PLUGIN:watch", { sender, tag, data ->
     showMessage(character.watch())
+})
+
+addMessageListener("$TAG_PLUGIN:listen-to", { sender, tag, data ->
+    if (!character.listenToMusic()) {
+        sendMessage("gui:choose-files", [
+                title: "${localization.get('chooser-title')}:".toString(),
+                filters: [[description: localization.get('music-files'), extensions: ['*.mp3']]]
+        ], { s, d ->
+            character.listenToMusic(d['path'].toString())
+        })
+    }
 })
 
 
@@ -100,7 +111,8 @@ sendMessage('DeskChan:register-simple-actions', [
     [name: localization.get('naughty'), msgTag: "$TAG_PLUGIN:naughty".toString()],
     [name: localization.get('walk'), msgTag: "$TAG_PLUGIN:walk".toString()],
     [name: localization.get('play'), msgTag: "$TAG_PLUGIN:play".toString()],
-    [name: localization.get('watch'), msgTag: "$TAG_PLUGIN:watch".toString()]
+    [name: localization.get('watch'), msgTag: "$TAG_PLUGIN:watch".toString()],
+    [name: localization.get('listen-to'), msgTag: "$TAG_PLUGIN:listen-to".toString()]
 ])
 
 // Добавляем вкладку с настройками.

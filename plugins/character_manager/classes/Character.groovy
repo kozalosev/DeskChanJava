@@ -3,8 +3,12 @@ package classes
 import enums.PhraseAction
 import enums.TimeOfDay
 import exceptions.WrongCharacterException
+import javafx.scene.media.Media
+import javafx.scene.media.MediaException
+import javafx.scene.media.MediaPlayer
 
 import java.nio.file.Path
+import java.nio.file.Paths
 
 // Класс персонажа.
 class Character {
@@ -24,6 +28,10 @@ class Character {
     private PhrasesSet phrases
     private String lastRandomPhrase = ""
     private CharacterInfo characterInfo = null
+    // Поля, нужные для воспроизведения музыки.
+    private List<Media> musicList = null
+    private MediaPlayer mediaPlayer = null
+    private int lastSongId = -1
 
     // Состояние персонажа при запуске считывается из файла настроек
     // или выставляется по умолчанию в половину максимального.
@@ -72,6 +80,7 @@ class Character {
         oxygenSaturation = (storedOxygenSaturation != null) ? Integer.parseInt(storedOxygenSaturation) : Math.ceil(MAX_OXYGEN_SATURATION / 2)
 
         characterInfo = ResourcesLoader.readCharacterInfo(name)
+        musicList = ResourcesLoader.readCharacterMusic(name)
     }
 
     String getName() { return name }
@@ -161,6 +170,47 @@ class Character {
         }
     }
 
+    // Следующие 3 метода обеспечивают воспроизведение музыки
+    boolean listenToMusic() {
+        increasePleasure()
+        increasePleasure()
+
+        if (musicList.size() == 0)
+            return false
+
+        int i = 0
+        if (musicList.size() > 1) {
+            i = lastSongId
+            int endlessLoopFuse = 100
+            Random rand = new Random()
+            while (i == lastSongId && endlessLoopFuse > 0) {
+                i = rand.nextInt(musicList.size())
+                endlessLoopFuse--
+            }
+        }
+
+        listenToMusic(musicList[i])
+        return true
+    }
+
+    void listenToMusic(Media song) {
+        mediaPlayer?.stop()
+        mediaPlayer = new MediaPlayer(song)
+        mediaPlayer.play()
+    }
+
+    void listenToMusic(String songPath) {
+        Path path = Paths.get(songPath)
+        Media song
+        try {
+            song = new Media(path.toUri().toString())
+        } catch (MediaException e) {
+            e.printStackTrace()
+            return
+        }
+        listenToMusic(song)
+    }
+
     String getRandomPhrase() {
         decreaseSatiety()
         decreasePleasure()
@@ -203,6 +253,13 @@ class Character {
         settings.put('satiety', Integer.toString(satiety), false)
         settings.put('pleasure', Integer.toString(pleasure), false)
         settings.save()
+    }
+
+    // Используется при выгрузке плагина.
+    // Сохраняет состояние персонажа и останавливает воспроизведение музыки.
+    void unload() {
+        saveState()
+        mediaPlayer.stop()
     }
 
     // Возвращает фразы для указанного действия.
