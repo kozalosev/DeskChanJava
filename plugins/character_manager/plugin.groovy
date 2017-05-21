@@ -26,24 +26,16 @@ Character character = (storedCharacterName != null) ? new Character(storedCharac
 // Получаем параметры и запускаем таймер случайных сообщений.
 String storedDelay = Settings.getInstance().get(TAG_DELAY_MESSAGES)
 int delayBetweenMessages = (storedDelay != null) ? Integer.parseInt(storedDelay) : DEFAULT_DELAY
-Timer messageShowTimer = initMessageTimer(character, delayBetweenMessages)
+initMessageTimer(character, delayBetweenMessages)
 
 // Поскольку у персонажа есть до 4 спрайтов и наборов фраз, которые устанавливаются в зависимости от времени суток
 // (normal, night, morning и evening), так что каждый час плагин проверяет, не пришло ли время обновить эти данные.
-Timer skinUpdateTimer = new Timer()
-skinUpdateTimer.schedule({ ->
-    if (character.reloadRequired())
-        refreshCharacter(character)
-}, 3600000, 3600000)
+initSkinUpdateTimer(character)
 refreshCharacter(character)
 
 
 // При выгрузке плагина останавливаем таймеры и сохраняем состояние персонажа.
 addCleanupHandler({
-    skinUpdateTimer.cancel()
-    skinUpdateTimer.purge()
-    messageShowTimer.cancel()
-    messageShowTimer.purge()
     character.unload()
 })
 
@@ -92,7 +84,7 @@ addMessageListener("$TAG_PLUGIN:save-settings", { sender, tag, data ->
 
     if (data.containsKey(TAG_DELAY_MESSAGES)) {
         settings.put(TAG_DELAY_MESSAGES, (String) data[TAG_DELAY_MESSAGES], false)
-        messageShowTimer = initMessageTimer(character, (int) data[TAG_DELAY_MESSAGES])
+        initMessageTimer(character, (int) data[TAG_DELAY_MESSAGES])
     }
 
     if (data.containsKey(TAG_CHOSEN_CHARACTER) && data[TAG_CHOSEN_CHARACTER] != null) {
@@ -116,7 +108,7 @@ sendMessage('DeskChan:register-simple-actions', [
 ])
 
 // Добавляем вкладку с настройками.
-sendMessage('gui:add-options-tab', [name: localization.get('plugin-name'), msgTag: "$TAG_PLUGIN:save-settings".toString(), controls: [
+sendMessage('gui:setup-options-tab', [name: localization.get('plugin-name'), msgTag: "$TAG_PLUGIN:save-settings".toString(), controls: [
     [
         type: 'Spinner', id: TAG_DELAY_MESSAGES, label: localization.get('settings-delay'),
         value: delayBetweenMessages, min: 5, max: 180, step: 5
@@ -143,13 +135,20 @@ def refreshCharacter(Character character) {
     showMessage(character.getWelcomePhrase())
 }
 
-// Функция (пере-)инициализации таймера.
-// Используется при загрузке плагина и в случае изменения настроек.
-Timer initMessageTimer(Character character, int minutes) {
+// Функции (пере-)инициализации таймеров.
+// Эта используется при загрузке плагина и в случае изменения настроек.
+def initMessageTimer(Character character, int minutes) {
     int delayTime = minutes * 60000
-    Timer timer = new Timer()
-    timer.schedule({ ->
+    sendMessage('core-utils:notify-after-delay', [delay: delayTime, seq: 'message-timer'], {sender, data ->
         showMessage(character.getRandomPhrase())
-    }, delayTime, delayTime)
-    return timer
+        initMessageTimer(character, minutes)
+    })
+}
+// А эта -- только при загрузке, но нужна для переинициализации таймера после срабатывания.
+def initSkinUpdateTimer(Character character) {
+    sendMessage('core-utils:notify-after-delay', [delay: 3600000, seq: 'skin-update-timer'], {sender, data ->
+        if (character.reloadRequired())
+            refreshCharacter(character)
+        initSkinUpdateTimer(character)
+    })
 }
