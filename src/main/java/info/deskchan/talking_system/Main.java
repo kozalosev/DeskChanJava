@@ -2,12 +2,14 @@ package info.deskchan.talking_system;
 
 import info.deskchan.core.Plugin;
 import info.deskchan.core.PluginProxy;
+import info.deskchan.core.ResponseListener;
 import info.deskchan.talking_system.presets.SimpleCharacterPreset;
 import org.json.JSONObject;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -29,11 +31,43 @@ public class Main implements Plugin {
 	private EmotionsController emotionsController;
 	
 	private boolean applyInfluence = true;
-	private Timer chatTimer;
 	private int messageTimeout;
 	private Quotes quotes;
 	private PriorityQueue<Quote> quoteQueue;
 	private PerkContainer perkContainer;
+	
+	private final ResponseListener chatTimerListener = new ResponseListener() {
+		
+		private Object lastSeq = null;
+		
+		@Override
+		public void handle(String sender, Object data) {
+			Main.this.operatePhraseRequest("CHAT");
+			lastSeq = null;
+			start();
+		}
+		
+		void start() {
+			if (lastSeq != null) {
+				stop();
+			}
+			lastSeq = pluginProxy.sendMessage("core-utils:notify-after-delay",
+					new HashMap<String, Object>() {{
+						put("delay", (long) messageTimeout);
+					}}, this);
+		}
+		
+		void stop() {
+			if (lastSeq != null) {
+				pluginProxy.sendMessage("core-utils:notify-after-delay",
+						new HashMap<String, Object>() {{
+							put("seq", lastSeq);
+							put("delay", (long) -1);
+						}});
+			}
+		}
+		
+	};
 	
 	@Override
 	public boolean initialize(PluginProxy newPluginProxy) {
@@ -74,13 +108,11 @@ public class Main implements Plugin {
 			}
 		}
 		log("Loaded options");
-		chatTimer = new Timer();
-		chatTimer.schedule(new TimerTask() {
-			@Override
-			public void run() {
-				operatePhraseRequest("CHAT");
-			}
-		}, messageTimeout, messageTimeout);
+		try {
+			chatTimerListener.getClass().getDeclaredMethod("start").invoke(chatTimerListener);
+		} catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+			log(e);
+		}
 		pluginProxy.addMessageListener("talk:request", (sender, tag, data) -> {
 			operatePhraseRequest((Map<String, Object>) data);
 		});
@@ -147,6 +179,7 @@ public class Main implements Plugin {
 		Quotes.saveTo(DEVELOPERS_PHRASES_URL, "developers_base");
 		quotes.load(pluginProxy.getDataDirPath(), currentPreset.quotesBaseList);
 		operatePhraseRequest("HELLO");
+		
 		return true;
 	}
 	
@@ -343,14 +376,11 @@ public class Main implements Plugin {
 			pluginProxy.sendMessage("gui:show-notification", list);
 			//System.out.println(errorMessage);
 		}
-		chatTimer.cancel();
-		chatTimer = new Timer();
-		chatTimer.schedule(new TimerTask() {
-			@Override
-			public void run() {
-				operatePhraseRequest("CHAT");
-			}
-		}, messageTimeout, messageTimeout);
+		try {
+			chatTimerListener.getClass().getDeclaredMethod("start").invoke(chatTimerListener);
+		} catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+			log(e);
+		}
 		updateOptionsTab();
 		quotes.clear();
 		quotes.load(pluginProxy.getDataDirPath(), currentPreset.quotesBaseList);
@@ -417,6 +447,10 @@ public class Main implements Plugin {
 	public void unload() {
 		saveSettings();
 		operatePhraseRequest("BYE");
+	}
+	
+	static PluginProxy getPluginProxy() {
+		return pluginProxy;
 	}
 	
 }
