@@ -1,5 +1,5 @@
-from threading import Timer
 from operator import itemgetter
+from java.lang import Long
 
 import busproxy
 busproxy.inject(bus, globals())
@@ -11,7 +11,6 @@ import functions
 busproxy.inject(bus, functions.__dict__, "log")
 
 
-timer = None
 sound = None
 l10n = Localization.get_instance(bus, "localization")
 
@@ -33,8 +32,7 @@ def timer_action(messages, sound_path=None):
     update_state()
 
 def update_timer():
-    stop_timer()
-
+    delete_expired_events(bus, True)
     if len(opts['events']) == 0:
         return
 
@@ -52,19 +50,10 @@ def update_timer():
             event_sound = event['sound'] if "sound" in event else None
         messages.append(event['message'])
 
-    delta = diff_seconds(event_datetime)
+    delta = Long(diff_seconds(event_datetime) * 1000)
     if delta > 0:
-        global timer
-        timer = Timer(delta, lambda: timer_action(messages, event_sound))
-        timer.start()
-
-def stop_timer(flush_events=True, event_cleaning=True):
-    global timer
-    if timer:
-        timer.cancel()
-        timer = None
-    if event_cleaning:
-        delete_expired_events(bus, flush_events)
+        send_message('core-utils:notify-after-delay', {'delay': delta, 'seq': 'main-timer'},
+                     lambda s, d: timer_action(messages, event_sound))
 
 def add_event(data):
     if not data[TAG_MESSAGE]:
@@ -126,6 +115,4 @@ def update_state():
 
 
 add_message_listener(TAG_SAVE_OPTIONS, lambda sender, tag, data: add_event(data))
-# We can't flush options to the disk because it will be already inaccessible when the handler is running.
-add_cleanup_handler(lambda: stop_timer(event_cleaning=False))
 update_state()
