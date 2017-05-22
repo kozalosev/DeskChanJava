@@ -96,6 +96,13 @@ addMessageListener("$TAG_PLUGIN:save-settings", { sender, tag, data ->
     settings.save()
 })
 
+// Запускает обработку поглаживаний персонажа курсором.
+addMessageListener('gui-events:character-mouse-moved', { sender, tag, data ->
+    showMessage(character.pet())
+})
+initResetPetTimer(character)
+initResetPetMultiplierTimer(character)
+
 
 // Добавляем пункты в меню.
 sendMessage('DeskChan:register-simple-actions', [
@@ -135,6 +142,7 @@ def refreshCharacter(Character character) {
     showMessage(character.getWelcomePhrase())
 }
 
+
 // Функции (пере-)инициализации таймеров.
 // Эта используется при загрузке плагина и в случае изменения настроек.
 def initMessageTimer(Character character, int minutes) {
@@ -144,11 +152,25 @@ def initMessageTimer(Character character, int minutes) {
         initMessageTimer(character, minutes)
     })
 }
-// А эта -- только при загрузке, но нужна для переинициализации таймера после срабатывания.
+// А эта и последующие -- только при загрузке, но функции нужны для переинициализации таймеров после срабатывания.
 def initSkinUpdateTimer(Character character) {
     sendMessage('core-utils:notify-after-delay', [delay: 3600000, seq: 'skin-update-timer'], {sender, data ->
         if (character.reloadRequired())
             refreshCharacter(character)
         initSkinUpdateTimer(character)
+    })
+}
+
+// Следующие два таймера нужны для "системы поглаживания"
+def initResetPetTimer(Character character) {
+    sendMessage('core-utils:notify-after-delay', [delay: 30000, seq: 'pet-reset-timer'], {sender, data ->
+        character.resetPetCounter()
+        initResetPetTimer(character)
+    })
+}
+def initResetPetMultiplierTimer(Character character) {
+    sendMessage('core-utils:notify-after-delay', [delay: 600000, seq: 'pet-reset-multiplier-timer'], {sender, data ->
+        character.resetPetMultiplier()
+        initResetPetMultiplierTimer(character)
     })
 }

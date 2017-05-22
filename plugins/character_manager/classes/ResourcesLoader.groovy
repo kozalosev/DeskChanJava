@@ -119,6 +119,8 @@ abstract class ResourcesLoader {
                         phraseAction = PhraseAction.PLAY
                     else if (action == "WATCH")
                         phraseAction = PhraseAction.WATCH
+                    else if (action == "PET")
+                        phraseAction = PhraseAction.PET
 
                     if (condition == "FED")
                         phraseCondition = PhraseCondition.FED

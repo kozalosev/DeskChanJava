@@ -19,6 +19,8 @@ class Character {
     final private static int SATIETY_ACCRETION = 10
     final private static int PLEASURE_ACCRETION = 10
     final private static int OXYGEN_SATURATION_ACCRETION = 10
+    // Задежка между началом "глажения" персонажа и выдачей фразы.
+    final private static int MAX_PET_COUNTER = 1000
 
     private String name
     // Для каждого персонажа можно задать до 4 спрайтов, отображаемых в зависимости от времени суток.
@@ -38,6 +40,9 @@ class Character {
     private int satiety
     private int pleasure
     private int oxygenSaturation
+    // Параметры, отвечающие за возможность погладить персонажа.
+    private int petCounter = MAX_PET_COUNTER
+    private int petMultiplier = 1
 
     // Конструктор проверяет наличие необходимых ресурсов в resources/characters/%name%.
     // Если там нет sprites/normal.png или phrases/default.txt, то выбрасывается WrongCharacterException.
@@ -168,6 +173,27 @@ class Character {
         } else {
             return getRandomPhrase(getPhrases(PhraseAction.WATCH))
         }
+    }
+
+    // Следующие 3 метода позволяют гладить персонажа курсором ^_^
+    String pet() {
+        if (petCounter > 0) {
+            petCounter--
+            return null
+        } else {
+            petMultiplier++
+            resetPetCounter()
+            return getRandomPhrase(getPhrases(PhraseAction.PET))
+        }
+    }
+
+    void resetPetCounter() {
+        petCounter = MAX_PET_COUNTER * petMultiplier
+    }
+
+    void resetPetMultiplier() {
+        petMultiplier = 1
+        resetPetCounter()
     }
 
     // Следующие 3 метода обеспечивают воспроизведение музыки

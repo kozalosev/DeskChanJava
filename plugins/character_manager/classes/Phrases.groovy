@@ -11,6 +11,7 @@ class Phrases {
     Set<String> walkMessages = new HashSet<>()
     Set<String> playMessages = new HashSet<>()
     Set<String> watchMessages = new HashSet<>()
+    Set<String> petMessages = new HashSet<>()
     Set<String> phrases = new HashSet<>()
 
     // Геттер.
@@ -32,6 +33,8 @@ class Phrases {
                 return playMessages
             case PhraseAction.WATCH:
                 return watchMessages
+            case PhraseAction.PET:
+                return petMessages
             default:
                 return null
         }
@@ -46,6 +49,7 @@ class Phrases {
         walkMessages.addAll(another.walkMessages)
         playMessages.addAll(another.playMessages)
         watchMessages.addAll(another.watchMessages)
+        petMessages.addAll(another.petMessages)
         phrases.addAll(another.phrases)
     }
 
@@ -75,6 +79,9 @@ class Phrases {
                 break
             case PhraseAction.WATCH:
                 watchMessages.add(phrase)
+                break
+            case PhraseAction.PET:
+                petMessages.add(phrase)
                 break
         }
     }
