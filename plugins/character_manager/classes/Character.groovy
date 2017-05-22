@@ -20,7 +20,7 @@ class Character {
     final private static int PLEASURE_ACCRETION = 10
     final private static int OXYGEN_SATURATION_ACCRETION = 10
     // Задежка между началом "глажения" персонажа и выдачей фразы.
-    final private static int MAX_PET_COUNTER = 1000
+    final private static int MAX_PET_COUNTER = 750
 
     private String name
     // Для каждого персонажа можно задать до 4 спрайтов, отображаемых в зависимости от времени суток.
@@ -285,7 +285,7 @@ class Character {
     // Сохраняет состояние персонажа и останавливает воспроизведение музыки.
     void unload() {
         saveState()
-        mediaPlayer.stop()
+        mediaPlayer?.stop()
     }
 
     // Возвращает фразы для указанного действия.
@@ -294,20 +294,38 @@ class Character {
         int pleasureMeasure = Math.ceil(MAX_PLEASURE / 3)
         int oxygenSaturationMeasure = Math.ceil(MAX_OXYGEN_SATURATION / 3)
 
-        if (satiety < satietyMeasure)
-            return phrases.getHungryPhrases(action)
-        else if (satiety > satietyMeasure * 2)
-            return phrases.getFullPhrases(action)
-        else if (pleasure < pleasureMeasure)
-            return phrases.getSexuallyHungryPhrases(action)
-        else if (pleasure > pleasureMeasure * 2)
-            return phrases.getSexuallySatisfiedPhrases(action)
-        else if (oxygenSaturation < oxygenSaturationMeasure)
-            return phrases.getWannaGoOutsidePhrases(action)
-        else if (oxygenSaturation > oxygenSaturationMeasure * 2)
-            return phrases.getWannaSitHomePhrases(action)
-        else
-            return phrases.getDefaultPhrases(action)
+        Set<String> gotPhrases
+        if (satiety < satietyMeasure) {
+            gotPhrases = phrases.getHungryPhrases(action)
+            if (gotPhrases != null)
+                return gotPhrases
+        }
+        if (satiety > satietyMeasure * 2) {
+            gotPhrases = phrases.getFullPhrases(action)
+            if (gotPhrases != null)
+                return gotPhrases
+        }
+        if (pleasure < pleasureMeasure) {
+            gotPhrases = phrases.getSexuallyHungryPhrases(action)
+            if (gotPhrases != null)
+                return gotPhrases
+        }
+        if (pleasure > pleasureMeasure * 2) {
+            gotPhrases = phrases.getSexuallySatisfiedPhrases(action)
+            if (gotPhrases != null)
+                return gotPhrases
+        }
+        if (oxygenSaturation < oxygenSaturationMeasure) {
+            gotPhrases = phrases.getWannaGoOutsidePhrases(action)
+            if (gotPhrases != null)
+                return gotPhrases
+        }
+        if (oxygenSaturation > oxygenSaturationMeasure * 2) {
+            gotPhrases = phrases.getWannaSitHomePhrases(action)
+            if (gotPhrases != null)
+                return gotPhrases
+        }
+        return phrases.getDefaultPhrases(action)
     }
 
     // Для изменения параметров лучше использовать специальные методы, которые проверяют границы.

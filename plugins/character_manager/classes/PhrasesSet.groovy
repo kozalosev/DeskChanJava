@@ -112,6 +112,6 @@ class PhrasesSet {
 
     private baseGetter(Phrases source, PhraseAction action) {
         Set<String> set = source.get(action)
-        return (!set.isEmpty()) ? set : getDefaultPhrases(action)
+        return (!set.isEmpty()) ? set : null
     }
 }

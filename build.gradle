@@ -152,6 +152,11 @@ task copyIconForExe(type: Copy) {
 	into "${buildDir}/launch4j"
 }
 
+task copyCharacters(type: Copy) {
+	from "${projectDir}/resources/characters"
+	into "${buildDir}/data/character_manager/characters"
+}
+
 task createExeDistZip(type: Zip) {
 	from "${buildDir}/launch4j"
 	include '*'
@@ -169,3 +174,5 @@ task createExeDistZip(type: Zip) {
 createExe.dependsOn createStartScriptsForExe
 createExe.dependsOn copyIconForExe
 createExeDistZip.dependsOn createExe
+
+build.dependsOn copyCharacters
