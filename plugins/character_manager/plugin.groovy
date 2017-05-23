@@ -8,7 +8,7 @@ import classes.Settings
 final String TAG_PLUGIN = 'character_manager'
 final String TAG_DELAY_MESSAGES = 'delay-between-messages'
 final String TAG_CHOSEN_CHARACTER = 'chosen-character'
-final String TAG_SOUND_DISABLED = 'sound-disabled'
+final String TAG_MUTE = 'mute'
 // Задержка между случайными сообщениями по умолчанию.
 final int DEFAULT_DELAY = 10
 
@@ -30,9 +30,9 @@ int delayBetweenMessages = (storedDelay != null) ? Integer.parseInt(storedDelay)
 initMessageTimer(character, delayBetweenMessages)
 
 // Переключатель отключения звуков и музыки.
-String storedSoundDisabled = Settings.getInstance().get(TAG_SOUND_DISABLED)
-if (storedSoundDisabled != null)
-    character.mute = Boolean.parseBoolean(storedSoundDisabled)
+String storedMuteStatus = Settings.getInstance().get(TAG_MUTE)
+if (storedMuteStatus != null)
+    character.mute = Boolean.parseBoolean(storedMuteStatus)
 
 // Поскольку у персонажа есть до 4 спрайтов и наборов фраз, которые устанавливаются в зависимости от времени суток
 // (normal, night, morning и evening), так что каждый час плагин проверяет, не пришло ли время обновить эти данные.
@@ -99,14 +99,14 @@ addMessageListener("$TAG_PLUGIN:save-settings", { sender, tag, data ->
     settings.put(TAG_DELAY_MESSAGES, (String) data[TAG_DELAY_MESSAGES], false)
     initMessageTimer(character, (int) data[TAG_DELAY_MESSAGES])
 
-    settings.put(TAG_SOUND_DISABLED, (String) data[TAG_SOUND_DISABLED], false)
-    character.mute = (boolean) data[TAG_SOUND_DISABLED]
-
-    if (data[TAG_CHOSEN_CHARACTER] != null) {
+    if (data[TAG_CHOSEN_CHARACTER] != null && data[TAG_CHOSEN_CHARACTER] != CharacterManager.getIdOfCharacter(character)) {
         character = CharacterManager.getCharacterById((int) data[TAG_CHOSEN_CHARACTER])
         settings.put(TAG_CHOSEN_CHARACTER, character.getName(), false)
         refreshCharacter(character)
     }
+
+    settings.put(TAG_MUTE, (String) data[TAG_MUTE], false)
+    character.mute = (boolean) data[TAG_MUTE]
 
     settings.save()
 })
@@ -140,7 +140,7 @@ sendMessage('gui:setup-options-tab', [name: localization.get('plugin-name'), msg
         values: Arrays.asList(CharacterManager.getCharacterList()), value: CharacterManager.getIdOfCharacter(character)
     ],
     [
-        type: 'CheckBox', id: TAG_SOUND_DISABLED, label: localization.get('settings-disable-sound'),
+        type: 'CheckBox', id: TAG_MUTE, label: localization.get('settings-mute'),
         value: character.mute
     ]
 ]])
