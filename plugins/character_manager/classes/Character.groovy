@@ -30,10 +30,12 @@ class Character {
     private PhrasesSet phrases
     private String lastRandomPhrase = ""
     private CharacterInfo characterInfo = null
-    // Поля, нужные для воспроизведения музыки.
+    // Поля, нужные для воспроизведения музыки...
     private List<Media> musicList = null
     private MediaPlayer mediaPlayer = null
     private int lastSongId = -1
+    // ...и звуков.
+    private SoundLoader soundLoader
 
     // Состояние персонажа при запуске считывается из файла настроек
     // или выставляется по умолчанию в половину максимального.
@@ -86,6 +88,7 @@ class Character {
 
         characterInfo = ResourcesLoader.readCharacterInfo(name)
         musicList = ResourcesLoader.readCharacterMusic(name)
+        soundLoader = new SoundLoader(name)
     }
 
     String getName() { return name }
@@ -120,6 +123,7 @@ class Character {
     String getClickPhrase() {
         increasePleasure()
         decreaseOxygenSaturation()
+        tryPlayback(soundLoader.tryGetSound('click-reaction'))
         return getRandomPhrase(getPhrases(PhraseAction.CLICK))
     }
 
@@ -183,6 +187,7 @@ class Character {
         } else {
             petMultiplier++
             resetPetCounter()
+            tryPlayback(soundLoader.tryGetSound('petting-reaction'))
             return getRandomPhrase(getPhrases(PhraseAction.PET))
         }
     }
@@ -196,7 +201,7 @@ class Character {
         resetPetCounter()
     }
 
-    // Следующие 3 метода обеспечивают воспроизведение музыки
+    // Следующие 4 метода обеспечивают воспроизведение музыки и звуков.
     boolean listenToMusic() {
         increasePleasure()
         increasePleasure()
@@ -215,26 +220,31 @@ class Character {
             }
         }
 
-        listenToMusic(musicList[i])
+        listenTo(musicList[i])
         return true
     }
 
-    void listenToMusic(Media song) {
+    void listenTo(Media media) {
         mediaPlayer?.stop()
-        mediaPlayer = new MediaPlayer(song)
+        mediaPlayer = new MediaPlayer(media)
         mediaPlayer.play()
     }
 
-    void listenToMusic(String songPath) {
-        Path path = Paths.get(songPath)
-        Media song
+    void listenTo(String mediaPath) {
+        Path path = Paths.get(mediaPath)
+        Media media
         try {
-            song = new Media(path.toUri().toString())
+            media = new Media(path.toUri().toString())
         } catch (MediaException e) {
             e.printStackTrace()
             return
         }
-        listenToMusic(song)
+        listenTo(media)
+    }
+
+    void tryPlayback(Media media) {
+        if (media != null)
+            listenTo(media)
     }
 
     String getRandomPhrase() {

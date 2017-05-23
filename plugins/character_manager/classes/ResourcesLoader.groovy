@@ -15,7 +15,7 @@ import java.util.regex.Pattern
 
 // Класс, использующийся для загрузки спрайтов и наборов фраз.
 abstract class ResourcesLoader {
-    final private static Path CHARACTERS_PATH = CharacterManager.getDataDir().resolve("characters")
+    final static Path CHARACTERS_PATH = CharacterManager.getDataDir().resolve("characters")
 
 
     // Функция для получения информации обо всех спрайтах.

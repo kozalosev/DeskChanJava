@@ -67,7 +67,7 @@ addMessageListener("$TAG_PLUGIN:listen-to", { sender, tag, data ->
                 title: "${localization.get('chooser-title')}:".toString(),
                 filters: [[description: localization.get('music-files'), extensions: ['*.mp3']]]
         ], { s, d ->
-            character.listenToMusic(d['path'].toString())
+            character.listenTo(d['path'].toString())
         })
     }
 })
