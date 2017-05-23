@@ -13,6 +13,7 @@ import java.nio.file.Path
 import java.util.regex.Matcher
 import java.util.regex.Pattern
 
+
 // Класс, использующийся для загрузки спрайтов и наборов фраз.
 abstract class ResourcesLoader {
     final static Path CHARACTERS_PATH = CharacterManager.getDataDir().resolve("characters")
@@ -29,8 +30,7 @@ abstract class ResourcesLoader {
         try {
             DirectoryStream<Path> directoryStream = Files.newDirectoryStream(directoryPath)
             for (Path skinPath : directoryStream) {
-                boolean isDir = Files.isDirectory(skinPath)
-                if (isDir) {
+                if (Files.isDirectory(skinPath)) {
                     File dir = new File(skinPath.toUri())
                     String[] files = dir.list()
                     boolean hasNormalSprite = false
@@ -45,7 +45,7 @@ abstract class ResourcesLoader {
                         continue
                 }
 
-                list.add(new SkinInfo(skinPath, isDir))
+                list.add(new SkinInfo(skinPath))
             }
         } catch (IOException e) {
             e.printStackTrace()

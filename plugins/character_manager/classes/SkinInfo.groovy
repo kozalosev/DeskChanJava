@@ -2,29 +2,20 @@ package classes
 
 import java.nio.file.Path
 
-// Заимствованный и модифицированный класс Ивана Колесникова (KivApple) для хранения информации о спрайтах.
+
+// Заимствованный класс Ивана Колесникова (KivApple) для хранения информации о спрайтах.
 class SkinInfo implements Comparable<SkinInfo> {
 
     String name
     Path path
-    boolean isSet
-
-    SkinInfo(String name, Path path, boolean isSet) {
-        this.name = name
-        this.path = path
-        this.isSet = isSet
-    }
 
     SkinInfo(String name, Path path) {
-        this(name, path, false)
-    }
-
-    SkinInfo(Path path, boolean isSet) {
-        this(path.getFileName().toString(), path, isSet)
+        this.name = name
+        this.path = path
     }
 
     SkinInfo(Path path) {
-        this(path, false)
+        this(path.getFileName().toString(), path)
     }
 
     @Override

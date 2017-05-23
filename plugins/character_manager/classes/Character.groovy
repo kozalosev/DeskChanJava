@@ -6,9 +6,11 @@ import exceptions.WrongCharacterException
 import javafx.scene.media.Media
 import javafx.scene.media.MediaException
 import javafx.scene.media.MediaPlayer
+import org.apache.commons.io.FilenameUtils
 
 import java.nio.file.Path
 import java.nio.file.Paths
+
 
 // Класс персонажа.
 class Character {
@@ -58,7 +60,7 @@ class Character {
 
         SkinInfo[] skins = ResourcesLoader.readSkins(name)
         for (SkinInfo info : skins) {
-            String skinName = (info.isSet) ? info.name : info.name.substring(0, info.name.length() - 4)
+            String skinName = FilenameUtils.removeExtension(info.getName())
             switch (skinName) {
                 case "normal":
                     defaultSkin = info
