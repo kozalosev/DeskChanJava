@@ -135,15 +135,19 @@ class Character {
     }
 
     String doNaughtyThings() {
-        increasePleasure()
-        increasePleasure()
+        if (getValueCharacteristic(pleasure, MAX_PLEASURE) <= 0) {
+            increasePleasure()
+            increasePleasure()
+        }
         decreaseSatiety()
         decreaseOxygenSaturation()
         return getRandomPhrase(getPhrases(PhraseAction.NAUGHTY))
     }
 
     String walk() {
-        increasePleasure()
+        if (getValueCharacteristic(oxygenSaturation, MAX_OXYGEN_SATURATION) <= 0) {
+            increasePleasure()
+        }
         decreaseSatiety()
         decreaseSatiety()
         increaseOxygenSaturation()
@@ -279,8 +283,10 @@ class Character {
 
     // Перезагружает фразы, чтоб они соответствовали текущему времени суток.
     void reloadPhrases() {
-        phrases = ResourcesLoader.readPhrases(name)
-        currentTimeOfDay = Clock.getTimeOfDay()
+        if (reloadRequired()) {
+            phrases = ResourcesLoader.readPhrases(name)
+            currentTimeOfDay = Clock.getTimeOfDay()
+        }
     }
 
     // Сохраняет состояние персонажа в файл настроек.
@@ -288,6 +294,7 @@ class Character {
         Settings settings = Settings.getInstance()
         settings.put('satiety', Integer.toString(satiety), false)
         settings.put('pleasure', Integer.toString(pleasure), false)
+        settings.put('oxygen-saturation', Integer.toString(oxygenSaturation), false)
         settings.save()
     }
 
@@ -300,42 +307,52 @@ class Character {
 
     // Возвращает фразы для указанного действия.
     private Set<String> getPhrases(PhraseAction action) {
-        int satietyMeasure = Math.ceil(MAX_SATIETY / 3)
-        int pleasureMeasure = Math.ceil(MAX_PLEASURE / 3)
-        int oxygenSaturationMeasure = Math.ceil(MAX_OXYGEN_SATURATION / 3)
+        int satietyCharacteristic = getValueCharacteristic(satiety, MAX_SATIETY)
+        int pleasureCharacteristic = getValueCharacteristic(pleasure, MAX_PLEASURE)
+        int oxygenSaturationCharacteristic = getValueCharacteristic(oxygenSaturation, MAX_OXYGEN_SATURATION)
 
         Set<String> gotPhrases
-        if (satiety < satietyMeasure) {
+        if (satietyCharacteristic < 0) {
             gotPhrases = phrases.getHungryPhrases(action)
             if (gotPhrases != null)
                 return gotPhrases
         }
-        if (satiety > satietyMeasure * 2) {
+        if (satietyCharacteristic > 0) {
             gotPhrases = phrases.getFullPhrases(action)
             if (gotPhrases != null)
                 return gotPhrases
         }
-        if (pleasure < pleasureMeasure) {
+        if (pleasureCharacteristic < 0) {
             gotPhrases = phrases.getSexuallyHungryPhrases(action)
             if (gotPhrases != null)
                 return gotPhrases
         }
-        if (pleasure > pleasureMeasure * 2) {
+        if (pleasureCharacteristic > 0) {
             gotPhrases = phrases.getSexuallySatisfiedPhrases(action)
             if (gotPhrases != null)
                 return gotPhrases
         }
-        if (oxygenSaturation < oxygenSaturationMeasure) {
+        if (oxygenSaturationCharacteristic < 0) {
             gotPhrases = phrases.getWannaGoOutsidePhrases(action)
             if (gotPhrases != null)
                 return gotPhrases
         }
-        if (oxygenSaturation > oxygenSaturationMeasure * 2) {
+        if (oxygenSaturationCharacteristic > 0) {
             gotPhrases = phrases.getWannaSitHomePhrases(action)
             if (gotPhrases != null)
                 return gotPhrases
         }
         return phrases.getDefaultPhrases(action)
+    }
+
+    // Возвращает -1, если параметр в зоне недостатка; 1, если пресыщение; 0, если он в норме.
+    private int getValueCharacteristic(int parameter, final int maxValue) {
+        int parameterMeasure = Math.ceil(maxValue / 3)
+        if (parameter < parameterMeasure)
+            return -1
+        if (parameter > parameterMeasure * 2)
+            return 1
+        return 0
     }
 
     // Для изменения параметров лучше использовать специальные методы, которые проверяют границы.

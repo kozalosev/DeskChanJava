@@ -84,7 +84,6 @@ abstract class ResourcesLoader {
         return set
     }
 
-
     // Вспомогательная функция для чтения файлов с фразами
     private static PhrasesSet readPhrasesFile(Path filePath) {
         PhrasesSet set = new PhrasesSet()
