@@ -81,7 +81,8 @@ addMessageListener("$TAG_PLUGIN:listen-to", { sender, tag, data ->
                 title: "${localization.get('chooser-title')}:".toString(),
                 filters: [[description: localization.get('music-files'), extensions: ['*.mp3']]]
         ], { s, d ->
-            character.listenTo(d['path'].toString())
+            if (d['path'] != null)
+                character.listenTo(d['path'].toString())
         })
     }
 })
@@ -100,6 +101,7 @@ addMessageListener("$TAG_PLUGIN:save-settings", { sender, tag, data ->
     initMessageTimer(character, (int) data[TAG_DELAY_MESSAGES])
 
     if (data[TAG_CHOSEN_CHARACTER] != null && data[TAG_CHOSEN_CHARACTER] != CharacterManager.getIdOfCharacter(character)) {
+        character.unload()
         character = CharacterManager.getCharacterById((int) data[TAG_CHOSEN_CHARACTER])
         settings.put(TAG_CHOSEN_CHARACTER, character.getName(), false)
         refreshCharacter(character)
