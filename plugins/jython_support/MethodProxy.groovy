@@ -1,14 +1,16 @@
 import info.deskchan.core.MessageListener
 import info.deskchan.core.ResponseListener
 
-import java.nio.charset.Charset
-
 
 class MethodProxy {
     private JythonPlugin plugin
 
     MethodProxy(JythonPlugin plugin) {
         this.plugin = plugin
+    }
+
+    String getId() {
+        return plugin.getPluginProxy().getId()
     }
 
     void sendMessage (String tag, Object data) {
@@ -39,6 +41,10 @@ class MethodProxy {
         return plugin.getPluginProxy().getDataDirPath().toString()
     }
 
+    String getRootDirPath() {
+        return plugin.getPluginProxy().getRootDirPath().toString()
+    }
+
     def log(obj) {
         plugin.getPluginProxy().log(obj.toString())
     }
@@ -47,17 +53,17 @@ class MethodProxy {
         plugin.getPluginProxy().log(e)
     }
 
-    def say(message) {
-        if (message == null)
+    def say(text, Map<String, Object> parameters) {
+        if (text == null)
             return
+        if (parameters == null)
+            parameters = new HashMap<>()
 
-        byte[] bytes = message.toString().getBytes(Charset.defaultCharset())
-        String converted = new String(bytes, Charset.forName("UTF-8"))
-        sendMessage("DeskChan:say", [ text: converted ])
+        parameters.put("text", text.toString())
+        sendMessage("DeskChan:say", parameters)
     }
-}
 
-
-interface MethodProxyGetter {
-    MethodProxy get()
+    def say(text) {
+        say(text, null)
+    }
 }

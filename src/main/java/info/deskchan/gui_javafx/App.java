@@ -16,8 +16,9 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.Window;
 
-import java.awt.event.ActionListener;
+import javax.swing.*;
 import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -26,7 +27,6 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.List;
 
 public class App extends Application {
 	
@@ -39,7 +39,7 @@ public class App extends Application {
 	);
 	private SystemTray systemTray = null;
 	private SortedMap<String, List<PluginActionInfo>> pluginsActions = new TreeMap<>();
-	private Character character = new Character(Skin.load(Main.getProperty("skin.name", "illia")));
+	private Character character = new Character("main", Skin.load(Main.getProperty("skin.name", null)));
 	
 	@Override
 	public void start(Stage primaryStage) {
@@ -86,7 +86,7 @@ public class App extends Application {
 		PluginProxy pluginProxy = Main.getInstance().getPluginProxy();
 		pluginProxy.addMessageListener("gui:register-simple-action", (sender, tag, data) -> {
 			Platform.runLater(() -> {
-				Map < String, Object > m = (Map<String, Object>) data;
+				Map<String, Object> m = (Map<String, Object>) data;
 				PluginActionInfo pluginActionInfo = new PluginActionInfo((String) m.get("name"),
 						(String) m.get("msgTag"), m.get("msgData"));
 				List<PluginActionInfo> actions = pluginsActions.getOrDefault(sender, null);
@@ -95,6 +95,24 @@ public class App extends Application {
 					pluginsActions.put(sender, actions);
 				}
 				actions.add(pluginActionInfo);
+				rebuildMenu();
+			});
+		});
+		pluginProxy.addMessageListener("gui:register-simple-actions", (sender, tag, data) -> {
+			Platform.runLater(() -> {
+				List<Map<String, Object>> actionList = (List<Map<String, Object>>) data;
+				
+				List<PluginActionInfo> actions = pluginsActions.getOrDefault(sender, null);
+				if (actions == null) {
+					actions = new ArrayList<>();
+					pluginsActions.put(sender, actions);
+				}
+				
+				for (Map<String, Object> m : actionList) {
+					PluginActionInfo pluginActionInfo = new PluginActionInfo((String) m.get("name"),
+							(String) m.get("msgTag"), m.get("msgData"));
+					actions.add(pluginActionInfo);
+				}
 				rebuildMenu();
 			});
 		});
@@ -117,36 +135,56 @@ public class App extends Application {
 				}
 			});
 		});
-		pluginProxy.addMessageListener("gui:add-options-tab", (sender, tag, data) -> {
+		pluginProxy.addMessageListener("gui:setup-options-tab", (sender, tag, data) -> {
 			Platform.runLater(() -> {
 				Map<String, Object> m = (Map<String, Object>) data;
 				OptionsDialog.registerPluginTab(sender, (String) m.get("name"),
 						(List<Map<String, Object>>) m.get("controls"), (String) m.getOrDefault("msgTag", null));
 			});
 		});
+		pluginProxy.addMessageListener("gui:show-notification", (sender, tag, data) -> {
+			Platform.runLater(() -> {
+				Map<String, Object> m = (Map<String, Object>) data;
+				MessageBox dialog = new MessageBox((String) m.getOrDefault("name", Main.getString("default_messagebox_name")), (String) m.get("text"));
+				dialog.show();
+			});
+		});
 		pluginProxy.addMessageListener("core-events:plugin-unload", (sender, tag, data) -> {
 			Platform.runLater(() -> {
 				String pluginId = (String) data;
-				pluginsActions.remove(pluginId);
-				rebuildMenu();
 				OptionsDialog.unregisterPluginTabs(pluginId);
+				rebuildMenu();
 			});
 		});
-		pluginProxy.sendMessage("core:register-alternative", new HashMap<String, Object>() {{
-			put("srcTag", "DeskChan:register-simple-action");
-			put("dstTag", "gui:register-simple-action");
-			put("priority", 100);
-		}});
-		pluginProxy.sendMessage("core:register-alternative", new HashMap<String, Object>() {{
-			put("srcTag", "DeskChan:say");
-			put("dstTag", "gui:say");
-			put("priority", 100);
-		}});
+		pluginProxy.sendMessage("core:register-alternatives", Arrays.asList(
+				new HashMap<String, Object>() {{
+					put("srcTag", "DeskChan:register-simple-action");
+					put("dstTag", "gui:register-simple-action");
+					put("priority", 100);
+				}},
+				new HashMap<String, Object>() {{
+					put("srcTag", "DeskChan:register-simple-actions");
+					put("dstTag", "gui:register-simple-actions");
+					put("priority", 100);
+				}},
+				new HashMap<String, Object>() {{
+					put("srcTag", "DeskChan:say");
+					put("dstTag", "gui:say");
+					put("priority", 100);
+				}}
+		));
 	}
 	
 	private void rebuildMenu() {
 		Menu mainMenu = systemTray.getMenu();
+		if (mainMenu instanceof dorkbox.systemTray.swingUI.SwingUI) {
+			if (!SwingUtilities.isEventDispatchThread()) {
+				SwingUtilities.invokeLater(this::rebuildMenu);
+				return;
+			}
+		}
 		mainMenu.clear();
+		systemTray.setStatus(NAME);
 		mainMenu.add(new MenuItem(Main.getString("options"), event -> {
 			Platform.runLater(this::showOptionsDialog);
 		}));
@@ -155,7 +193,9 @@ public class App extends Application {
 			for (Map.Entry<String, List<PluginActionInfo>> entry : pluginsActions.entrySet()) {
 				String pluginId = entry.getKey();
 				List<PluginActionInfo> actions = entry.getValue();
-				if (actions.size() <= 0) continue;
+				if (actions.size() <= 0) {
+					continue;
+				}
 				if (actions.size() == 1) {
 					mainMenu.add(actions.get(0).createMenuItem());
 				} else {

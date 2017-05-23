@@ -1,3 +1,2 @@
-label          =   Test
-placeholder    =   Type something here and press the button!
-message        =   You asked me to say
+code_label = Code
+hint_label = Use this text field to test some piece of code or play around with API.

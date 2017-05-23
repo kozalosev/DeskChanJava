@@ -36,7 +36,7 @@ public class PluginProxy implements MessageListener {
 		} catch (Throwable e) {
 			log(e);
 		}
-		for (Map.Entry<String, Set<MessageListener>> entry: messageListeners.entrySet()) {
+		for (Map.Entry<String, Set<MessageListener>> entry : messageListeners.entrySet()) {
 			for (MessageListener listener : entry.getValue()) {
 				PluginManager.getInstance().unregisterMessageListener(entry.getKey(), listener);
 			}
@@ -92,6 +92,10 @@ public class PluginProxy implements MessageListener {
 			ResponseListener listener = responseListeners.remove(seq);
 			listener.handle(sender, data);
 		}
+	}
+	
+	public Path getRootDirPath() {
+		return PluginManager.getRootDirPath();
 	}
 	
 	public Path getDataDirPath() {

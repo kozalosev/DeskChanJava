@@ -8,7 +8,8 @@ from libs.functions import build_tag
 # `busproxy` is a special module that you may use to include all functions of the bus to the scope. After that you
 # won't have to use `bus` explicitly. Moreover, it provides more Pythonic aliases (lower case names with underscores)
 # for some of the functions.
-from busproxy import *
+import busproxy
+busproxy.inject(bus, globals())
 
 # Some useful classes I provided for you to make your life a bit easier ;)
 from pluginutils import Settings, Localization
@@ -16,13 +17,13 @@ from pluginutils import Settings, Localization
 # Shows the welcome message.
 bus.sendMessage("DeskChan:say", {'text': 'Hello!'})
 # Use unicode strings for non-ASCII characters.
-# The method say() automatically converts strings from a default encoding into UTF-8. Thus, you should always use it
-# to show balloons instead of sending messages manually.
+# The method say() is a shortcut and sending a message as well.
 say(u'And again but in Russian: "Привет!"')
 # Prints information messages to the console.
 # Note, how we can use aliases from the busproxy.
 bus.log("Plugin directory: %s." % bus.getPluginDirPath())
 log("Data directory: %s." % get_data_dir_path())
+log("Root directory: %s." % get_root_dir_path())
 # Adds the "Test" item into the popup menu.
 send_message("DeskChan:register-simple-action", {'name': 'Test', 'msgTag': build_tag(TAG_MENUACTION)})
 
@@ -32,21 +33,21 @@ addMessageListener(build_tag(TAG_MENUACTION), func_show_test_message)
 add_message_listener("gui-events:character-left-click", func_show_test_message)
 
 # Built-in localization class.
-l10n = Localization.get_instance("localization")
+l10n = Localization.get_instance(bus, "localization")
 
 # Adds the options tab.
-send_message("gui:add-options-tab", {'name': 'Test Python', 'msgTag': build_tag(TAG_SAVE_OPTIONS), 'controls': [
-    {
-        'type': 'TextField', 'id': TAG_TEXTFIELD, 'label': l10n['label'],
-        'value': l10n['placeholder']
-    }
+send_message("gui:setup-options-tab", {'name': 'Test Python', 'msgTag': build_tag(TAG_SAVE_OPTIONS), 'controls': [
+    { 'type': 'Label', 'value': l10n['hint_label'] },
+    { 'type': 'TextField', 'id': TAG_CODE, 'label': l10n['code_label'] }
 ]})
 
-# Prints a message when user clicks on the "Save" button.
-# Note that I provide you a special method to say something without worrying about tags and string conversions.
-add_message_listener(build_tag(TAG_SAVE_OPTIONS), lambda sender, tag, data:
-    say("%s: \"%s\"." % (l10n['message'], data[TAG_TEXTFIELD]))
-)
+# Interpreters any input code and tries to execute it.
+def eval_msg(sender, tag, data):
+    try:
+        eval(data[TAG_CODE])
+    except Exception as err:
+        log(err)
+add_message_listener(build_tag(TAG_SAVE_OPTIONS), eval_msg)
 
 
 # This piece of code demonstrates how we can use Python and Java modules.
@@ -68,7 +69,7 @@ def timer_cleanup():
 add_cleanup_handler(timer_cleanup)
 
 # Sample of usage the Settings class.
-opts = Settings.get_instance()
+opts = Settings.get_instance(bus)
 if opts['run_counter']:
     opts['run_counter'] += 1
 else:

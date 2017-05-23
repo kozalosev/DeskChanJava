@@ -6,7 +6,6 @@ import os
 import json
 import codecs
 import re
-from busproxy import get_plugin_dir_path, get_data_dir_path
 from java.lang import System
 
 
@@ -25,25 +24,38 @@ class AbstractMultiton:
 
     __metaclass__ = AbstractMultitonMetaclass
 
-    def __init__(self):
-        """Don't call this constructor in descendants! And don't try to create an instance of this class!
-        :raises: NotImplementedError
+    def __init__(self, bus):
+        """
+        :param bus: A bus object.
+        :type bus: MethodProxy
         """
 
-        raise NotImplementedError("Attempt to create an instance of the abstract class!")
+        assert bus, "The bus is not passed!"
+        self.bus = bus
 
     @classmethod
-    def get_instance(cls, *args, **kwargs):
+    def get_instance(cls, bus, *args, **kwargs):
         """Use this method instead of the constructor! Pass here the same arguments as the constructor takes.
+        
+        :param bus: A bus object.
+        :type bus: MethodProxy
+        
         :returns: An instance of a specific class.
         """
 
-        key_path = get_plugin_dir_path()
+        key = bus.getId()
 
-        if key_path not in cls._instances:
-            cls._instances[key_path] = cls(*args, **kwargs)
+        if key not in cls._instances:
+            instance = cls(bus, *args, **kwargs)
+            cls._instances[key] = instance
+            bus.addCleanupHandler(instance.destroy_instance)
 
-        return cls._instances[key_path]
+        return cls._instances[key]
+
+    def destroy_instance(self):
+        plugin_id = self.bus.getId()
+        if plugin_id in self._instances:
+            del self._instances[plugin_id]
 
 
 class Settings(AbstractMultiton):
@@ -54,18 +66,27 @@ class Settings(AbstractMultiton):
         settings.save() # Dumps changes on the disk.
     """
 
-    def __init__(self, filename="settings.json"):
+    def __init__(self, bus, filename="settings.json"):
         """Constructor. Don't use it directly! Use get_instance() instead!
+        
+        :param bus: A bus object.
+        :type bus: MethodProxy
+        
         :param filename: The name of a file to store the settings.
         :type filename: str
         """
 
-        self._file = os.path.join(get_data_dir_path(), filename)
+        super(Settings, self).__init__(bus)
+
+        self._file = os.path.join(bus.getDataDirPath(), filename)
         self._settings = {}
 
         if os.path.isfile(self._file):
             with codecs.open(self._file, "r", "utf-8") as f:
                 self._settings = json.load(f)
+
+    def __contains__(self, item):
+        return item in self._settings
 
     def __getitem__(self, item):
         """Returns either a stored object or None."""
@@ -77,6 +98,18 @@ class Settings(AbstractMultiton):
 
     def __setitem__(self, key, value):
         self._settings[key] = value
+
+    def __delitem__(self, key):
+        del self._settings[key]
+
+    def __str__(self):
+        return "%s: %s" % (self.__class__, self._settings)
+
+    def get(self, item, default=None):
+        """Use this method if there is no value and you don't want to get None anyway."""
+
+        value = self[item]
+        return value if value is not None else default
 
     def set(self, key, value, save=True):
         """Use this method if you want to save the change immediately."""
@@ -95,14 +128,20 @@ class Settings(AbstractMultiton):
 class Localization(AbstractMultiton):
     """This multiton class provides a simple localization mechanism, which loads a locale-specific text file and returns localized strings."""
 
-    def __init__(self, localization_dir):
+    def __init__(self, bus, localization_dir):
         """Constructor. Don't use it directly! Use get_instance() instead!
+        
+        :param bus: A bus object.
+        :type bus: MethodProxy
+        
         :param localization_dir: A path to the directory where localization files are stored.
         :type localization_dir: str
         """
 
-        assert localization_dir is not None
-        path = os.path.join(get_plugin_dir_path(), localization_dir)
+        super(Localization, self).__init__(bus)
+
+        assert localization_dir, "Localization directory is not passed!"
+        path = os.path.join(bus.getPluginDirPath(), localization_dir)
 
         # language = locale.getdefaultlocale()[0]
         # The code above returns a tuple of two None values in Jython. So we have to use a Java equivalent.
@@ -132,6 +171,6 @@ class Localization(AbstractMultiton):
         """
 
         if item in self.strings:
-            return self.strings[item].decode('string_escape')
+            return self.strings[item].decode("unicode_escape")
         else:
             raise ValueError("No localized string: %s!" % item)

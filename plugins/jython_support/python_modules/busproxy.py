@@ -1,100 +1,50 @@
 """This is a special module for the plugin named jython_support. It provides a bunch of aliases for the bus object \
 to let you write less redundant code."""
 
-# Proxy methods
-
-def sendMessage(tag, data, response_listener = None):
-    """Sends a message to other plugins.
+def inject(bus, dct, *methods):
+    """Call this function to inject bus functions into a dictionary.
     
-    Arguments:
-    tag -- your message will receive all plugins subscribed on this tag.
-    data -- an object with some required data specified by the concrete plugin.
-    response_listener -- callback function; note that not every plugin supports this option and will call your function.
+    :param bus: A bus object.
+    :type bus: MethodProxy
+    
+    :param dct: Most likely you should pass either globals() or locals() here. The functions will be injected into a specified dictionary.
+    :type dct: dict
+    
+    :param methods: Names of the methods you want to inject. Don't pass anything to import all functions.
+    :type methods: str
     """
 
-    if response_listener:
-        bus.sendMessage(tag, data, response_listener)
-    else:
-        bus.sendMessage(tag, data)
+    assert bus, "The bus is not passed!"
+    assert type(dct) == dict, "dct is not a dict!"
+
+    def py2ja(pythonic_name):
+        """String function that is used to covert pythonic_names to javaOnes."""
+
+        import re
+
+        pattern = "_[a-z]"
+        repl = lambda x: x.group(0)[1].upper()
+        java_name = re.sub(pattern, repl, pythonic_name)
+
+        return java_name
 
 
-def addMessageListener(tag, listener):
-    """Use this function to subscribe on any tag. Your listener will be called when another plugin sends a message \
-    with the same tag."""
+    if len(methods) == 0:
+        methods = [
+            'getId', 'get_id',
+            'sendMessage', 'send_message',
+            'addMessageListener', 'add_message_listener',
+            'removeMessageListener', 'remove_message_listener',
+            'addCleanupHandler', 'add_cleanup_handler',
+            'getPluginDirPath', 'get_plugin_dir_path',
+            'getDataDirPath', 'get_data_dir_path',
+            'getRootDirPath', 'get_root_dir_path',
+            'log', 'say'
+        ]
 
-    bus.addMessageListener(tag, listener)
-
-
-def removeMessageListener(tag, listener):
-    """Unsubscribe from the tag."""
-
-    bus.removeMessageListener(tag, listener)
-
-
-def addCleanupHandler(handler):
-    """Use this function to set a callback which will be called when the plugin is being unloaded."""
-
-    bus.addCleanupHandler(handler)
-
-
-def getPluginDirPath():
-    """Returns a path to the directory of the plugin."""
-
-    return bus.getPluginDirPath()
-
-
-def getDataDirPath():
-    """Returns a path to the special directory where the plugin are allowed to store any data it wants."""
-
-    return bus.getDataDirPath()
-
-
-def log(obj):
-    bus.log(obj)
-
-
-def say(message):
-    """A shortcut to send a message to the UI plugin to display some message.
-    message -- any object which will be converted to a string.
-    """
-
-    bus.say(message)
-
-
-
-# Aliases
-
-def send_message(tag, data, response_listener = None):
-    """Alias for sendMessage()."""
-
-    sendMessage(tag, data, response_listener)
-
-
-def add_message_listener(tag, listener):
-    """Alias for addMessageListener()."""
-
-    addMessageListener(tag, listener)
-
-
-def remove_message_listener(tag, listener):
-    """Alias for removeMessageListener()."""
-
-    removeMessageListener(tag, listener)
-
-
-def add_cleanup_handler(handler):
-    """Alias for addCleanupHandler()."""
-
-    addCleanupHandler(handler)
-
-
-def get_plugin_dir_path():
-    """Alias for getPluginDirPath()."""
-
-    return getPluginDirPath()
-
-
-def get_data_dir_path():
-    """Alias for getDataDirPath()."""
-
-    return getDataDirPath()
+    for method in methods:
+        java_name = py2ja(method)
+        if java_name in dir(bus):
+            dct[method] = bus.__getattribute__(java_name)
+        else:
+            raise ValueError("Unknown bus method: %s!" % method)

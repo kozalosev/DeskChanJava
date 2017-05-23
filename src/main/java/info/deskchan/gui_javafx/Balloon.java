@@ -6,6 +6,7 @@ import javafx.beans.value.ChangeListener;
 import javafx.geometry.Insets;
 import javafx.scene.Group;
 import javafx.scene.control.Label;
+import javafx.scene.effect.DropShadow;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.SVGPath;
@@ -26,6 +27,7 @@ class Balloon extends StackPane {
 	private String layer;
 	private SVGPath bubbleShape = new SVGPath();
 	private Timeline timeoutTimeline = null;
+	private final DropShadow bubbleShadow = new DropShadow();
 	
 	Balloon(Character character, String text) {
 		this.character = character;
@@ -36,6 +38,13 @@ class Balloon extends StackPane {
 		bubbleShape.setStroke(Color.BLACK);
 		bubbleShape.setScaleX(0);
 		bubbleShape.setScaleY(0);
+		
+		bubbleShadow.setRadius(10.0);
+		bubbleShadow.setOffsetX(3.0);
+		bubbleShadow.setOffsetY(7.0);
+		bubbleShadow.setColor(Color.BLACK);
+		bubbleShape.setEffect(bubbleShadow);
+		
 		Label label = new Label(text);
 		label.setWrapText(true);
 		if (defaultFont != null) {
@@ -51,6 +60,8 @@ class Balloon extends StackPane {
 				double x = character.getLayoutX() - getWidth();
 				setLayoutX((x >= 0) ? x : character.getLayoutX() + character.getWidth());
 				bubbleShape.getParent().setScaleX((x >= 0) ? 1 : -1);
+				StackPane.setMargin(label, new Insets(40, (x >= 0) ? 40 : 20,
+						40, (x >= 0) ? 20 : 40));
 			};
 			character.layoutXProperty().addListener(updateBalloonLayoutX);
 			widthProperty().addListener(updateBalloonLayoutX);
@@ -61,6 +72,16 @@ class Balloon extends StackPane {
 				character.say(null);
 			} else {
 				close();
+			}
+		});
+		setOnMouseEntered(event -> {
+			if (character != null && timeoutTimeline != null) {
+				timeoutTimeline.stop();
+			}
+		});
+		setOnMouseExited(event -> {
+			if (character != null && timeoutTimeline != null) {
+				timeoutTimeline.play();
 			}
 		});
 	}
