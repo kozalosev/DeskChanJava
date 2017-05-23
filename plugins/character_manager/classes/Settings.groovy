@@ -34,10 +34,7 @@ class Settings {
 
     // Геттер.
     String get(String key) {
-        if (settings.containsKey(key))
-            return settings[key]
-        else
-            return null
+        return settings.getOrDefault(key, null)
     }
 
     // Сеттер.

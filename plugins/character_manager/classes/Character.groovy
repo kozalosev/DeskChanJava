@@ -12,6 +12,9 @@ import java.nio.file.Paths
 
 // Класс персонажа.
 class Character {
+    // Открытый параметр, позволяющий отключить воспроизведение звука.
+    public boolean mute = false
+
     // Некоторые параметры.
     final private static int MAX_SATIETY = 100
     final private static int MAX_PLEASURE = 100
@@ -230,8 +233,10 @@ class Character {
 
     void listenTo(Media media) {
         mediaPlayer?.stop()
-        mediaPlayer = new MediaPlayer(media)
-        mediaPlayer.play()
+        if (!mute) {
+            mediaPlayer = new MediaPlayer(media)
+            mediaPlayer.play()
+        }
     }
 
     void listenTo(String mediaPath) {

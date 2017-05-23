@@ -8,6 +8,7 @@ import classes.Settings
 final String TAG_PLUGIN = 'character_manager'
 final String TAG_DELAY_MESSAGES = 'delay-between-messages'
 final String TAG_CHOSEN_CHARACTER = 'chosen-character'
+final String TAG_SOUND_DISABLED = 'sound-disabled'
 // Задержка между случайными сообщениями по умолчанию.
 final int DEFAULT_DELAY = 10
 
@@ -20,13 +21,18 @@ CharacterManager.setDataDir(getDataDirPath())
 
 // Получаем ранее выбранного или случайного персонажа из папки resources/characters.
 // Под персонажем подразумевается папка, внутри которой располагаются папки sprites и phrases.
-String storedCharacterName = Settings.getInstance().get('chosen-character')
+String storedCharacterName = Settings.getInstance().get(TAG_CHOSEN_CHARACTER)
 Character character = (storedCharacterName != null) ? new Character(storedCharacterName) : CharacterManager.getRandomCharacter()
 
 // Получаем параметры и запускаем таймер случайных сообщений.
 String storedDelay = Settings.getInstance().get(TAG_DELAY_MESSAGES)
 int delayBetweenMessages = (storedDelay != null) ? Integer.parseInt(storedDelay) : DEFAULT_DELAY
 initMessageTimer(character, delayBetweenMessages)
+
+// Переключатель отключения звуков и музыки.
+String storedSoundDisabled = Settings.getInstance().get(TAG_SOUND_DISABLED)
+if (storedSoundDisabled != null)
+    character.mute = Boolean.parseBoolean(storedSoundDisabled)
 
 // Поскольку у персонажа есть до 4 спрайтов и наборов фраз, которые устанавливаются в зависимости от времени суток
 // (normal, night, morning и evening), так что каждый час плагин проверяет, не пришло ли время обновить эти данные.
@@ -62,8 +68,16 @@ addMessageListener("$TAG_PLUGIN:watch", { sender, tag, data ->
 })
 
 addMessageListener("$TAG_PLUGIN:listen-to", { sender, tag, data ->
+    if (character.mute) {
+        sendMessage('gui:show-notification', [
+                name: localization.get('sound-disabled-title'),
+                text: localization.get('sound-disabled-text')]
+        )
+        return
+    }
+
     if (!character.listenToMusic()) {
-        sendMessage("gui:choose-files", [
+        sendMessage('gui:choose-files', [
                 title: "${localization.get('chooser-title')}:".toString(),
                 filters: [[description: localization.get('music-files'), extensions: ['*.mp3']]]
         ], { s, d ->
@@ -82,12 +96,13 @@ addMessageListener('gui-events:character-left-click', { sender, tag, data ->
 addMessageListener("$TAG_PLUGIN:save-settings", { sender, tag, data ->
     Settings settings = Settings.getInstance()
 
-    if (data.containsKey(TAG_DELAY_MESSAGES)) {
-        settings.put(TAG_DELAY_MESSAGES, (String) data[TAG_DELAY_MESSAGES], false)
-        initMessageTimer(character, (int) data[TAG_DELAY_MESSAGES])
-    }
+    settings.put(TAG_DELAY_MESSAGES, (String) data[TAG_DELAY_MESSAGES], false)
+    initMessageTimer(character, (int) data[TAG_DELAY_MESSAGES])
 
-    if (data.containsKey(TAG_CHOSEN_CHARACTER) && data[TAG_CHOSEN_CHARACTER] != null) {
+    settings.put(TAG_SOUND_DISABLED, (String) data[TAG_SOUND_DISABLED], false)
+    character.mute = (boolean) data[TAG_SOUND_DISABLED]
+
+    if (data[TAG_CHOSEN_CHARACTER] != null) {
         character = CharacterManager.getCharacterById((int) data[TAG_CHOSEN_CHARACTER])
         settings.put(TAG_CHOSEN_CHARACTER, character.getName(), false)
         refreshCharacter(character)
@@ -123,6 +138,10 @@ sendMessage('gui:setup-options-tab', [name: localization.get('plugin-name'), msg
     [
         type: 'ComboBox', id: TAG_CHOSEN_CHARACTER, label: localization.get('settings-character'),
         values: Arrays.asList(CharacterManager.getCharacterList()), value: CharacterManager.getIdOfCharacter(character)
+    ],
+    [
+        type: 'CheckBox', id: TAG_SOUND_DISABLED, label: localization.get('settings-disable-sound'),
+        value: character.mute
     ]
 ]])
 
