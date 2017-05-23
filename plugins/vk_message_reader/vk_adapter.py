@@ -5,7 +5,7 @@ Author: Leonid Kozarin <kozalo@nekochan.ru>
 from vk_api import VkApi, AuthError
 from vk_api.longpoll import VkLongPoll, VkEventType
 from enum import Enum
-from pluginutils import Settings, Localization
+from busprovider import BusProvider
 import os
 
 
@@ -164,7 +164,7 @@ redirect_uri=https://oauth.vk.com/blank.html&scope=messages,offline&response_typ
             if matches:
                 token = matches.group(1)
 
-        l10n = Localization.get_instance()
+        l10n = BusProvider.get_localization()
 
         try:
             session = VkApi(login, password, token=token, app_id=cls.APP_ID, scope="messages,offline",
@@ -199,7 +199,7 @@ class VK:
         """
 
         credentials_file = os.path.join(config_dir, "credentials.json")
-        self._settings = Settings.get_instance(credentials_file)
+        self._settings = BusProvider.get_settings(credentials_file)
         self._config_dir = config_dir
         self._response_listener = response_listener
         self._listener = None
@@ -221,11 +221,11 @@ class VK:
         else:
             session = Auth.login(config_filename=config_file)
 
-        l10n = Localization.get_instance()
+        l10n = BusProvider.get_localization()
         message_template = "%s\n\n%s"
 
         if session:
-            settings = Settings.get_instance()
+            settings = BusProvider.get_settings()
             if hasattr(session, "token") and "access_token" in session.token and settings['token'] != session.token['access_token']:
                 settings.set("token", session.token['access_token'])
 
@@ -247,7 +247,7 @@ class VK:
         """
 
         settings = self._settings
-        l10n = Localization.get_instance()
+        l10n = BusProvider.get_localization()
 
         if settings['token']:
             credentials = { 'token': settings['token'] }

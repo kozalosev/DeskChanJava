@@ -6,7 +6,7 @@ Author: Leonid Kozarin <kozalo@nekochan.ru>
 """
 
 from vk_adapter import MessageSource
-from pluginutils import Localization
+from busprovider import BusProvider
 
 
 class MessageProcessor:
@@ -14,7 +14,7 @@ class MessageProcessor:
         MessageProcessor.get_lambda(say_func)
     """
 
-    _l10n = Localization.get_instance("localization")
+    _l10n = BusProvider.get_localization()
 
     @classmethod
     def get_phrase(cls, source, text, attachments, data):
