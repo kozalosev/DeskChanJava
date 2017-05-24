@@ -3,6 +3,8 @@ password                        =   Password
 token                           =   Token
 token_hint                      =   Or you can type a token:
 get_token                       =   Get token
+refresh_delay                   =   Refresh delay (s)
+refresh-delay-hint              =   Increase the refresh delay to save more traffic.
 
 msg_from_user                   =   Message from %s %s:
 msg_from_chat                   =   Message from %s %s via chat "%s":

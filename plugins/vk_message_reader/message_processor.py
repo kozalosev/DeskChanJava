@@ -17,7 +17,7 @@ class MessageProcessor:
     _l10n = BusProvider.get_localization()
 
     @classmethod
-    def get_phrase(cls, source, text, attachments, data):
+    def get_phrase(cls, source, text, forwarded_messages, attachments, data):
         """"This method is useful when we want to process the response of vk_adapter.MessageListener.
         
         :param source: USER, CHAT, or GROUP.
@@ -25,9 +25,12 @@ class MessageProcessor:
         
         :param text: Text of the message.
         :type text: str
+
+        :param forwarded_messages: List of forwarded messages.
+        :type forwarded_messages: list
         
-        :param attachments: Dictionary of attachments and forwarded messages.
-        :type attachments: dict
+        :param attachments: List of attachments.
+        :type attachments: list
         
         :param data: Other optional data: first and last name of the sender, a chat name or group name.
         :type data: dict
@@ -50,9 +53,27 @@ class MessageProcessor:
         if text:
             phrase += "\n\n%s" % text
 
-        if attachments:
-            attachment_list = cls._parse_attachments(attachments)
-            phrase += "\n\n[%s]" % "]\n[".join(attachment_list)
+        if forwarded_messages or attachments:
+            phrase += '\n\n'
+
+            if forwarded_messages:
+                phrase += l10n['forwarded_messages'] + '\n'
+
+            if attachments:
+                attachment_list = []
+                for attachment in attachments:
+                    type = attachment['type']
+                    if type == "link":
+                        title = attachments['title']
+                        url = attachments['attach']
+                        attachment_list.append(u"%s — %s" % (title, url))
+                    else:
+                        try:
+                            attachment_list.append(l10n[type])
+                        except ValueError:
+                            attachment_list.append(l10n['unsupported_attachment'])
+
+                phrase += "[%s]" % "]\n[".join(attachment_list)
 
         return phrase
 
@@ -63,39 +84,4 @@ class MessageProcessor:
         :type say_func: callable
         """
 
-        return lambda source, text, attachments, data: say_func(cls.get_phrase(source, text, attachments, data))
-
-    @classmethod
-    def _parse_attachments(cls, attachments):
-        """Parses attachments that we've got from vk_api. Actually, it rather parses their types. The only type of attachments that is really parsed is a link.
-        :param attachments: Dictionary of attachments and forwarded messages.
-        :type attachments: dict
-        
-        :returns: List of localized strings representing the types of the attachments.
-        :rtype: list
-        """
-
-        l10n = cls._l10n
-        attachment_list = []
-
-        if len(attachments) > 0:
-            if "fwd" in attachments:
-                attachment_list.append(l10n['forwarded_messages'])
-
-            i = 1
-            while "attach%i" % i in attachments:
-                type = attachments['attach%i_type' % i]
-
-                if type == "link":
-                    title = attachments['attach%i_title' % i]
-                    url = attachments['attach%i_url' % i]
-                    attachment_list.append(u"%s — %s" % (title, url))
-                else:
-                    try:
-                        attachment_list.append(l10n[type])
-                    except ValueError:
-                        attachment_list.append(l10n['unsupported_attachment'])
-
-                i += 1
-
-        return attachment_list
+        return lambda source, text, fwd_messages, attachments, data: say_func(cls.get_phrase(source, text, fwd_messages, attachments, data))

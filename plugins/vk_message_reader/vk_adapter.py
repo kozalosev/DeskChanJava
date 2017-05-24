@@ -3,7 +3,6 @@ Author: Leonid Kozarin <kozalo@nekochan.ru>
 """
 
 from vk_api import VkApi, AuthError
-from vk_api.longpoll import VkLongPoll, VkEventType
 from enum import Enum
 from busprovider import BusProvider
 import os
@@ -20,6 +19,8 @@ class MessageSource(Enum):
 class MessageListener:
     """Worker. Creates a new thread and listening for incoming messages."""
 
+    DEFAULT_REFRESH_DELAY = 5   # in seconds
+
     def __init__(self, session):
         """Constructor
         :param session: An instance of VkApi.
@@ -30,25 +31,32 @@ class MessageListener:
         self._running = False
         self._stop_flag = False
 
-    def start(self, listener_callback):
+    def start(self, listener_callback, refresh_delay=DEFAULT_REFRESH_DELAY):
         """Creates a new thread and listening for new messages.
+
         :param listener_callback: A callback function, which will be called when a message is received.
         :type listener_callback: callable
+
+        :param refresh_delay: A time in seconds. The more a value, the more network traffic is saved.
+        :type refresh_delay: int
         """
 
         from threading import Thread
 
-        longpoll = VkLongPoll(self._session)
-
-        t = Thread(target=self._longpoll_loop, args=(longpoll, listener_callback))
+        t = Thread(target=self._longpoll_loop, args=(listener_callback, refresh_delay))
         t.start()
 
     def stop(self):
-        """Closes connection and stops the listening loop."""
+        """Stops the listening loop."""
 
         if self._running:
             self._stop_flag = True
-            self._session.http.close()
+
+    def disconnect(self):
+        """Closes the connection and terminates the listening loop."""
+
+        self.stop()
+        self._session.http.close()
 
     @property
     def listening(self):
@@ -58,65 +66,64 @@ class MessageListener:
         """
         return self._running
 
-    def _longpoll_loop(self, longpoll, callback):
+    def _longpoll_loop(self, callback, refresh_delay):
         """Main method. It's listening to new incoming messages in a separate thread.
-        
-        :param longpoll: An instance of VkLongPoll.
-        :type longpoll: VkLongPoll
         
         :param callback: A callback function, which will be called when a message is received.
         :type callback: callable
+
+        :param refresh_delay: A time in seconds. The more a value, the more network traffic is saved.
+        :type refresh_delay: int
         """
 
-        from requests.exceptions import ConnectionError
+        import time
+
+        def get_messages(last_message_id=0):
+            response = api.messages.get(out=0, count=1, last_message_id=last_message_id)
+            if len(response['items']) > 0:
+                last_message_id = response['items'][0]['id']
+            return response['items'], last_message_id
+
 
         self._running = True
+        api = self._session.get_api()
+        _, last_message_id = get_messages()
 
         while True:
             if self._stop_flag:
                 break
 
-            events = longpoll.check()
+            messages, last_message_id = get_messages(last_message_id)
 
-            if events:
-                try:
-                    for event in events:
-                        if event.type == VkEventType.MESSAGE_NEW and event.to_me:
-                            api = self._session.get_api()
+            for message in messages:
+                text = message['body']
+                attachments = message['attachments'] if "attachments" in message else None
+                forwarded_messages = message['fwd_messages'] if "fwd_messages" in message else None
+                group_name, first_name, last_name, chat_name = (None,) * 4
 
-                            text = event.text
-                            attachments = event.attachments
-                            group_name, first_name, last_name, chat_name = (None,) * 4
+                if "group_id" in message:
+                    source = MessageSource.GROUP
+                    group = api.groups.getById(group_id=message['group_id'])
+                    group_name = group['name']
+                else:
+                    user = api.users.get(user_ids=message['user_id'])[0]
+                    first_name, last_name = user['first_name'], user['last_name']
 
-                            if event.from_group:
-                                source = MessageSource.GROUP
-                                group = api.groups.getById(group_id=event.group_id)
-                                group_name = group.name
-                            else:
-                                user = api.users.get(user_ids=event.user_id)[0]
-                                first_name, last_name = user['first_name'], user['last_name']
+                    if "chat_id" in message:
+                        source = MessageSource.CHAT
+                        chat = api.messages.getChat(chat_id=message['chat_id'])
+                        chat_name = chat['title']
+                    else:
+                        source = MessageSource.USER
 
-                                if event.from_user:
-                                    source = MessageSource.USER
-                                elif event.from_chat:
-                                    source = MessageSource.CHAT
-                                    chat = api.messages.getChat(chat_id=event.chat_id)
-                                    chat_name = chat.title
-                                else:
-                                    raise RuntimeError("Unexpected event source!")
+                data = {}
+                for var in ('group_name', 'first_name', 'last_name', 'chat_name'):
+                    if var in locals():
+                        data[var] = locals()[var]
 
-                            data = {}
-                            for var in ('group_name', 'first_name', 'last_name', 'chat_name'):
-                                if var in locals():
-                                    data[var] = locals()[var]
+                callback(source, text, forwarded_messages, attachments, data)
 
-                            callback(source, text, attachments, data)
-                # When we close the connection the code will be here, in the loop, in most cases.
-                # Connection loss will be a cause of an exception. So, in this case we just need
-                # to ignore the exception and get out of the loop.
-                except ConnectionError as err:
-                    if self._stop_flag:
-                        break
+            time.sleep(refresh_delay)
 
         self._running = False
         self._stop_flag = False
@@ -156,7 +163,7 @@ redirect_uri=https://oauth.vk.com/blank.html&scope=messages,offline&response_typ
         """
 
         import re
-        from vk_api.exceptions import BadPassword, AccountBlocked
+        from vk_api.exceptions import BadPassword, AccountBlocked, ApiError
 
         if token:
             pattern = "access_token=([a-z0-9]{85})&"
@@ -170,13 +177,15 @@ redirect_uri=https://oauth.vk.com/blank.html&scope=messages,offline&response_typ
             session = VkApi(login, password, token=token, app_id=cls.APP_ID, scope="messages,offline",
                             config_filename=config_filename)
             session.auth()
+            # More precise test. Trying to execute API query...
+            session.get_api().messages.get(count=1)
         except BadPassword:
             cls.last_error = l10n['bad_password']
             return None
         except AccountBlocked:
             cls.last_error = l10n['account_blocked']
             return None
-        except AuthError as err:
+        except (AuthError, ApiError) as err:
             cls.last_error = err
             return None
 
@@ -204,10 +213,14 @@ class VK:
         self._response_listener = response_listener
         self._listener = None
 
-    def _try_start_listening(self, credentials):
+    def _try_start_listening(self, credentials, refresh_delay):
         """Tries to authorize the user and initialize the process of listening.
+
         :param credentials: Login and password, or a token. Or nothing.
         :type credentials: dict
+
+        :param refresh_delay: A time in seconds. The more a value, the more network traffic is saved.
+        :type refresh_delay: int
         """
 
         from vk_api.exceptions import ApiError
@@ -226,12 +239,13 @@ class VK:
 
         if session:
             settings = BusProvider.get_settings()
+            settings.set("refresh_delay", refresh_delay)
             if hasattr(session, "token") and "access_token" in session.token and settings['token'] != session.token['access_token']:
                 settings.set("token", session.token['access_token'])
 
             self._listener = MessageListener(session)
             try:
-                self._listener.start(self._response_listener)
+                self._listener.start(self._response_listener, refresh_delay)
             except ApiError as error_msg:
                 self.last_error = message_template % (l10n['api_error'], error_msg)
                 return None
@@ -251,16 +265,20 @@ class VK:
 
         if settings['token']:
             credentials = { 'token': settings['token'] }
-            if not self._try_start_listening(credentials) and callable(fail_callback):
+            refresh_delay = settings['refresh_delay'] if "refresh_delay" in settings else MessageListener.DEFAULT_REFRESH_DELAY
+            if not self._try_start_listening(credentials, refresh_delay) and callable(fail_callback):
                 fail_callback(self.last_error)
         elif callable(fail_callback):
             fail_callback(l10n['no_login_data'])
 
-    def try_start_listening_again(self, credentials, success_callback, fail_callback):
+    def try_start_listening_again(self, credentials, refresh_delay, success_callback, fail_callback):
         """Use this method to authorize using either login and password, or a token.
         
         :param credentials: Login and password, or a token.
         :type credentials: dict
+
+        :param refresh_delay: A time in seconds. The more a value, the more network traffic is saved.
+        :type refresh_delay: int
         
         :param success_callback: A callback, which will be called if the credentials are right and we logged in successfully.
         :type success_callback: callable
@@ -269,7 +287,7 @@ class VK:
         :type fail_callback: callable
         """
 
-        if self._try_start_listening(credentials):
+        if self._try_start_listening(credentials, refresh_delay):
             if callable(success_callback):
                 success_callback()
         else:
@@ -277,8 +295,16 @@ class VK:
                 fail_callback(self.last_error)
 
     def stop_listening(self):
+        """Stops the listening loop."""
+
         if isinstance(self._listener, MessageListener) and self._listener.listening:
             self._listener.stop()
+
+    def disconnect(self):
+        """Closes the connection and terminates the listening loop."""
+
+        if isinstance(self._listener, MessageListener):
+            self._listener.disconnect()
 
     @staticmethod
     def get_token():

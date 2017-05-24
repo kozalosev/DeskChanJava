@@ -18,16 +18,20 @@ vk.try_start_listening(say)
 
 # Adds a tab to the options menu. The user can enter his credentials there.
 send_message("gui:setup-options-tab", {'name': 'VK', 'msgTag': "vk:login", 'controls': [
-    {'type': 'TextField', 'id': 'login', 'label': l10n["login"]},
-    {'type': 'TextField', 'id': 'password', 'label': l10n["password"]},
-    {'type': 'Label', 'value': l10n["token_hint"]},
-    {'type': 'Button', 'msgTag': 'vk:get-token', 'value': l10n["get_token"]},
-    {'type': 'TextField', 'id': 'token', 'label': l10n["token"]}
+    {'type': 'TextField', 'id': 'login', 'label': l10n['login']},
+    {'type': 'TextField', 'id': 'password', 'label': l10n['password']},
+    {'type': 'Label', 'value': l10n['token_hint']},
+    {'type': 'Button', 'msgTag': 'vk:get-token', 'value': l10n['get_token']},
+    {'type': 'TextField', 'id': 'token', 'label': l10n['token']},
+    {'type': 'Label', 'value': l10n['refresh-delay-hint']},
+    {'type': 'Spinner', 'id': 'refresh-delay', 'label': l10n['refresh_delay'],
+     'value': 5, 'min': 1, 'max': 60}
 ]})
 
 # Callback which is called when user clicks "Save" in the options.
 add_message_listener("vk:login", lambda tag, sender, data: vk.try_start_listening_again(
-    data,
+    {k:v for k, v in data.iteritems() if k != "refresh-delay"},
+    data['refresh-delay'],
     success_callback=lambda: say(l10n['logged']),
     fail_callback=say
 ))
@@ -35,4 +39,4 @@ add_message_listener("vk:login", lambda tag, sender, data: vk.try_start_listenin
 add_message_listener("vk:get-token", lambda tag, sender, data: vk.get_token())
 
 # Stops the listening before unloading the plugin.
-add_cleanup_handler(lambda: vk.stop_listening())
+add_cleanup_handler(lambda: vk.disconnect())
