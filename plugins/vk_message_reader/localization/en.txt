@@ -7,7 +7,7 @@ refresh_delay                   =   Refresh delay (s)
 refresh-delay-hint              =   Increase the refresh delay to save more traffic.
 
 msg_from_user                   =   Message from %s %s:
-msg_from_chat                   =   Message from %s %s via chat "%s":
+msg_from_chat                   =   Message from %s %s in chat "%s":
 msg_from_group                  =   Message from group "%s":
 msg_from_unsupported_source     =   Message:
 
