@@ -62,14 +62,15 @@ class MessageProcessor:
             if attachments:
                 attachment_list = []
                 for attachment in attachments:
-                    type = attachment['type']
-                    if type == "link":
-                        title = attachments['title']
-                        url = attachments['attach']
+                    attachment_type = attachment['type']
+                    if attachment_type == "link":
+                        link = attachment['link']
+                        title = link['title']
+                        url = link['url']
                         attachment_list.append(u"%s — %s" % (title, url))
                     else:
                         try:
-                            attachment_list.append(l10n[type])
+                            attachment_list.append(l10n[attachment_type])
                         except ValueError:
                             attachment_list.append(l10n['unsupported_attachment'])
 
