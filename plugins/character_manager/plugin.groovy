@@ -2,6 +2,8 @@ import classes.CharacterManager
 import classes.Character
 import classes.Localization
 import classes.Settings
+import exceptions.WrongCharacterException
+import exceptions.WrongLocalizationException
 
 
 // Тэги для пунктов меню и сохранения настроек.
@@ -14,7 +16,14 @@ final int DEFAULT_DELAY = 10
 
 // Используется для получения заголовков пунктов меню на языке системы.
 // Сейчас поддерживаются русский, а для всех остальных отображается английский.
-Localization localization = Localization.getInstance()
+Localization localization
+try {
+    localization = Localization.getInstance()
+} catch (WrongLocalizationException e) {
+    log(e)
+    sendMessage('gui:show-notification', [name: 'Localization error', text: e.getLocalizedMessage()])
+    return
+}
 
 // Получаем путь к директории, выделенной для хранения информации, сохраняющейся между обновлениями билдов приложения.
 CharacterManager.setDataDir(getDataDirPath())
@@ -22,7 +31,14 @@ CharacterManager.setDataDir(getDataDirPath())
 // Получаем ранее выбранного или случайного персонажа из папки resources/characters.
 // Под персонажем подразумевается папка, внутри которой располагаются папки sprites и phrases.
 String storedCharacterName = Settings.getInstance().get(TAG_CHOSEN_CHARACTER)
-Character character = (storedCharacterName != null) ? new Character(storedCharacterName) : CharacterManager.getRandomCharacter()
+Character character
+try {
+    character = (storedCharacterName != null) ? new Character(storedCharacterName) : CharacterManager.getRandomCharacter()
+} catch (WrongCharacterException e) {
+    log(e)
+    sendMessage('gui:show-notification', [name: localization.get('no-character-title'), text: e.getLocalizedMessage()])
+    return
+}
 
 // Получаем параметры и запускаем таймер случайных сообщений.
 String storedDelay = Settings.getInstance().get(TAG_DELAY_MESSAGES)

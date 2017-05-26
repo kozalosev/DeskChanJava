@@ -12,3 +12,4 @@ chooser-title           = Выбери песню
 music-files             = Музыкальные файлы
 sound-disabled-title    = Звук отключён!
 sound-disabled-text     = Воспроизведение звука было отключено! Включить его можно в меню настроек.
+no-character-title      = Персонаж задан неверно!

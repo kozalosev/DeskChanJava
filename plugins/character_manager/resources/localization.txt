@@ -12,3 +12,4 @@ chooser-title           = Choose a song
 music-files             = Music files
 sound-disabled-title    = Sound is disabled!
 sound-disabled-text     = The sound playback has been disabled! To turn it on, go to the options.
+no-character-title      = Wrong character!
