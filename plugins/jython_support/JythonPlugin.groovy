@@ -17,14 +17,17 @@ class JythonPlugin implements Plugin {
     private Path pluginPath
     private Path pythonModulesDirPath
     private PluginProxy pluginProxy
+    private Closure logger
 
-    JythonPlugin(Path pluginPath, Path pythonModulesDirPath) {
+    JythonPlugin(Path pluginPath, Path pythonModulesDirPath, Closure logger) {
         this.pluginPath = pluginPath
         this.pythonModulesDirPath = pythonModulesDirPath
+        this.logger = logger
     }
 
     @Override
     boolean initialize(PluginProxy pluginProxy) {
+        logger.call("Trying to load plugin \"${pluginProxy.getId()}\"...")
         this.pluginProxy = pluginProxy
 
         PythonInterpreter interpreter = new PythonInterpreter()

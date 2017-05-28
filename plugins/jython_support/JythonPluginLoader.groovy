@@ -30,8 +30,7 @@ class JythonPluginLoader implements PluginLoader {
         }
 
         Path pythonModulesDirPath = pluginDirPath.resolve("python_modules")
-        logger.call("Trying to load plugin \"$id\"...")
-        JythonPlugin plugin = new JythonPlugin(path, pythonModulesDirPath)
+        JythonPlugin plugin = new JythonPlugin(path, pythonModulesDirPath, logger)
 
         PluginManager.getInstance().initializePlugin(id, plugin)
     }
