@@ -213,8 +213,6 @@ class Character {
     // Следующие 4 метода обеспечивают воспроизведение музыки и звуков.
     boolean listenToMusic() {
         increasePleasure()
-        increasePleasure()
-
         if (musicList.size() == 0)
             return false
 
@@ -227,6 +225,7 @@ class Character {
                 i = rand.nextInt(musicList.size())
                 endlessLoopFuse--
             }
+            lastSongId = i
         }
 
         listenTo(musicList[i])
