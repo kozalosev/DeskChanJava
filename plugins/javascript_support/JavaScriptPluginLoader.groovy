@@ -27,8 +27,7 @@ class JavaScriptPluginLoader implements PluginLoader {
         if (Files.isDirectory(path)) {
             path = path.resolve("plugin.js")
         }
-        logger.call("Trying to load plugin \"$id\"...")
-        JavaScriptPlugin plugin = new JavaScriptPlugin(path)
+        JavaScriptPlugin plugin = new JavaScriptPlugin(path, logger)
         PluginManager.getInstance().initializePlugin(id, plugin)
     }
 }

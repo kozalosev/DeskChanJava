@@ -15,14 +15,17 @@ class JavaScriptPlugin implements Plugin {
     private List<Runnable> cleanupHandlers = new ArrayList<>()
     private Path pluginPath
     private PluginProxy pluginProxy
+    private Closure logger
 
-    JavaScriptPlugin(Path pluginPath) {
+    JavaScriptPlugin(Path pluginPath, Closure logger) {
         this.pluginPath = pluginPath
+        this.logger = logger
     }
 
     @Override
-    boolean initialize(PluginProxy proxy) {
-        this.pluginProxy = proxy
+    boolean initialize(PluginProxy pluginProxy) {
+        logger.call("Trying to load plugin \"${pluginProxy.getId()}\"...")
+        this.pluginProxy = pluginProxy
 
         ScriptEngine scriptEngine = new ScriptEngineManager().getEngineByName("nashorn")
         Compilable compiler = (Compilable) scriptEngine
