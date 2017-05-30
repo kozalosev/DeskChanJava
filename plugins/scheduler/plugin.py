@@ -106,7 +106,11 @@ def rebuild_options_menu(datetime):
         { 'type': 'TextField', 'id': TAG_MESSAGE, 'label': l10n['label_message'] },
         {
             'type': 'FileField', 'id': TAG_SOUND_FILE, 'label': l10n['label_sound'],
-            'value': opts['last_sound_file'], 'initialDirectory': os.path.join(get_plugin_dir_path(), "sounds")
+            'value': opts['last_sound_file'], 'initialDirectory': os.path.join(get_plugin_dir_path(), "sounds"),
+            'filters': [{
+                'description': l10n['music_files'],
+                'extensions': ['*.mp3']
+            }]
         }
     ]})
 

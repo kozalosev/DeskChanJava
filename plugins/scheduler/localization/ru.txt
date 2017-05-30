@@ -8,3 +8,5 @@ label_hour                      =   Час
 label_minute                    =   Минуты
 label_message                   =   Сообщение
 label_sound                     =   Звук уведомления
+
+music_files                     =   Музыкальные файлы
