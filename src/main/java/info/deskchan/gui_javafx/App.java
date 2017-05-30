@@ -20,6 +20,7 @@ import javafx.scene.control.TextArea;
 import javafx.scene.text.Font;
 import javafx.stage.*;
 import javafx.util.Duration;
+import org.apache.commons.io.FileUtils;
 
 import javax.swing.*;
 import java.awt.event.ActionEvent;
@@ -149,17 +150,35 @@ public class App extends Application {
 				}
 			});
 		});
+		pluginProxy.addMessageListener("gui:change-skin-opacity", (sender, tag, data) -> {
+			Platform.runLater(() -> {
+				Map<String, Object> m = (Map<String, Object>) data;
+				if (m.containsKey("absolute")) {
+					Double opacity = (double) m.get("absolute");
+					character.changeOpacity(opacity.floatValue());
+				} else if (m.containsKey("relative")) {
+					Double opacityIncrement = (double) m.get("relative");
+					character.changeOpacityRelatively(opacityIncrement.floatValue());
+				}
+
+				boolean save = (boolean) m.getOrDefault("save", false);
+				if (save) {
+					Float opacity = character.getSkinOpacity();
+					Main.setProperty("skin.opacity", opacity.toString());
+				}
+			});
+		});
 		pluginProxy.addMessageListener("gui:resize-character", (sender, tag, data) -> {
 			Platform.runLater(() -> {
 				Map<String, Object> m = (Map<String, Object>) data;
 				if (m.containsKey("scaleFactor")) {
 					Double scaleFactor = (double) m.get("scaleFactor");
-					character.resizeSprite(scaleFactor.floatValue());
+					character.resizeSkin(scaleFactor.floatValue());
 				} else if (m.containsKey("zoom")) {
 					Double zoom = (double) m.get("zoom");
-					character.resizeSpriteRelatively(zoom.floatValue());
+					character.resizeSkinRelatively(zoom.floatValue());
 				} else if (m.containsKey("width") || m.containsKey("height")) {
-					character.resizeSprite((Integer) m.get("width"), (Integer) m.get("height"));
+					character.resizeSkin((Integer) m.get("width"), (Integer) m.get("height"));
 				}
 
 				boolean save = (boolean) m.getOrDefault("save", false);
@@ -189,8 +208,10 @@ public class App extends Application {
 			Platform.runLater(() -> {
 				Map<String, Object> m = (Map<String, Object>) data;
 				TemplateBox dialog = new TemplateBox((String) m.getOrDefault("name", Main.getString("default_messagebox_name")));
-				dialog.getDialogPane().setContent(new ControlsContainer((String) m.get("name"),
-						(List<Map<String, Object>>) m.get("controls"), (String) m.getOrDefault("msgTag", null)).createControlsPane());
+				Window ownerWindow = dialog.getDialogPane().getScene().getWindow();
+				ControlsContainer controlsContainer = new ControlsContainer(ownerWindow, (String) m.get("name"),
+						(List<Map<String, Object>>) m.get("controls"), (String) m.getOrDefault("msgTag", null));
+				dialog.getDialogPane().setContent(controlsContainer.createControlsPane());
 				dialog.requestFocus();
 				dialog.show();
 			});
@@ -245,6 +266,28 @@ public class App extends Application {
 				response.put((multiple) ? "paths" : "path", result);
 				pluginProxy.sendMessage(sender, response);
 			});
+		});
+		pluginProxy.addMessageListener("gui:supply-resource", (sender, tag, data) -> {
+			try {
+				Map<String, Object> map = (Map<String, Object>) data;
+				if (map.containsKey("skin")) {
+					String type=(String)map.get("skin");
+					if(!type.startsWith(Skin.getSkinsPath().toString())){
+						Path resFile = Paths.get(type);
+						Path newPath = Skin.getSkinsPath().resolve(resFile.getFileName());
+						try {
+							FileUtils.copyDirectory(resFile.toFile(), newPath.toFile());
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
+						type = newPath.toString();
+					}
+					character.setSkin(Skin.load(type));
+					OptionsDialog.updateInstanceTabs();
+				}
+			} catch(Exception e){
+				Main.log(e);
+			}
 		});
 		pluginProxy.addMessageListener("gui:choose-directory", (sender, tag, data) -> {
 			Platform.runLater(() -> {
