@@ -100,10 +100,7 @@ class Character {
 
     // Возвращает спрайт для текущего времени суток.
     Path getSkin() {
-        TimeOfDay timeOfDay = Clock.getTimeOfDay()
-        currentTimeOfDay = timeOfDay
-
-        switch (timeOfDay) {
+        switch (Clock.getTimeOfDay()) {
             case TimeOfDay.MORNING:
                 return morningSkin?.path ?: defaultSkin.path
             case TimeOfDay.NIGHT:
@@ -118,6 +115,14 @@ class Character {
     // Возвращает true, если время суток изменилось и требуется перезагрузка фраз и устан.
     boolean reloadRequired() {
         return currentTimeOfDay != Clock.getTimeOfDay()
+    }
+
+    // Перезагружает фразы, чтоб они соответствовали текущему времени суток.
+    void reloadPhrases() {
+        if (reloadRequired()) {
+            phrases = ResourcesLoader.readPhrases(name)
+            currentTimeOfDay = Clock.getTimeOfDay()
+        }
     }
 
     // Следующие методы возвращают нужные фразы...
@@ -285,14 +290,6 @@ class Character {
             return sourceList[0]
         else
             return null
-    }
-
-    // Перезагружает фразы, чтоб они соответствовали текущему времени суток.
-    void reloadPhrases() {
-        if (reloadRequired()) {
-            phrases = ResourcesLoader.readPhrases(name)
-            currentTimeOfDay = Clock.getTimeOfDay()
-        }
     }
 
     // Сохраняет состояние персонажа в файл настроек.

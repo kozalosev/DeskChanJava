@@ -1,6 +1,7 @@
 import classes.CharacterManager
 import classes.Character
 import classes.Localization
+import classes.Logger
 import classes.Settings
 import exceptions.WrongCharacterException
 import exceptions.WrongLocalizationException
@@ -13,6 +14,11 @@ final String TAG_CHOSEN_CHARACTER = 'chosen-character'
 final String TAG_MUTE = 'mute'
 // Задержка между случайными сообщениями по умолчанию.
 final int DEFAULT_DELAY = 10
+
+
+// Инициализируем статический класс, который будет хранить ссылку на стандартный метод логирования.
+// Из других классов будем использовать его. При этом нам не нужно никуда передавать ссылку явно.
+Logger.init(this.&log, this.&log)
 
 // Используется для получения заголовков пунктов меню на языке системы.
 // Сейчас поддерживаются русский, а для всех остальных отображается английский.
