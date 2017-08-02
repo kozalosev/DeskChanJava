@@ -340,7 +340,7 @@ public class PluginManager {
 		Path corePath = getCorePath();
 		Path path;
 		if (Files.isDirectory(corePath)) {
-			path = corePath.resolve("../../../plugins");
+			path = corePath.resolve("../../plugins");
 		} else {
 			path = corePath.getParent().resolve("../plugins");
 		}

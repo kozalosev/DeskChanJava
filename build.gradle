@@ -131,15 +131,18 @@ task copyIconForExe(type: Copy, group: 'desk-chan') {
 task assembleCore(type: Jar, group: 'desk-chan') {
 	baseName = appName
 	from (sourceSets.main.output) {
-		include 'info/deskchan/core/MainKt.class'
-		include 'info/deskchan/core/CommandsProxy.class'
-		include 'info/deskchan/core/CoreInfo.class'
-		include 'info/deskchan/core/CorePlugin.class'
-		include 'info/deskchan/core/PluginLoader.class'
-		include 'info/deskchan/core/PluginManager.class'
-		include 'info/deskchan/core/PluginProxy.class'
+		include 'info/deskchan/core/*'
 		include 'info/deskchan/core_utils/**/*'
 		include 'info/deskchan/jar_loader/**/*'
+
+		exclude 'info/deskchan/core/ResponseListener.class'
+		exclude 'info/deskchan/core/ResponseInfo.class'
+		exclude 'info/deskchan/core/MessageListener.class'
+		exclude 'info/deskchan/core/PluginProxyInterface.class'
+		exclude 'info/deskchan/core/Plugin.class'
+	}
+	from (sourceSets.main.resources) {
+		include 'info/deskchan/*'
 	}
 	manifest {
 		attributes 'Main-Class': project.mainClassName, 'Implementation-Version': appVersion
@@ -265,3 +268,19 @@ task createExeDistZip(type: Zip, dependsOn: createStartScriptsForExe, group: 'bu
 	archiveName "${fullAppName}.zip"
 	destinationDir file(distsDir)
 }
+
+
+task copyJarPluginsForRun(type: Copy) {
+	standardJarPlugins.forEach {
+		dependsOn "assemble$it"
+	}
+	description 'Copies all *.jar files of built-in plugins into the /build/plugins/ directory.'
+
+	from (libsDir) {
+		exclude 'Proxy*', 'DeskChan*'
+	}
+	from "$projectDir/plugins"
+	into "$buildDir/plugins/"
+}
+
+run.dependsOn copyJarPluginsForRun

@@ -17,6 +17,10 @@ import java.util.jar.JarFile
 
 class Main : Plugin, PluginLoader {
 
+    companion object {
+        const val MANIFEST_PLUGIN_ATTRIBUTE = "DeskChan-Plugin"
+    }
+
     private lateinit var pluginProxy: PluginProxyInterface
 
     override fun initialize(pluginProxy: PluginProxyInterface): Boolean {
@@ -44,16 +48,16 @@ class Main : Plugin, PluginLoader {
     }
 
     private fun loadPlugin(file: File, loader: ClassLoader) {
-        val manifest = JarFile(file).manifest
-        val isPlugin = manifest.entries.containsKey("DeskChan-Plugin")
+        val id = file.name.toString()
+        val manifestAttributes = JarFile(file).manifest.mainAttributes
+        val isPlugin = (manifestAttributes.getValue(MANIFEST_PLUGIN_ATTRIBUTE) ?: "false").toBoolean()
+        val mainClass = manifestAttributes.getValue("Main-Class")
+        val className = mainClass ?: "Main"
 
         if (!isPlugin) {
+            log("\"$id\" is not a plugin according to the \"$MANIFEST_PLUGIN_ATTRIBUTE\" attribute in the manifest.")
             return
         }
-
-        val id = file.name.toString()
-        val mainClass = manifest.mainAttributes.getValue("Main-Class")
-        val className = mainClass ?: "Main"
 
         val cls: Class<*>
         try {
@@ -87,7 +91,7 @@ class Main : Plugin, PluginLoader {
 
         override fun visitFile(path: Path?, attributes: BasicFileAttributes?): FileVisitResult {
             if (path != null && attributes != null) {
-                if (attributes.isRegularFile && path.endsWith(".jar")) {
+                if (attributes.isRegularFile && path.toString().endsWith(".jar")) {
                     jars.add(path.toFile())
                 }
             } else {

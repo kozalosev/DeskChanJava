@@ -1,6 +1,5 @@
 package info.deskchan.gui_javafx;
 
-import info.deskchan.core.PluginManager;
 import javafx.geometry.Point2D;
 import javafx.scene.image.Image;
 
@@ -10,6 +9,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+
+import static info.deskchan.core.PluginManager.getCorePath;
 
 public interface Skin {
 	
@@ -22,9 +23,12 @@ public interface Skin {
 	void overridePreferredBalloonPosition(String imageName, Point2D position);
 	
 	static Path getSkinsPath() {
-		Path path = PluginManager.getPluginsDirPath().getParent().resolve("skins");
-		if (!Files.isDirectory(path)) {
-			path = PluginManager.getPluginsDirPath().getParent().resolve("data").resolve("skins");
+		Path corePath = getCorePath();
+		Path path;
+		if (Files.isDirectory(corePath)) {
+			path = corePath.resolve("../../../data/skins");
+		} else {
+			path = corePath.getParent().resolve("../skins");
 		}
 		return path.toAbsolutePath();
 	}
