@@ -10,7 +10,8 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
-import static info.deskchan.core.PluginManager.getCorePath;
+import static info.deskchan.core.PluginManager.getRootDirPath;
+import static info.deskchan.core.PluginManager.isDebugBuild;
 
 public interface Skin {
 	
@@ -23,13 +24,11 @@ public interface Skin {
 	void overridePreferredBalloonPosition(String imageName, Point2D position);
 	
 	static Path getSkinsPath() {
-		Path corePath = getCorePath();
-		Path path;
-		if (Files.isDirectory(corePath)) {
-			path = corePath.resolve("../../../data/skins");
-		} else {
-			path = corePath.getParent().resolve("../skins");
+		Path path = getRootDirPath();
+		if (isDebugBuild()) {
+			path = path.resolve("data");
 		}
+		path = path.resolve("skins");
 		return path.toAbsolutePath();
 	}
 	

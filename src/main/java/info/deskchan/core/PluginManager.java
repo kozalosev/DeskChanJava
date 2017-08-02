@@ -23,6 +23,8 @@ public class PluginManager {
 	private String[] args;
 	private static OutputStream logStream = null;
 
+	private static boolean debugBuild = false;
+	private static Path corePath = null;
 	private static Path pluginsDirPath = null;
 	private static Path dataDirPath = null;
 	private static Path rootDirPath = null;
@@ -52,6 +54,10 @@ public class PluginManager {
 	
 	public String[] getArgs() {
 		return args;
+	}
+
+	public static boolean isDebugBuild() {
+		return debugBuild;
 	}
 	
 	/* Plugin initialization and unloading */
@@ -326,24 +332,26 @@ public class PluginManager {
 	/* Plugins and data directories */
 	
 	public static Path getCorePath() {
-		try {
-			return Paths.get(PluginManager.class.getProtectionDomain().getCodeSource().getLocation().toURI());
-		} catch (URISyntaxException e) {
-			return Paths.get(PluginManager.class.getProtectionDomain().getCodeSource().getLocation().getFile());
+		if (corePath == null) {
+			try {
+				corePath = Paths.get(PluginManager.class.getProtectionDomain().getCodeSource().getLocation().toURI());
+			} catch (URISyntaxException e) {
+				corePath = Paths.get(PluginManager.class.getProtectionDomain().getCodeSource().getLocation().getFile());
+			}
+			debugBuild = Files.isDirectory(corePath);
 		}
+		return corePath;
 	}
 
 	public static Path getPluginsDirPath() {
 		if(pluginsDirPath != null) {
 			return pluginsDirPath;
 		}
-		Path corePath = getCorePath();
-		Path path;
-		if (Files.isDirectory(corePath)) {
-			path = corePath.resolve("../../plugins");
-		} else {
-			path = corePath.getParent().resolve("../plugins");
+		Path path = getRootDirPath();
+		if (debugBuild) {
+			path = path.resolve("build");
 		}
+		path = path.resolve("plugins");
 		pluginsDirPath = path.normalize();
 		return pluginsDirPath;
 	}
@@ -356,13 +364,11 @@ public class PluginManager {
 		if(dataDirPath != null) {
 			return dataDirPath;
 		}
-		Path corePath = getCorePath();
-		Path path;
-		if (Files.isDirectory(corePath)) {
-			path = corePath.resolve("../../data");
-		} else {
-			path = corePath.getParent().resolve("../data");
+		Path path = getRootDirPath();
+		if (debugBuild) {
+			path = path.resolve("build");
 		}
+		path = path.resolve("data");
 		if (!Files.isDirectory(path)) {
 			path.toFile().mkdir();
 			log("Created directory: " + path);
@@ -377,8 +383,8 @@ public class PluginManager {
 		}
 		Path corePath = getCorePath();
 		Path path;
-		if (Files.isDirectory(corePath)) {
-			path = corePath.resolve("../../");
+		if (debugBuild) {
+			path = corePath.resolve("../../../");
 		} else {
 			path = corePath.getParent().resolve("../");
 		}
