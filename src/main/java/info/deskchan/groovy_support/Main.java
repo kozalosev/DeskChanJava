@@ -2,14 +2,13 @@ package info.deskchan.groovy_support;
 
 import groovy.lang.GroovyShell;
 import groovy.lang.Script;
-import info.deskchan.core.Plugin;
-import info.deskchan.core.PluginLoader;
-import info.deskchan.core.PluginManager;
-import info.deskchan.core.PluginProxyInterface;
+import info.deskchan.core.*;
 import org.codehaus.groovy.control.CompilerConfiguration;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+
+import static info.deskchan.core_utils.CoreUtilsKt.parsePluginManifest;
 
 public class Main implements Plugin, PluginLoader {
 	
@@ -36,7 +35,9 @@ public class Main implements Plugin, PluginLoader {
 	@Override
 	public void loadByPath(Path path) throws Throwable {
 		String id = path.getFileName().toString();
+		PluginManifest manifest = null;
 		if (Files.isDirectory(path)) {
+			manifest = parsePluginManifest(id, path.resolve("manifest.json"));
 			path = path.resolve("plugin.groovy");
 		}
 		CompilerConfiguration compilerConfiguration = new CompilerConfiguration();
@@ -47,7 +48,7 @@ public class Main implements Plugin, PluginLoader {
 		Script script = groovyShell.parse(path.toFile());
 		GroovyPlugin plugin = (GroovyPlugin) script;
 		plugin.setPluginDirPath(path.getParent());
-		PluginManager.getInstance().initializePlugin(id, plugin);
+		PluginManager.getInstance().initializePlugin(id, plugin, manifest);
 	}
 	
 }

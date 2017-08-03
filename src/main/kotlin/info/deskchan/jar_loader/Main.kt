@@ -1,9 +1,7 @@
 package info.deskchan.jar_loader
 
-import info.deskchan.core.Plugin
-import info.deskchan.core.PluginLoader
-import info.deskchan.core.PluginManager
-import info.deskchan.core.PluginProxyInterface
+import info.deskchan.core.*
+import info.deskchan.core_utils.AuthorParser
 
 import java.io.File
 import java.nio.file.Path
@@ -12,6 +10,8 @@ import java.nio.file.SimpleFileVisitor
 import java.nio.file.FileVisitResult
 import java.nio.file.attribute.BasicFileAttributes
 import java.net.URLClassLoader
+import java.util.*
+import java.util.jar.Attributes
 import java.util.jar.JarFile
 
 
@@ -49,7 +49,7 @@ class Main : Plugin, PluginLoader {
 
     private fun loadPlugin(file: File, loader: ClassLoader) {
         val id = file.name.toString()
-        val manifestAttributes = JarFile(file).manifest.mainAttributes
+        val manifestAttributes = JarFile(file).manifest.mainAttributes ?: Attributes()
         val isPlugin = (manifestAttributes.getValue(MANIFEST_PLUGIN_ATTRIBUTE) ?: "false").toBoolean()
         val mainClass = manifestAttributes.getValue("Main-Class")
         val className = mainClass ?: "Main"
@@ -68,17 +68,56 @@ class Main : Plugin, PluginLoader {
         }
 
         val plugin = cls.newInstance() as? Plugin
-        if (plugin != null) {
-            PluginManager.getInstance().initializePlugin(id, plugin)
-        } else {
+        if (plugin == null) {
             log("The class \"$id\" is not an instance of Plugin!")
+            return
         }
+
+        val manifest = PluginManifest(
+                manifestAttributes.getValue("Plugin-Name") ?: id,
+                manifestAttributes.getValue("Plugin-Version"),
+                manifestAttributes.getValue("Plugin-Description"),
+                manifestAttributes.groupValues("Plugin-Keywords"),
+                manifestAttributes.groupValues("Plugin-Author").map { AuthorParser.parse(it) }.toSet(),
+                manifestAttributes.getValue("Plugin-License")
+        )
+        val resourceFilePath = manifestAttributes.getValue("Plugin-Resource-File")
+        val resourceBundle = extractResources(id, resourceFilePath, loader)
+        val data = when {
+            resourceBundle != null -> mapOf("resources" to resourceBundle)
+            else -> null
+        }
+        val config = PluginConfig(file.toPath().parent, loader, data)
+        PluginManager.getInstance().initializePlugin(id, plugin, manifest, config)
     }
 
     private fun scanDirectory(path: Path): List<File> {
         val jars = mutableListOf<File>()
         Files.walkFileTree(path, JarFinder(jars, this::log))
         return jars
+    }
+
+    private fun extractResources(id: String, resourceFilePath: String?, loader: ClassLoader) = when {
+        resourceFilePath != null -> try {
+            ResourceBundle.getBundle(resourceFilePath, Locale.getDefault(), loader)
+        } catch (e: Exception) {
+            log("Couldn't load a resource file of plugin \"$id\"!")
+            log(e)
+            null
+        }
+        else -> null
+    }
+
+    fun Attributes.groupValues(attribute: String): Set<String> {
+        val author = this.getValue(attribute)
+        if (author != null) {
+            return setOf(author)
+        }
+
+        return (1..1000)
+                .map { this.getValue("$attribute-$it") }
+                .takeWhile { it != null }
+                .toSet()
     }
 
     fun log(obj: Any) = when (obj) {

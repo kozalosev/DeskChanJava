@@ -176,8 +176,10 @@ standardJarPlugins.each { name ->
 		}
 		manifest {
 			attributes 'Main-Class': "info.deskchan.${baseName}.Main",
-					   'Implementation-Version': appVersion,
-					   'DeskChan-Plugin': true
+					   'DeskChan-Plugin': true,
+					   'Plugin-Version': appVersion,
+					   'Plugin-Author': 'DeskChan Project <support@deskchan.info> (http://deskchan.info)',
+					   'Plugin-License': 'LGPL-3.0'
 		}
 		version = null
 	}

@@ -1,9 +1,6 @@
 package info.deskchan.gui_javafx;
 
-import info.deskchan.core.CommandsProxy;
-import info.deskchan.core.CoreInfo;
-import info.deskchan.core.PluginManager;
-import info.deskchan.core.PluginProxyInterface;
+import info.deskchan.core.*;
 import javafx.application.Platform;
 import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.beans.value.ChangeListener;
@@ -21,6 +18,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.text.Font;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
+import javafx.util.Callback;
 import javafx.util.converter.DefaultStringConverter;
 import org.controlsfx.dialog.FontSelectorDialog;
 import org.json.JSONObject;
@@ -277,6 +275,24 @@ class OptionsDialog extends TemplateBox {
 		BorderPane pluginsTab = new BorderPane();
 		pluginsTab.setCenter(pluginsList);
 		pluginsList.setPrefSize(400, 300);
+		pluginsList.setCellFactory(param -> new ListCell<PluginListItem>() {
+			@Override
+			protected void updateItem(PluginListItem item, boolean empty) {
+				super.updateItem(item, empty);
+				if (item != null) {
+					setText(item.toString());
+
+					LocalizedManifestStrings labels = new LocalizedManifestStrings(
+							Main.getString("manifest.name"),
+							Main.getString("manifest.version"),
+							Main.getString("manifest.description"),
+							Main.getString("manifest.authors"),
+							Main.getString("manifest.license")
+					);
+					setTooltip(new Tooltip(item.manifest.toString(labels)));
+				}
+			}
+		});
 		pluginProxy.addMessageListener("core-events:plugin-load", (sender, tag, data) -> {
 			Platform.runLater(() -> {
 				for (PluginListItem item : pluginsList.getItems()) {
@@ -551,10 +567,12 @@ class OptionsDialog extends TemplateBox {
 
 		String id;
 		boolean blacklisted;
+		PluginManifest manifest;
 
 		PluginListItem(String id, boolean blacklisted) {
 			this.id = id;
 			this.blacklisted = blacklisted;
+			manifest = PluginManager.getInstance().getManifest(id);
 		}
 
 		@Override

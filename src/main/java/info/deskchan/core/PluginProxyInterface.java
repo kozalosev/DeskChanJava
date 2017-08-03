@@ -6,6 +6,10 @@ public interface PluginProxyInterface extends MessageListener {
 
     String getId();
 
+    boolean initialize(String id);
+
+    void unload();
+
     void sendMessage(String tag, Object data);
 
     Object sendMessage(String tag, Object data, ResponseListener responseListener, ResponseListener returnListener);
