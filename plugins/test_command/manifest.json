@@ -6,7 +6,5 @@
     "email": "support@deskchan.info",
     "website": "http://deskchan.info"
   }],
-  "license": "LGPL-3.0",
-
-  "dependencies": ["groovy_support"]
+  "license": "LGPL-3.0"
 }

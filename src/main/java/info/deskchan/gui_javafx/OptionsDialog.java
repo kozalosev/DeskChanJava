@@ -297,7 +297,7 @@ class OptionsDialog extends TemplateBox {
 			@Override
 			protected void updateItem(PluginListItem item, boolean empty) {
 				super.updateItem(item, empty);
-				if (item != null) {
+				if (!empty) {
 					setText(item.toString());
 
 					LocalizedManifestStrings labels = new LocalizedManifestStrings(
@@ -307,7 +307,12 @@ class OptionsDialog extends TemplateBox {
 							Main.getString("manifest.authors"),
 							Main.getString("manifest.license")
 					);
-					setTooltip(new Tooltip(item.manifest.toString(labels)));
+					if (item.manifest != null) {
+						setTooltip(new Tooltip(item.manifest.toString(labels)));
+					}
+				} else {
+					setText(null);
+					setTooltip(null);
 				}
 			}
 		});

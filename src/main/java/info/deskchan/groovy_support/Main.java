@@ -14,7 +14,7 @@ public class Main implements Plugin, PluginLoader {
 	
 	@Override
 	public boolean initialize(PluginProxyInterface pluginProxy) {
-		PluginManager.getInstance().registerPluginLoader(this);
+		PluginManager.getInstance().registerPluginLoader(this, "groovy");
 		return true;
 	}
 	

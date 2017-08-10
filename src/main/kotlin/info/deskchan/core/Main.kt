@@ -9,11 +9,7 @@ fun main(args: Array<String>) {
 	pluginManager.tryLoadPluginByPackageName("info.deskchan.core_utils")
 	pluginManager.tryLoadPluginByPackageName("info.deskchan.jar_loader")
 	try {
-		val pluginsDirPath = PluginManager.getPluginsDirPath()
-		val dirStream = Files.newDirectoryStream(pluginsDirPath)
-		for (path in dirStream) {
-			pluginManager.tryLoadPluginByPath(path)
-		}
+		LoaderManager.loadPlugins()
 	} catch (e: IOException) {
 		PluginManager.log(e)
 	}

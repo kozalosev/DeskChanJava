@@ -2,9 +2,6 @@ package info.deskchan.core;
 
 import info.deskchan.core_utils.CoreUtilsKt;
 import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.io.IOUtils;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.io.*;
 import java.net.URISyntaxException;
@@ -61,17 +58,23 @@ public class PluginManager {
 		return debugBuild;
 	}
 
+	Set<String> getNamesOfLoadedPlugins() {
+		return plugins.keySet();
+	}
+
 	/* Plugin initialization and unloading */
 	
 	public boolean initializePlugin(String id, Plugin plugin, PluginManifest manifest, PluginConfig config) {
+		if (blacklistedPlugins.contains(id)) {
+			return false;
+		}
 		if (!plugins.containsKey(id)) {
 			PluginProxyInterface pluginProxy = new PluginProxy(plugin);
-			if (blacklistedPlugins.contains(id)) {
-				plugins.put(id, new PluginEntity(pluginProxy, id, manifest, config));
-				return false;
-			}
 			if (CoreUtilsKt.resolveDependencies(pluginProxy, manifest) && pluginProxy.initialize(id)) {
 				plugins.put(id, new PluginEntity(pluginProxy, id, manifest, config));
+				if (manifest != null) {
+					LoaderManager.INSTANCE.registerExtensions(manifest.getProvidedPluginExtensions());
+				}
 				log("Registered plugin: " + id);
 				sendMessage("core", "core-events:plugin-load", id);
 				return true;
@@ -159,6 +162,15 @@ public class PluginManager {
 		loaders.add(loader);
 	}
 
+	public synchronized void registerPluginLoader(PluginLoader loader, String[] extensions) {
+		registerPluginLoader(loader);
+		LoaderManager.INSTANCE.registerExtensions(extensions);
+	}
+
+	public synchronized void registerPluginLoader(PluginLoader loader, String extension) {
+		registerPluginLoader(loader, new String[] {extension});
+	}
+
 	public synchronized void unregisterPluginLoader(PluginLoader loader) {
 		loaders.remove(loader);
 	}
@@ -210,44 +222,13 @@ public class PluginManager {
 	}
 	
 	public synchronized boolean loadPluginByPath(Path path) throws Throwable {
-		// TODO: get rid of manifest double reading
-		if (Files.isDirectory(path)) {
-			Path manifestPath = path.resolve("manifest.json");
-			if (Files.isReadable(manifestPath)) {
-				try (final InputStream manifestInputStream = Files.newInputStream(manifestPath)) {
-					final String manifestStr = IOUtils.toString(manifestInputStream, "UTF-8");
-					manifestInputStream.close();
-					final JSONObject manifest = new JSONObject(manifestStr);
-					if (manifest.has("deps") || manifest.has("dependencies")) {
-						final List<Object> dependencies = new ArrayList<>();
-						if (manifest.has("deps")) {
-							dependencies.addAll(manifest.getJSONArray("deps").toList());
-						}
-						if (manifest.has("dependencies")) {
-							dependencies.addAll(manifest.getJSONArray("dependencies").toList());
-						}
-						for (Object dep : dependencies) {
-							if (dep instanceof String) {
-								String depID = dep.toString();
-								if (!tryLoadPluginByName(depID)) {
-									throw new Exception("Failed to load dependency " + depID +
-											" of plugin " + path.toString());
-								}
-							}
-						}
-					}
-				} catch (IOException | JSONException e) {
-					e.printStackTrace();
-				}
-			}
-		}
 		for (PluginLoader loader : loaders) {
 			if (loader.matchPath(path)) {
 				loader.loadByPath(path);
 				return true;
 			}
 		}
-		throw new Exception("Could not match loader for plugin " + path.toString());
+		return false;
 	}
 	
 	public boolean tryLoadPluginByPath(Path path) {

@@ -76,32 +76,37 @@ open class Manifest {
 
 class PluginManifest : Manifest {
 
-    val dependencies: Set<String>?
-    val repositories: Set<String>?
+    val dependencies: Set<String>
+    val repositories: Set<String>
     val platform: Platform
+    val providedPluginExtensions: Set<String>
 
     constructor(name: String, version: String? = null, description: String? = null, keywords: Set<String> = emptySet(),
                 authors: Set<Author> = UNKNOWN_AUTHOR_SET, license: String? = null,
-                dependencies: Set<String>? = null, repositories: Set<String>? = null,
-                platform: Platform = Platform.ALL) : super(name, version, description, keywords, authors, license) {
+                dependencies: Set<String> = emptySet(), repositories: Set<String> = emptySet(),
+                platform: Platform = Platform.ALL,
+                providedPluginExtensions: Set<String> = emptySet()) : super(name, version, description, keywords, authors, license) {
         this.dependencies = dependencies
         this.repositories = repositories
         this.platform = platform
+        this.providedPluginExtensions = providedPluginExtensions
     }
 
     constructor(map: Map<String, Any?>) : super(map) {
         dependencies = (map.getOrDefault("dependencies", null) as? Collection<*>?)
-                ?.map { it.toString() }?.toSet()
+                ?.map { it.toString() }?.toSet() ?: emptySet()
         repositories = (map.getOrDefault("repositories", null) as? Collection<*>?)
-                ?.map { it.toString() }?.toSet()
+                ?.map { it.toString() }?.toSet() ?: emptySet()
         platform = map.getOrDefault("platform", null) as Platform
+        providedPluginExtensions = (map.getOrDefault("loads", null) as? Collection<*>?)
+                ?.map { it.toString() }?.toSet() ?: emptySet()
     }
 
     companion object {
-        internal fun fromManifest(manifest: Manifest, dependencies: Set<String>? = null, repositories: Set<String>? = null,
-                         platform: Platform = Platform.ALL): PluginManifest {
+        internal fun fromManifest(manifest: Manifest, dependencies: Set<String> = emptySet(), repositories: Set<String> = emptySet(),
+                         platform: Platform = Platform.ALL, providedPluginExtensions: Set<String> = emptySet()): PluginManifest {
             return PluginManifest(manifest.name, manifest.version, manifest.description, manifest.keywords,
-                    manifest.authors, manifest.license, dependencies, repositories, platform)
+                    manifest.authors, manifest.license, dependencies, repositories, platform, providedPluginExtensions)
         }
     }
 
