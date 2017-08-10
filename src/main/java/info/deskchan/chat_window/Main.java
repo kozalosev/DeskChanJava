@@ -78,15 +78,19 @@ public class Main implements Plugin {
             put("name", pluginProxy.getString("chat.open"));
             put("msgTag", "chat:setup");
         }});
-        pluginProxy.addMessageListener("gui:say", (sender, tag, data) -> {
+        pluginProxy.addMessageListener("DeskChan:say", (sender, tag, data) -> {
             String text;
             if(data instanceof Map){
                 text=(String) ((HashMap<String,Object>) data).getOrDefault("text", "");
             } else {
                 text=data.toString();
             }
-            history.add(new ChatPhrase(text,0));
-            setupChat();
+            Map<String, Object> delayData = new HashMap<>();
+            delayData.put("delay", 1);
+            pluginProxy.sendMessage("core-utils:notify-after-delay", delayData, (s, d) -> {
+                history.add(new ChatPhrase(text,0));
+                setupChat();
+            });
         });
         pluginProxy.addMessageListener("DeskChan:user-said", (sender, tag, data) -> {
             history.add(new ChatPhrase((String) ((HashMap<String,Object>) data).getOrDefault("value", ""),1));

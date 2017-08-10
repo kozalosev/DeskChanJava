@@ -60,7 +60,7 @@ public class PluginManager {
 	public static boolean isDebugBuild() {
 		return debugBuild;
 	}
-	
+
 	/* Plugin initialization and unloading */
 	
 	public boolean initializePlugin(String id, Plugin plugin, PluginManifest manifest, PluginConfig config) {
@@ -91,7 +91,7 @@ public class PluginManager {
 	public boolean initializePlugin(String id, Plugin plugin) {
 		return initializePlugin(id, plugin, null, null);
 	}
-	
+
 	void unregisterPlugin(PluginProxyInterface pluginProxy) {
 		plugins.remove(pluginProxy.getId());
 		log("Unregistered plugin: " + pluginProxy.getId());
@@ -300,7 +300,7 @@ public class PluginManager {
 	
 	/* Application finalization */
 	
-	void unloadPlugins() {
+	void quit() {
 		List<PluginProxyInterface> pluginsToUnload = new ArrayList<>();
 		for (Map.Entry<String, PluginEntity> entry : plugins.entrySet()) {
 			if (!entry.getKey().equals("core")) {
@@ -321,6 +321,7 @@ public class PluginManager {
 			}
 			logStream = null;
 		}
+		System.exit(0);
 	}
 	
 	/* Plugins blacklist */
@@ -409,7 +410,7 @@ public class PluginManager {
 		}
 		return possiblePath;
 	}
-	
+
 	public Path getPluginDirPath(String name) {
 		if (plugins.containsKey(name)) {
 			return plugins.get(name).getConfig().getDirectory();
@@ -467,7 +468,7 @@ public class PluginManager {
 		}
 		return plugins.get(name).getManifest();
 	}
-	
+
 	/* Logging */
 	
 	static void log(String id, String message) {
