@@ -1,5 +1,7 @@
 package info.deskchan.gui_javafx;
 
+import info.deskchan.core.Manifest;
+import info.deskchan.core_utils.CoreUtilsKt;
 import javafx.geometry.Point2D;
 import javafx.scene.image.Image;
 import org.apache.commons.io.FilenameUtils;
@@ -18,7 +20,8 @@ class DaytimeDependentSkin implements Skin {
     private static final int UPDATE_PERIOD = 3600000;   // once per hour
 
     private Skin skin;
-    private Map<Daytime, Path> paths = new HashMap<>();
+    private final Map<Daytime, Path> paths = new HashMap<>();
+    private final Manifest manifest;
 
     DaytimeDependentSkin(Path path) {
         File[] dirs = path.toFile().listFiles();
@@ -37,6 +40,12 @@ class DaytimeDependentSkin implements Skin {
               });
 
         update();
+
+        Path manifestPath = path.resolve("manifest.json");
+        if (!Files.exists(manifestPath)) {
+            manifestPath = path;
+        }
+        manifest = CoreUtilsKt.parseJsonManifest(getName(), manifestPath);
     }
 
     private void update() {
@@ -106,6 +115,11 @@ class DaytimeDependentSkin implements Skin {
     @Override
     public void overridePreferredBalloonPosition(String imageName, Point2D position) {
         skin.overridePreferredBalloonPosition(imageName, position);
+    }
+
+    @Override
+    public String getDescription() {
+        return manifest.toString(Utils.manifestLabels);
     }
 
     @Override

@@ -299,16 +299,8 @@ class OptionsDialog extends TemplateBox {
 				super.updateItem(item, empty);
 				if (!empty) {
 					setText(item.toString());
-
-					LocalizedManifestStrings labels = new LocalizedManifestStrings(
-							Main.getString("manifest.name"),
-							Main.getString("manifest.version"),
-							Main.getString("manifest.description"),
-							Main.getString("manifest.authors"),
-							Main.getString("manifest.license")
-					);
 					if (item.manifest != null) {
-						setTooltip(new Tooltip(item.manifest.toString(labels)));
+						setTooltip(new Tooltip(item.manifest.toString(Utils.manifestLabels)));
 					}
 				} else {
 					setText(null);
@@ -354,9 +346,9 @@ class OptionsDialog extends TemplateBox {
 		Button unloadPluginButton = new Button(Main.getString("unload"));
 		Button blacklistPluginButton = new Button(Main.getString("plugin_list.blacklist"));
 		ChangeListener<PluginListItem> pluginListItemChangeListener = (observableValue, oldItem, item) -> {
-			unloadPluginButton.setDisable((item == null) || item.blacklisted || item.id.equals("core") ||
+			unloadPluginButton.setDisable((item == null) || item.blacklisted || item.id.equals("core") || item.id.equals("core_utils") ||
 					item.id.equals(Main.getInstance().getPluginProxy().getId()));
-			blacklistPluginButton.setDisable((item == null) || item.id.equals("core") ||
+			blacklistPluginButton.setDisable((item == null) || item.id.equals("core") || item.id.equals("core_utils") ||
 					item.id.equals(Main.getInstance().getPluginProxy().getId()));
 			blacklistPluginButton.setText(((item != null) && item.blacklisted)
 					? Main.getString("plugin_list.unblacklist") : Main.getString("plugin_list.blacklist"));

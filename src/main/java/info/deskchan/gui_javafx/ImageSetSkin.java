@@ -1,5 +1,7 @@
 package info.deskchan.gui_javafx;
 
+import info.deskchan.core.Manifest;
+import info.deskchan.core_utils.CoreUtilsKt;
 import javafx.geometry.Point2D;
 import javafx.scene.image.Image;
 
@@ -26,6 +28,7 @@ class ImageSetSkin implements Skin {
 	private final Map<String, List<Image>> images = new HashMap<>();
 	private final Path propertiesPath;
 	private final Properties properties = new Properties();
+	private final Manifest manifest;
 	
 	ImageSetSkin(Path path) {
 		this.path = path;
@@ -41,6 +44,12 @@ class ImageSetSkin implements Skin {
 				// Do nothing
 			}
 		}
+
+		Path manifestPath = path.resolve("manifest.json");
+		if (!Files.exists(manifestPath)) {
+			manifestPath = path;
+		}
+		manifest = CoreUtilsKt.parseJsonManifest(getName(), manifestPath);
 	}
 	
 	@Override
@@ -141,7 +150,12 @@ class ImageSetSkin implements Skin {
 			Main.log(e);
 		}
 	}
-	
+
+	@Override
+	public String getDescription() {
+		return manifest.toString(Utils.manifestLabels);
+	}
+
 	@Override
 	public String toString() {
 		String name = Skin.getSkinsPath().relativize(path).toString();

@@ -8,7 +8,7 @@ import org.codehaus.groovy.control.CompilerConfiguration;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-import static info.deskchan.core_utils.CoreUtilsKt.parsePluginManifest;
+import static info.deskchan.core_utils.CoreUtilsKt.parseJsonPluginManifest;
 
 public class Main implements Plugin, PluginLoader {
 	
@@ -37,7 +37,7 @@ public class Main implements Plugin, PluginLoader {
 		String id = path.getFileName().toString();
 		PluginManifest manifest = null;
 		if (Files.isDirectory(path)) {
-			manifest = parsePluginManifest(id, path.resolve("manifest.json"));
+			manifest = parseJsonPluginManifest(id, path.resolve("manifest.json"));
 			path = path.resolve("plugin.groovy");
 		}
 		CompilerConfiguration compilerConfiguration = new CompilerConfiguration();

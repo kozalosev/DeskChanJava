@@ -91,7 +91,12 @@ private fun parseManifest(name: String, manifest: JSONObject): Manifest {
     return Manifest(map)
 }
 
-fun parsePluginManifest(id: String, path: Path): PluginManifest {
+fun parseJsonManifest(name: String, path: Path): Manifest {
+    val json = readManifestJsonFile(path) ?: return Manifest(name)
+    return parseManifest(name, json)
+}
+
+fun parseJsonPluginManifest(id: String, path: Path): PluginManifest {
     val json = readManifestJsonFile(path) ?: return PluginManifest(id)
 
     val dependencies = mutableListOf<String>()

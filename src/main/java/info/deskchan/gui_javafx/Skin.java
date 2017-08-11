@@ -22,6 +22,10 @@ public interface Skin {
 	Point2D getPreferredBalloonPosition(String imageName);
 	
 	void overridePreferredBalloonPosition(String imageName, Point2D position);
+
+	default String getDescription() {
+		return null;
+	}
 	
 	static Path getSkinsPath() {
 		Path path = getRootDirPath();

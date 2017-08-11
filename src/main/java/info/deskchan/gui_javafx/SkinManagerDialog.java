@@ -1,10 +1,7 @@
 package info.deskchan.gui_javafx;
 
 import javafx.event.ActionEvent;
-import javafx.scene.control.ButtonType;
-import javafx.scene.control.Dialog;
-import javafx.scene.control.ListView;
-import javafx.scene.control.TreeTableView;
+import javafx.scene.control.*;
 import javafx.stage.Modality;
 import javafx.stage.Window;
 
@@ -17,6 +14,22 @@ class SkinManagerDialog extends Dialog<Void> {
 		initOwner(parent);
 		initModality(Modality.WINDOW_MODAL);
 		skinsList.setPrefSize(400, 300);
+		skinsList.setCellFactory(param -> new ListCell<Skin>() {
+			@Override
+			protected void updateItem(Skin item, boolean empty) {
+				super.updateItem(item, empty);
+				if (!empty) {
+					setText(item.getName());
+					String description = item.getDescription();
+					if (description != null && !description.isEmpty()) {
+						setTooltip(new Tooltip(description));
+					}
+				} else {
+					setText(null);
+					setTooltip(null);
+				}
+			}
+		});
 		//TreeTableView<SkinOrPack> skinsTree = new TreeTableView<>();
 		for (String skinName : Skin.getSkinList()) {
 			skinsList.getItems().add(Skin.load(skinName));
