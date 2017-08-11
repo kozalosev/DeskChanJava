@@ -2,6 +2,7 @@ package info.deskchan.jar_loader
 
 import info.deskchan.core.*
 import info.deskchan.core_utils.AuthorParser
+import info.deskchan.core_utils.getLocalString
 
 import java.io.File
 import java.nio.file.Path
@@ -76,7 +77,7 @@ class Main : Plugin, PluginLoader {
         val manifest = PluginManifest(
                 manifestAttributes.getValue("Plugin-Name") ?: id,
                 manifestAttributes.getValue("Plugin-Version"),
-                manifestAttributes.getValue("Plugin-Description"),
+                getLocalString(manifestAttributes.groupValueByKey("Plugin-Description")),
                 manifestAttributes.groupValues("Plugin-Keywords"),
                 manifestAttributes.groupValues("Plugin-Author").map { AuthorParser.parse(it) }.toSet(),
                 manifestAttributes.getValue("Plugin-License")
@@ -109,15 +110,36 @@ class Main : Plugin, PluginLoader {
     }
 
     fun Attributes.groupValues(attribute: String): Set<String> {
-        val author = this.getValue(attribute)
-        if (author != null) {
-            return setOf(author)
+        val value = this.getValue(attribute)
+        if (value != null) {
+            return setOf(value)
         }
 
         return (1..1000)
                 .map { this.getValue("$attribute-$it") }
                 .takeWhile { it != null }
                 .toSet()
+    }
+
+    fun Attributes.groupValueByKey(attribute: String): Map<String, String> {
+        val value = this.getValue(attribute)
+        if (value != null) {
+            return mapOf(DEFAULT_LANGUAGE_KEY to value)
+        }
+
+        val regexp = "$attribute-(\\S+)".toRegex()
+        return this.entries
+                .map {
+                    val matches = regexp.matchEntire(it.key.toString())
+                    val key = matches?.groups?.get(1)?.value
+                    if (key != null) {
+                        Pair(key, it.value.toString())
+                    } else {
+                        null
+                    }
+                }
+                .filterNotNull()
+                .toMap()
     }
 
     fun log(obj: Any) = when (obj) {

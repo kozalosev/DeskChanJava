@@ -1,6 +1,10 @@
 {
   "name": "daytime_filter",
   "version": "0.2.0",
+  "description": {
+    "": "Sets an appropriate color filter onto the character image depending on the time of day.",
+    "ru": "Устанавливает подходящий цветовой фильтр на изображение персонажа в зависимости от времени суток."
+  },
   "authors": [{
     "name": "DeskChan Project",
     "email": "support@deskchan.info",

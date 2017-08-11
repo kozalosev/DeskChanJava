@@ -1,5 +1,7 @@
 package info.deskchan.core
 
+import info.deskchan.core_utils.getNotNullOrDefault
+
 
 data class Author(val name: String, val email: String? = null, val website: String? = null)
 val UNKNOWN_AUTHOR = Author("Unknown")
@@ -11,13 +13,14 @@ val DEFAULT_PLATFORM = Platform.DESKTOP   // TODO: change to ALL before the fina
 open class LocalizedManifestStrings(val name: String, val version: String, val description: String,
                                     val authors: String, val license: String)
 val MANIFEST_STRINGS_ENGLISH = LocalizedManifestStrings("Name", "Version", "Description", "Authors", "License")
+const val DEFAULT_LANGUAGE_KEY = ""
 
 
 open class Manifest {
 
     val name: String
     val version: String?
-    val description: String?    // TODO: make this field localizable
+    val description: String?
     val keywords: Set<String>
     val authors: Set<Author>
     val license: String?
@@ -38,9 +41,9 @@ open class Manifest {
         description = map.getOrDefault("description", null) as String?
         license = map.getOrDefault("license", null) as String?
 
-        keywords = (map.getOrDefault("keywords", emptySet<String>()) as Collection<*>)
+        keywords = (map.getNotNullOrDefault("keywords", emptySet<String>()) as Collection<*>)
                 .map { it.toString() }.toSet()
-        authors = (map.getOrDefault("authors", UNKNOWN_AUTHOR_SET) as Collection<*>)
+        authors = (map.getNotNullOrDefault("authors", UNKNOWN_AUTHOR_SET) as Collection<*>)
                 .filter { it is Author }.map { it as Author }.toSet()
     }
 
@@ -54,7 +57,7 @@ open class Manifest {
             }
         }
         if (description != null) {
-            builder.append("\n${labels.description}: $description\n")
+            builder.append("\n${labels.description}:\n$description\n")
         }
         if (authors != UNKNOWN_AUTHOR_SET) {
             builder.append("\n${labels.authors}:\n")
@@ -93,13 +96,13 @@ class PluginManifest : Manifest {
     }
 
     constructor(map: Map<String, Any?>) : super(map) {
-        dependencies = (map.getOrDefault("dependencies", null) as? Collection<*>?)
-                ?.map { it.toString() }?.toSet() ?: emptySet()
-        repositories = (map.getOrDefault("repositories", null) as? Collection<*>?)
-                ?.map { it.toString() }?.toSet() ?: emptySet()
-        platform = map.getOrDefault("platform", null) as Platform
-        providedPluginExtensions = (map.getOrDefault("loads", null) as? Collection<*>?)
-                ?.map { it.toString() }?.toSet() ?: emptySet()
+        dependencies = (map.getNotNullOrDefault("dependencies", emptySet<String>()) as Collection<*>)
+                .map { it.toString() }.toSet()
+        repositories = (map.getNotNullOrDefault("repositories", emptySet<String>()) as Collection<*>)
+                .map { it.toString() }.toSet()
+        platform = map.getNotNullOrDefault("platform", emptySet<String>()) as Platform
+        providedPluginExtensions = (map.getNotNullOrDefault("loads", emptySet<String>()) as Collection<*>)
+                .map { it.toString() }.toSet()
     }
 
     companion object {

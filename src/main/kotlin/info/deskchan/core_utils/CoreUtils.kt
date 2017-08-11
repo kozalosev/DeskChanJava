@@ -8,6 +8,7 @@ import org.json.JSONObject
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.*
 
 
 private const val TEMPLATE_INVALID_PROPERTY = "Manifest of plugin \"%s\" has invalid property: %s"
@@ -38,7 +39,7 @@ private fun readManifestJsonFile(path: Path): JSONObject? {
 
 private fun parseManifest(name: String, manifest: JSONObject): Manifest {
     val map = mutableMapOf<String, Any?>("name" to name)
-    listOf("name", "version", "description", "keywords", "license").forEach {
+    listOf("name", "version", "keywords", "license").forEach {
         if (manifest.has(it)) {
             try {
                 map[it] = manifest.getString(it)
@@ -48,24 +49,43 @@ private fun parseManifest(name: String, manifest: JSONObject): Manifest {
             }
         }
     }
+    if (manifest.has("description")) {
+        map["description"] = try {
+            manifest.getString("description")
+        } catch (e: JSONException) {
+            val strings = manifest.getJSONObject("description")
+                    .toMap()
+                    .map { Pair(it.key.toString(), it.value.toString()) }
+                    .toMap()
+            getLocalString(strings)
+        } catch (e: JSONException) {
+            log(TEMPLATE_INVALID_PROPERTY.format(name, "description"))
+            null
+        }
+    }
     if (manifest.has("authors")) {
         try {
-            val authors = manifest.getJSONArray("authors")
-            map["authors"] = authors
-                .mapIndexed { i, _ -> authors.getJSONObject(i) }
-                .filter { it.has("name") }
-                .map {
-                        val email = if (it.has("email")) it.getString("email") else null
-                        val website = if (it.has("website")) it.getString("website") else null
-                        Author(
-                                it.getString("name"),
-                                email,
-                                website
-                        )
-                }
+            val authors = manifest.getString("authors").split(';')
+            map["authors"] = authors.map { AuthorParser.parse(it) }
         } catch (e: JSONException) {
-            log(TEMPLATE_INVALID_PROPERTY.format(name, "authors"))
-            log(e)
+            try {
+                val authors = manifest.getJSONArray("authors")
+                map["authors"] = authors
+                        .mapIndexed { i, _ -> authors.getJSONObject(i) }
+                        .filter { it.has("name") }
+                        .map {
+                            val email = if (it.has("email")) it.getString("email") else null
+                            val website = if (it.has("website")) it.getString("website") else null
+                            Author(
+                                    it.getString("name"),
+                                    email,
+                                    website
+                            )
+                        }
+            } catch (e: JSONException) {
+                log(TEMPLATE_INVALID_PROPERTY.format(name, "authors"))
+                log(e)
+            }
         }
     }
     return Manifest(map)
@@ -145,7 +165,7 @@ object AuthorParser {
         }
 
         val (nameStr, emailStr, websiteStr) = listOf(name, email, website).map {
-            val s = it.toString().trimEnd()
+            val s = it.toString().trim()
             if (s.isEmpty()) {
                 null
             } else {
@@ -172,3 +192,17 @@ fun resolveDependencies(plugin: PluginProxyInterface, manifest: PluginManifest?)
         ?: true         // or if there is no dependencies to load
 
 fun resolveDependencies(plugin: PluginEntity) = resolveDependencies(plugin, plugin.manifest)
+
+
+fun getLocalString(strings: Map<String, String>): String? {
+    val full_lang = Locale.getDefault().toLanguageTag()?.replace('-', '_')
+    return if (full_lang != null) {
+        val base_lang = if (full_lang.length > 2) full_lang.substring(0..1) else null
+        strings[full_lang] ?: strings[base_lang] ?: strings[DEFAULT_LANGUAGE_KEY]
+    } else {
+        strings[DEFAULT_LANGUAGE_KEY]
+    }
+}
+
+
+fun <K, V> Map<K, V>.getNotNullOrDefault(key: K, defaultValue: V) = this.getOrDefault(key, defaultValue) ?: defaultValue
