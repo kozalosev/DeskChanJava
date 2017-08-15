@@ -44,7 +44,7 @@ public class Main implements Plugin, PluginLoader {
 		compilerConfiguration.setSourceEncoding("UTF-8");
 		compilerConfiguration.setScriptBaseClass("info.deskchan.groovy_support.GroovyPlugin");
 		compilerConfiguration.setClasspath(path.getParent().toString());
-		GroovyShell groovyShell = new GroovyShell(compilerConfiguration);
+		GroovyShell groovyShell = new GroovyShell(getClass().getClassLoader(), compilerConfiguration);
 		Script script = groovyShell.parse(path.toFile());
 		GroovyPlugin plugin = (GroovyPlugin) script;
 		plugin.setPluginDirPath(path.getParent());

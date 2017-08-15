@@ -5,6 +5,7 @@ import info.deskchan.core_utils.TextOperations;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 public class EmotionsController {
@@ -43,7 +44,9 @@ public class EmotionsController {
 		}
 		
 		void start() {
-			Main.getPluginProxy().sendMessage("core-utils:notify-after-delay", TextOperations.toMap("delay: 100000"),this);
+			Map<String, Object> m = new HashMap<>();
+			m.put("delay", 100000);
+			Main.getPluginProxy().sendMessage("core-utils:notify-after-delay", m, this);
 		}
 		
 	}

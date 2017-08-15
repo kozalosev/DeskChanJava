@@ -96,6 +96,7 @@ public class TextOperations {
         return words;
     }
 
+    // TODO: Make arguments castable
     public static Map<String,Object> toMap(String text){
         TagsContainer tags=new TagsContainer(text);
         Map<String,Object> map=new HashMap<>();

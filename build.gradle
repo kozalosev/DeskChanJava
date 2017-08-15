@@ -66,6 +66,15 @@ ext.standardJarPlugins = [
 	'ChatWindow'
 ]
 
+ext.additionalManifestFields = [
+	GuiJavafx: [
+		'Plugin-Resource-Path': 'info/deskchan/gui_javafx/gui-strings'
+	],
+	TalkingSystem: [
+		'Plugin-Resource-Path': 'info/deskchan/talking_system/gui-strings'
+	]
+]
+
 def gitCommitCount = '[UNOFFICIAL]'
 def gitCommitHash = 'Unknown'
 def gitBranchName = 'Unknown'
@@ -175,11 +184,17 @@ standardJarPlugins.each { name ->
 			include "info/deskchan/$baseName/**/*"
 		}
 		manifest {
-			attributes 'Main-Class': "info.deskchan.${baseName}.Main",
-					   'DeskChan-Plugin': true,
-					   'Plugin-Version': appVersion,
-					   'Plugin-Author': 'DeskChan Project <support@deskchan.info> (http://deskchan.info)',
-					   'Plugin-License': 'LGPL-3.0'
+			def commonAttrs = [
+				'Main-Class': "info.deskchan.${baseName}.Main",
+				'DeskChan-Plugin': true,
+				'Plugin-Version': appVersion,
+				'Plugin-Author': 'DeskChan Project <support@deskchan.info> (http://deskchan.info)',
+				'Plugin-License': 'LGPL-3.0'
+			]
+			if (project.additionalManifestFields.containsKey(name)) {
+				commonAttrs += project.additionalManifestFields[name]
+			}
+			attributes commonAttrs
 		}
 		version = null
 	}

@@ -82,7 +82,7 @@ class Main : Plugin, PluginLoader {
                 manifestAttributes.groupValues("Plugin-Author").map { AuthorParser.parse(it) }.toSet(),
                 manifestAttributes.getValue("Plugin-License")
         )
-        val resourceFilePath = manifestAttributes.getValue("Plugin-Resource-File")
+        val resourceFilePath = manifestAttributes.getValue("Plugin-Resource-Path")
         val resourceBundle = extractResources(id, resourceFilePath, loader)
         val data = when {
             resourceBundle != null -> mapOf("resources" to resourceBundle)
