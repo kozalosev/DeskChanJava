@@ -1,18 +1,27 @@
 package info.deskchan.gui_javafx;
 
+import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
+import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.control.*;
-import javafx.scene.layout.BorderPane;
+import javafx.scene.input.KeyCode;
+import javafx.scene.layout.*;
+import javafx.scene.paint.Color;
+import javafx.scene.paint.Paint;
+import javafx.scene.shape.Rectangle;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
+import javafx.scene.text.Text;
+import javafx.scene.text.TextFlow;
 import javafx.stage.FileChooser;
+import javafx.stage.Window;
 
 import java.io.File;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 interface PluginOptionsControlItem {
 	
@@ -28,9 +37,13 @@ interface PluginOptionsControlItem {
 	
 	Node getNode();
 	
-	static PluginOptionsControlItem create(Map<String, Object> options) {
+	static PluginOptionsControlItem create(Window parent, Map<String, Object> options) {
 		String type = (String) options.get("type");
 		Object value = options.getOrDefault("value", null);
+		Double width = App.getDouble(options.getOrDefault("width",null), null);
+		Double height = App.getDouble(options.getOrDefault("height",null), null);
+		Boolean disabled = App.getBoolean(options.getOrDefault("disabled",null), null);
+
 		PluginOptionsControlItem item = null;
 		switch (type) {
 			case "Label":
@@ -40,7 +53,17 @@ interface PluginOptionsControlItem {
 				item = new TextFieldItem();
 				break;
 			case "Spinner":
-				item = new SpinnerItem();
+			case "IntSpinner":
+				item = new IntSpinnerItem();
+				break;
+			case "FloatSpinner":
+				item = new FloatSpinnerItem();
+				break;
+			case "Slider":
+				item = new SliderItem();
+				break;
+			case "CheckBox":
+				item = new CheckBoxItem();
 				break;
 			case "ComboBox":
 				item = new ComboBoxItem();
@@ -52,24 +75,54 @@ interface PluginOptionsControlItem {
 				item = new ButtonItem();
 				break;
 			case "FileField":
-				item = new FileFieldItem();
+				item = new FileFieldItem(parent);
 				break;
 			case "DatePicker":
 				item = new DatePickerItem();
 				break;
+			case "FilesManager":
+				item = new FilesManagerItem(parent);
+				break;
+			case "TextArea":
+				item = new TextAreaItem();
+				break;
+			case "CustomizableTextArea":
+				item = new CustomizableTextAreaItem();
+				break;
 		}
 		if (item == null) {
+			Main.log("Unknown type of item: "+type);
 			return null;
 		}
 		item.init(options);
 		if (value != null) {
 			item.setValue(value);
 		}
+		Node node=item.getNode();
+		if(width!=null && height!=null){
+			node.setClip(new Rectangle(width,height));
+		}
+		if(width!=null && node instanceof Region) {
+			((Region) node).setMinWidth(width);
+			((Region) node).setMaxWidth(width);
+		}
+		if(height!=null && node instanceof Region) {
+			((Region) node).setMinHeight(height);
+			((Region) node).setMaxHeight(height);
+		}
+		if(disabled!=null){
+			node.setDisable(disabled);
+		}
 		return item;
 	}
 	
 	class LabelItem extends Label implements PluginOptionsControlItem {
-		
+
+		public LabelItem() {
+			super();
+			setWrapText(true);
+		}
+
 		@Override
 		public void setValue(Object value) {
 			setText(value.toString());
@@ -90,13 +143,23 @@ interface PluginOptionsControlItem {
 	class TextFieldItem implements PluginOptionsControlItem {
 		
 		TextField textField;
-		
+		String enterTag=null;
 		@Override
 		public void init(Map<String, Object> options) {
 			Boolean isPasswordField = (Boolean) options.getOrDefault("hideText", false);
 			textField = (isPasswordField) ? new PasswordField() : new TextField();
+			enterTag=(String)options.getOrDefault("enterTag",null);
+			if(enterTag!=null){
+				textField.setOnKeyReleased(event -> {
+					if (event.getCode() == KeyCode.ENTER){
+						Main.getInstance().getPluginProxy().sendMessage(enterTag,new HashMap<String,Object>(){{
+							put("value", getValue());
+						}});
+					}
+				});
+			}
 		}
-		
+
 		@Override
 		public void setValue(Object value) {
 			textField.setText(value.toString());
@@ -113,22 +176,158 @@ interface PluginOptionsControlItem {
 		}
 		
 	}
-	
-	class SpinnerItem implements PluginOptionsControlItem {
-		
-		private final Spinner<Integer> spinner = new Spinner<>();
-		
+	class TextAreaItem implements PluginOptionsControlItem {
+
+		TextArea area;
 		@Override
 		public void init(Map<String, Object> options) {
-			Integer min = (Integer) options.getOrDefault("min", 0);
-			Integer max = (Integer) options.getOrDefault("max", 100);
-			Integer step = (Integer) options.getOrDefault("step", 1);
+			area=new TextArea();
+			Integer rowCount = (Integer) options.getOrDefault("rowCount", 5);
+			area.setPrefRowCount(rowCount);
+		}
+
+		@Override
+		public void setValue(Object value) { area.setText(value.toString()); }
+
+		@Override
+		public Object getValue() { return area.getText(); }
+
+		@Override
+		public Node getNode() { return area; }
+	}
+	class CustomizableTextAreaItem implements PluginOptionsControlItem {
+
+		ScrollPane scrollPane;
+		TextFlow area;
+
+		@Override
+		public void init(Map<String, Object> options) {
+			scrollPane = new ScrollPane();
+			area=new TextFlow(new Text("Пустой текст"));
+			scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+			scrollPane.setContent(area);
+			scrollPane.setFitToWidth(true);
+			area.prefHeightProperty().bind(scrollPane.heightProperty());
+			area.setBackground(new Background(new BackgroundFill(Color.WHITE, CornerRadii.EMPTY, Insets.EMPTY)));
+		}
+
+		@Override
+		public void setValue(Object value) {
+			if(value instanceof String){
+				Text t=new Text((String)value);
+				area=new TextFlow(t);
+				return;
+			}
+			List<Object> values;
+			if(value instanceof List) {
+				values = (List<Object>) value;
+			} else {
+				values = new ArrayList<>();
+				if (value instanceof Map)
+					values.add(value);
+			}
+			ArrayList<Text> list=new ArrayList<>();
+			for(Object cur : values){
+				if(cur instanceof String)
+					list.add(new Text((String)cur));
+				if(cur instanceof Map){
+					Text t=new Text();
+					try {
+						Map<Object, Object> map = (Map<Object, Object>) cur;
+						if (map.containsKey("text"))
+							t.setText((String) map.get("text"));
+						if (map.containsKey("color"))
+							t.setFill(Paint.valueOf((String) map.get("color")));
+						if (map.containsKey("size")) {
+							Font font = t.getFont();
+							font = Font.font(font.getFamily(), FontWeight.findByName(font.getStyle()), (Integer) map.get("size"));
+							t.setFont(font);
+						}
+						if (map.containsKey("style")) {
+							Font font = t.getFont();
+							font = Font.font(font.getFamily(), FontWeight.findByName((String) map.get("style")), font.getSize());
+							t.setFont(font);
+						}
+						list.add(t);
+					} catch (Exception e){ }
+				}
+			}
+			area.getChildren().clear();
+			area.getChildren().addAll(list);
+		}
+
+		@Override
+		public Object getValue() { return area.getChildren(); }
+
+		@Override
+		public Node getNode() { return scrollPane; }
+	}
+
+	abstract class ChangeableItem implements PluginOptionsControlItem {
+
+		protected void configureOnChangeAction(ObservableValue<? extends Number> valueProperty, Map<String, Object> configuration) {
+			if(configuration != null && configuration.containsKey("msgTag")) {
+				String msgTag = (String) configuration.get("msgTag");
+				String newValueField = (String) configuration.getOrDefault("newValueField", "value");
+				String oldValueField = (String) configuration.getOrDefault("oldValueField", "oldValue");
+				double multiplier = ((Number) configuration.getOrDefault("multiplier", 1.0)).doubleValue();
+				Map<String, Object> data;
+				if (configuration.containsKey("data")) {
+					data = (Map<String, Object>) configuration.get("data");
+				} else {
+					data = null;
+				}
+
+				valueProperty.addListener((obs, oldValue, newValue) -> {
+					Map<String, Object> eventData = new HashMap<>();
+					eventData.put(newValueField, newValue.doubleValue() * multiplier);
+					eventData.put(oldValueField, oldValue.doubleValue());
+					if (data != null) {
+						data.forEach(eventData::put);
+					}
+					Main.getInstance().getPluginProxy().sendMessage(msgTag, eventData);
+				});
+			}
+		}
+
+	}
+
+	class ImprovedSpinner<T> extends Spinner<T> {
+		ImprovedSpinner() {
+			super();
+			setOnScroll(event -> {
+				if (event.getDeltaY() > 0) {
+					increment();
+				} else if (event.getDeltaY() < 0) {
+					decrement();
+				}
+			});
+			setEditable(true);
+			focusedProperty().addListener((observable, oldValue, newValue) -> {
+				if (!newValue) {
+					increment(0); // won't change value, but will commit editor
+				}
+			});
+		}
+	}
+
+	class IntSpinnerItem extends ChangeableItem {
+		
+		private final Spinner<Integer> spinner = new ImprovedSpinner<>();
+
+		@Override
+		public void init(Map<String, Object> options) {
+			int min = ((Number) options.getOrDefault("min", 0)).intValue();
+			int max = ((Number) options.getOrDefault("max", 100)).intValue();
+			int step = ((Number) options.getOrDefault("step", 1)).intValue();
 			spinner.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(min, max, min, step));
+			Map<String, Object> onChangeMap = (Map<String, Object>) options.getOrDefault("onChange",null);
+			configureOnChangeAction(spinner.valueProperty(), onChangeMap);
 		}
 		
 		@Override
 		public void setValue(Object value) {
-			spinner.getValueFactory().setValue((Integer) value);
+			spinner.getValueFactory().setValue(((Number) value).intValue());
 		}
 		
 		@Override
@@ -142,6 +341,115 @@ interface PluginOptionsControlItem {
 		}
 		
 	}
+
+	class FloatSpinnerItem extends ChangeableItem {
+
+		private final Spinner<Double> spinner = new ImprovedSpinner<>();
+
+		@Override
+		public void init(Map<String, Object> options) {
+			double min = ((Number) options.getOrDefault("min", 0)).doubleValue();
+			double max = ((Number) options.getOrDefault("max", 100)).doubleValue();
+			double step = ((Number) options.getOrDefault("step", 1)).doubleValue();
+			spinner.setValueFactory(new SpinnerValueFactory.DoubleSpinnerValueFactory(min, max, min, step));
+			Map<String, Object> onChangeMap = (Map<String, Object>) options.getOrDefault("onChange",null);
+			configureOnChangeAction(spinner.valueProperty(), onChangeMap);
+		}
+
+		@Override
+		public void setValue(Object value) {
+			spinner.getValueFactory().setValue(((Number) value).doubleValue());
+		}
+
+		@Override
+		public Object getValue() {
+			return spinner.getValue();
+		}
+
+		@Override
+		public Node getNode() {
+			return spinner;
+		}
+
+	}
+
+	class SliderItem extends ChangeableItem {
+
+		private Slider slider = new Slider();
+
+		@Override
+		public void init(Map<String, Object> options) {
+			double min = ((Number) options.getOrDefault("min", 0)).doubleValue();
+			double max = ((Number) options.getOrDefault("max", 100)).doubleValue();
+			Double step = ((Number) options.getOrDefault("step", 1)).doubleValue();
+			slider.setMin(min);
+			slider.setMax(max);
+			slider.setBlockIncrement(step);
+			slider.setMinorTickCount(10);
+			slider.setMajorTickUnit(step * 10);
+			slider.setShowTickLabels(true);
+			if (step > 1) {
+				slider.setShowTickMarks(true);
+				slider.setSnapToTicks(true);
+			}
+
+			Map<String, Object> onChangeMap = (Map<String, Object>) options.getOrDefault("onChange",null);
+			configureOnChangeAction(slider.valueProperty(), onChangeMap);
+
+			slider.setOnScroll(event -> {
+				if (event.getDeltaY() > 0) {
+					slider.increment();
+				} else if (event.getDeltaY() < 0) {
+					slider.decrement();
+				}
+			});
+		}
+
+		@Override
+		public void setValue(Object value) {
+			double val = ((Number) value).doubleValue();
+			slider.setValue(val);
+		}
+
+		@Override
+		public Object getValue() {
+			return slider.getValue();
+		}
+
+		@Override
+		public Node getNode() {
+			return slider;
+		}
+
+	}
+
+	class CheckBoxItem extends CheckBox implements PluginOptionsControlItem {
+
+		@Override
+		public void init(Map<String, Object> options) {
+			String msgTag=(String)options.getOrDefault("msgTag",null);
+			if(msgTag!=null){
+				selectedProperty().addListener((obs, oldValue, newValue) -> {
+					Main.getInstance().getPluginProxy().sendMessage(msgTag,new HashMap<String,Object>(){{
+						put("value", newValue);
+					}});
+				});
+			}
+		}
+		@Override
+		public void setValue(Object value) { setSelected((boolean) value); }
+
+		@Override
+		public Object getValue() {
+			return isSelected();
+		}
+
+		@Override
+		public Node getNode() {
+			return this;
+		}
+
+	}
 	
 	class ComboBoxItem implements PluginOptionsControlItem {
 		
@@ -151,6 +459,14 @@ interface PluginOptionsControlItem {
 		public void init(Map<String, Object> options) {
 			List<Object> items = (List<Object>) options.get("values");
 			comboBox.setItems(FXCollections.observableList(items));
+			String msgTag=(String)options.getOrDefault("msgTag",null);
+			if(msgTag!=null){
+				comboBox.valueProperty().addListener((obs, oldValue, newValue) -> {
+					Main.getInstance().getPluginProxy().sendMessage(msgTag,new HashMap<String,Object>(){{
+						put("value", newValue.toString());
+					}});
+				});
+			}
 		}
 		
 		@Override
@@ -176,10 +492,20 @@ interface PluginOptionsControlItem {
 		
 		@Override
 		public void init(Map<String, Object> options) {
-			List<Object> items = (List<Object>) options.get("values");
-			listView.setItems(FXCollections.observableList(items));
+			List<Object> items = (List<Object>) options.getOrDefault("values",null);
+			if(items!=null && items.size()>0)
+				listView.setItems(FXCollections.observableList(items));
 			listView.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
 			listView.setPrefHeight(150);
+			String msgTag=(String)options.getOrDefault("msgTag",null);
+			if(msgTag!=null){
+				listView.setOnMouseClicked((event) -> {
+					Main.getInstance().getPluginProxy().sendMessage(msgTag,new HashMap<String,Object>(){{
+						put("value", new ArrayList<Object>(listView.getSelectionModel().getSelectedItems()));
+					}});
+				});
+
+			}
 		}
 		
 		@Override
@@ -233,7 +559,51 @@ interface PluginOptionsControlItem {
 		}
 		
 	}
-	
+
+	class FilesManagerItem extends Button implements PluginOptionsControlItem {
+		private List<String> files;
+		private Window parent;
+
+		public FilesManagerItem(Window window){
+			parent = window;
+		}
+
+		@Override
+		public void init(Map<String, Object> options) {
+			setText(Main.getString("choose"));
+			files = new ArrayList<>();
+			try {
+				files = (List<String>) options.get("filesList");
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			setOnAction(event -> callAction());
+		}
+
+		private void callAction(){
+			FilesManagerDialog dialog = new FilesManagerDialog(parent,files);
+			dialog.requestFocus();
+			dialog.showAndWait();
+			files = dialog.getFilesList();
+		}
+
+		@Override
+		public void setValue(Object value) {
+			files = (List<String>) value;
+		}
+
+		@Override
+		public Object getValue() {
+			return files;
+		}
+
+		@Override
+		public Node getNode() {
+			return this;
+		}
+
+	}
+
 	class FileFieldItem extends BorderPane implements PluginOptionsControlItem {
 		
 		private final TextField textField = new TextField();
@@ -241,18 +611,19 @@ interface PluginOptionsControlItem {
 		private final Button clearButton = new Button("X");
 		private final FileChooser chooser = new FileChooser();
 		
-		FileFieldItem() {
+		FileFieldItem(Window parent) {
 			textField.setEditable(false);
 			setCenter(textField);
 			clearButton.setOnAction(event -> textField.clear());
 			setLeft(clearButton);
 			selectButton.setOnAction(event -> {
-				File file = chooser.showOpenDialog(OptionsDialog.getInstance().getDialogPane().getScene().getWindow());
+				File file = chooser.showOpenDialog(parent);
 				if (file != null) {
 					textField.setText(file.getAbsolutePath());
 				}
 			});
 			setRight(selectButton);
+			setMaxHeight(textField.getHeight());
 		}
 		
 		@Override
@@ -260,6 +631,15 @@ interface PluginOptionsControlItem {
 			String path = (String) options.getOrDefault("initialDirectory", null);
 			if (path != null) {
 				chooser.setInitialDirectory(new File(path));
+			}
+
+			List<Map<String, Object>> filters = (List<Map<String, Object>>) options.getOrDefault("filters", new ArrayList<>(0));
+			for (Map<String, Object> filter : filters) {
+				String description = (String) filter.getOrDefault("description", null);
+				List<String> extensions = (List<String>) filter.getOrDefault("extensions", null);
+				if (description != null && extensions != null) {
+					chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter(description, extensions));
+				}
 			}
 		}
 		

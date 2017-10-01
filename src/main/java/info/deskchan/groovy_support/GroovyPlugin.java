@@ -3,7 +3,7 @@ package info.deskchan.groovy_support;
 import groovy.lang.Script;
 import info.deskchan.core.MessageListener;
 import info.deskchan.core.Plugin;
-import info.deskchan.core.PluginProxy;
+import info.deskchan.core.PluginProxyInterface;
 import info.deskchan.core.ResponseListener;
 
 import java.nio.file.Path;
@@ -12,12 +12,12 @@ import java.util.List;
 
 public abstract class GroovyPlugin extends Script implements Plugin {
 	
-	private PluginProxy pluginProxy = null;
+	private PluginProxyInterface pluginProxy = null;
 	private List<Runnable> cleanupHandlers = new ArrayList<>();
 	private Path pluginDirPath;
 	
 	@Override
-	public boolean initialize(PluginProxy pluginProxy) {
+	public boolean initialize(PluginProxyInterface pluginProxy) {
 		this.pluginProxy = pluginProxy;
 		try {
 			run();
@@ -34,6 +34,10 @@ public abstract class GroovyPlugin extends Script implements Plugin {
 			runnable.run();
 		}
 	}
+
+	protected String getId() {
+		return pluginProxy.getId();
+	}
 	
 	protected void sendMessage(String tag, Object data) {
 		pluginProxy.sendMessage(tag, data);
@@ -42,7 +46,11 @@ public abstract class GroovyPlugin extends Script implements Plugin {
 	protected void sendMessage(String tag, Object data, ResponseListener responseListener) {
 		pluginProxy.sendMessage(tag, data, responseListener);
 	}
-	
+
+	protected void sendMessage(String tag, Object data, ResponseListener responseListener, ResponseListener returnListener) {
+		pluginProxy.sendMessage(tag, data, responseListener, returnListener);
+	}
+
 	protected void addMessageListener(String tag, MessageListener listener) {
 		pluginProxy.addMessageListener(tag, listener);
 	}
@@ -50,7 +58,8 @@ public abstract class GroovyPlugin extends Script implements Plugin {
 	protected void removeMessageListener(String tag, MessageListener listener) {
 		pluginProxy.removeMessageListener(tag, listener);
 	}
-	
+	protected String getString(String key){ return pluginProxy.getString(key); }
+
 	protected void addCleanupHandler(Runnable handler) {
 		cleanupHandlers.add(handler);
 	}
@@ -62,6 +71,12 @@ public abstract class GroovyPlugin extends Script implements Plugin {
 	protected Path getPluginDirPath() {
 		return pluginDirPath;
 	}
+
+	protected void setResourceBundle(String path){ pluginProxy.setResourceBundle(getPluginDirPath().resolve(path).toString()); }
+
+	protected void setConfigField(String key, Object value){ pluginProxy.setConfigField(key,value); }
+
+	protected Object getConfigField(String key){ return pluginProxy.getConfigField(key); }
 	
 	protected void log(String text) {
 		pluginProxy.log(text);

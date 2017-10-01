@@ -16,17 +16,31 @@ class MovablePane extends Pane {
 	private String positionStorageID = null;
 	private Point2D clickPos = null;
 	private Point2D dragPos = null;
+	private long lastClick = -1;
+	private EventHandler<MouseEvent> pressEventHandler = (e) -> {
+		lastClick = System.currentTimeMillis();
+	};
 	private EventHandler<MouseEvent> dragEventHandler = (e) -> {
-		Point2D newClickPos = new Point2D(e.getSceneX(), e.getSceneY());
+		Point2D newClickPos = new Point2D(e.getScreenX(), e.getScreenY());
 		Point2D delta = newClickPos.subtract(clickPos);
 		if (dragPos != null) {
 			dragPos = dragPos.add(delta);
 			setPosition(dragPos);
 		}
 		clickPos = newClickPos;
+
 	};
 	private EventHandler<MouseEvent> releaseEventHandler = (e) -> stopDrag();
-	
+
+	MovablePane(){
+		setOnMousePressed(pressEventHandler);
+	}
+	protected boolean positionRelativeToDesktopSize = true;
+
+	public boolean isLongClick(){
+		return (System.currentTimeMillis()-lastClick)>500;
+	}
+
 	private static Rectangle2D snapRect(Rectangle2D bounds, Rectangle2D screenBounds) {
 		double x1 = bounds.getMinX(), y1 = bounds.getMinY();
 		double x2 = bounds.getMaxX(), y2 = bounds.getMaxY();
@@ -46,6 +60,10 @@ class MovablePane extends Pane {
 	}
 	
 	void setPosition(Point2D topLeft) {
+		if (topLeft == null) {
+			setDefaultPosition();
+			return;
+		}
 		Bounds bounds = getLayoutBounds();
 		Rectangle2D rect = new Rectangle2D(topLeft.getX(), topLeft.getY(),
 				bounds.getWidth(), bounds.getHeight());
@@ -55,7 +73,22 @@ class MovablePane extends Pane {
 		}
 		relocate(rect.getMinX(), rect.getMinY());
 	}
-	
+
+	Point2D getPosition() {
+		Bounds bounds = getLayoutBounds();
+		try {
+			Bounds local = localToScreen(bounds);
+			if (local != null) bounds = local;
+		} catch(Exception e){ }
+		Point2D position = new Point2D(bounds.getMinX(), bounds.getMinY());
+		return position;
+	}
+
+	public void relocate(double x, double y) {
+		if(OverlayStage.getInstance()!=null)
+			OverlayStage.getInstance().relocate(this, x, y);
+		else super.relocate(x,y);
+	}
 	void setDefaultPosition() {
 		setPosition(new Point2D(0, 0));
 	}
@@ -64,8 +97,8 @@ class MovablePane extends Pane {
 		if (clickPos != null) {
 			return;
 		}
-		clickPos = new Point2D(event.getSceneX(), event.getSceneY());
-		dragPos = new Point2D(getLayoutX(), getLayoutY());
+		clickPos = new Point2D(event.getScreenX(), event.getScreenY());
+		dragPos = getPosition();
 		addEventFilter(MouseEvent.MOUSE_RELEASED, releaseEventHandler);
 		addEventFilter(MouseEvent.MOUSE_DRAGGED, dragEventHandler);
 	}
@@ -78,15 +111,13 @@ class MovablePane extends Pane {
 		removeEventFilter(MouseEvent.MOUSE_DRAGGED, dragEventHandler);
 		dragPos = null;
 		clickPos = null;
-		if (positionStorageID != null) {
-			storePositionToStorage();
-		}
+		storePositionToStorage();
 	}
 	
 	boolean isDragging() {
 		return dragPos != null;
 	}
-	
+
 	String getPositionStorageID() {
 		return positionStorageID;
 	}
@@ -95,42 +126,61 @@ class MovablePane extends Pane {
 		assert positionStorageID == null;
 		positionStorageID = id;
 		loadPositionFromStorage();
-		Screen.getScreens().addListener((ListChangeListener<Screen>) change -> loadPositionFromStorage());
+		if (positionRelativeToDesktopSize) {
+			Screen.getScreens().addListener((ListChangeListener<Screen>) change -> loadPositionFromStorage());
+		}
 	}
 	
 	private String getCurrentPositionStorageKey() {
+		if (positionStorageID == null) {
+			return null;
+		}
 		final StringBuilder key = new StringBuilder();
 		final Rectangle2D desktopSize = OverlayStage.getDesktopSize();
 		key.append(positionStorageID);
-		key.append('.');
-		key.append(desktopSize.getMinX());
-		key.append('_');
-		key.append(desktopSize.getMinY());
-		key.append('_');
-		key.append(desktopSize.getWidth());
-		key.append('_');
-		key.append(desktopSize.getHeight());
+		if (positionRelativeToDesktopSize) {
+			key.append('.');
+			key.append(desktopSize.getMinX());
+			key.append('_');
+			key.append(desktopSize.getMinY());
+			key.append('_');
+			key.append(desktopSize.getWidth());
+			key.append('_');
+			key.append(desktopSize.getHeight());
+		}
 		return key.toString();
 	}
 	
-	private void loadPositionFromStorage() {
-		final String key = getCurrentPositionStorageKey();
-		final String value = Main.getProperty(key, null);
-		if (value != null) {
-			String[] coords = value.split(";");
-			if (coords.length == 2) {
-				double x = Double.parseDouble(coords[0]);
-				double y = Double.parseDouble(coords[1]);
-				setPosition(new Point2D(x, y));
-				return;
+	protected void loadPositionFromStorage() {
+		try {
+			final String key = getCurrentPositionStorageKey();
+			if (key != null) {
+				final String value = Main.getProperty(key, null);
+				if (value != null) {
+					String[] coords = value.split(";");
+					if (coords.length == 2) {
+						double x = Double.parseDouble(coords[0]);
+						double y = Double.parseDouble(coords[1]);
+						Rectangle2D desktop = OverlayStage.getDesktopSize();
+						if (x + getHeight() > desktop.getMaxX() || x < -getHeight())
+							x = desktop.getMaxX() - getHeight();
+						if (y + getWidth() > desktop.getMaxY() || y < -getWidth()) y = desktop.getMaxY() - getWidth();
+						setPosition(new Point2D(x, y));
+						return;
+					}
+				}
 			}
-		}
+		} catch (Exception e){ Main.log(e); }
 		setDefaultPosition();
 	}
-	
-	private void storePositionToStorage() {
+
+	protected void storePositionToStorage() {
 		final String key = getCurrentPositionStorageKey();
-		Main.setProperty(key, getLayoutX() + ";" + getLayoutY());
+		if (key != null) {
+			Point2D pos = getPosition();
+			Main.setProperty(key, pos.getX() + ";" + pos.getY());
+		}
 	}
-	
+
+
 }

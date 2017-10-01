@@ -1,22 +1,26 @@
 package info.deskchan.talking_system;
 
-import java.util.*;
+import info.deskchan.core.ResponseListener;
+import info.deskchan.core_utils.TextOperations;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Random;
 
 public class EmotionsController {
 	private int emotionValue;
 	private int emotionIndex;
 	private static int emotion_limit = 3;
-	Timer raisingTimer;
 	
-	public EmotionsController() {
+	EmotionsController() {
 		Reset();
-		raisingTimer = new Timer();
-		raisingTimer.schedule(new raiseNewEmotion(), 100000, 100000);
+		(new RaiseNewEmotion()).start();
 	}
 	
-	class raiseNewEmotion extends TimerTask {
+	class RaiseNewEmotion implements ResponseListener {
+		
 		@Override
-		public void run() {
+		public void handle(String sender, Object data) {
 			if (new Random().nextFloat() > 0.8) {
 				if (emotionValue > 0) {
 					emotionValue += (new Random().nextFloat() > 0.5 ? 1 : -1);
@@ -31,16 +35,20 @@ public class EmotionsController {
 				}
 			}
 			if (emotionIndex >= 0) {
-				Map<String, Object> map = new HashMap<String, Object>();
-				map.put("purpose", "EMOTION:" + Emotion.getEmotion(emotionIndex).name);
-				Main.sendToProxy("talk:emotion-changed", map);
+				Main.sendToProxy("talk:request", "EMOTION");
 			} else {
 				Reset();
 			}
+			start();
 		}
+		
+		void start() {
+			Main.getPluginProxy().sendMessage("core-utils:notify-after-delay", TextOperations.toMap("delay: 100000"),this);
+		}
+		
 	}
 	
-	public void Reset() {
+	void Reset() {
 		emotionValue = 0;
 		emotionIndex = -1;
 	}
@@ -74,7 +82,19 @@ public class EmotionsController {
 		
 		RaiseMessage();
 	}
-	
+	public boolean isTagsMatch(HashMap<String,Object> tagsToMatch){
+		for(HashMap.Entry<String,Object> entry : tagsToMatch.entrySet()){
+			if(!entry.getKey().equals("emotion")) continue;
+			List<String> arglist=(List<String>) entry.getValue();
+			if (arglist.size()==0) continue;
+			String curEmotion=getEmotionName();
+			if(curEmotion==null) return false;
+			for(int i=0;i<arglist.size();i++)
+				if(arglist.get(i).equals(curEmotion)) return true;
+			return false;
+		}
+		return true;
+	}
 	public CharacterDefinite Construct(CharacterDefinite target) {
 		if (emotionValue == 0) {
 			return target;
@@ -106,9 +126,7 @@ public class EmotionsController {
 		if (emotionValue == 0 || emotionIndex < 0) {
 			return;
 		}
-		Map<String, Object> map = new HashMap<String, Object>();
-		map.put("emotion", Emotion.getEmotion(emotionIndex).name);
-		Main.sendToProxy("talk:emotion-changed", map);
+		Main.sendToProxy("talk:emotion-changed", TextOperations.toMap("emotion: "+Emotion.getEmotion(emotionIndex).name));
 	}
 	
 	public String getSpriteType() {
