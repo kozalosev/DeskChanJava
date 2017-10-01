@@ -1,3 +1,4 @@
+import info.deskchan.core.PluginConfig
 import info.deskchan.core.PluginLoader
 import info.deskchan.core.PluginManager
 
@@ -24,14 +25,20 @@ class JythonPluginLoader implements PluginLoader {
 
     @Override
     void loadByPath(Path path) throws Throwable {
-        String id = path.getFileName().toString()
+        def id = path.getFileName().toString()
+        def config = new PluginConfig("Jython")
         if (Files.isDirectory(path)) {
+            def manifestPath = path.resolve("manifest.json")
+            if (Files.exists(manifestPath)) {
+                config.appendFromJson(manifestPath)
+            }
+
             path = path.resolve("plugin.py")
         }
 
-        Path pythonModulesDirPath = pluginDirPath.resolve("python_modules")
-        JythonPlugin plugin = new JythonPlugin(path, pythonModulesDirPath, logger)
+        def pythonModulesDirPath = pluginDirPath.resolve("python_modules")
+        def plugin = new JythonPlugin(path, pythonModulesDirPath, logger)
 
-        PluginManager.getInstance().initializePlugin(id, plugin)
+        PluginManager.getInstance().initializePlugin(id, plugin, config)
     }
 }

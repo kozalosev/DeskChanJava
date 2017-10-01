@@ -1,11 +1,10 @@
-@Grab('org.python:jython-standalone:2.7.1b3')
+@Grab('org.python:jython-standalone:2.7.1')
 
 import info.deskchan.core.Plugin
-import info.deskchan.core.PluginProxy
+import info.deskchan.core.PluginProxyInterface
 import org.python.core.Py
 import org.python.core.PyCode
 import org.python.core.PyStringMap
-import org.python.core.PySystemState
 import org.python.util.PythonInterpreter
 
 import java.nio.charset.Charset
@@ -16,7 +15,7 @@ class JythonPlugin implements Plugin {
     private List<Runnable> cleanupHandlers = new ArrayList<>()
     private Path pluginPath
     private Path pythonModulesDirPath
-    private PluginProxy pluginProxy
+    private PluginProxyInterface pluginProxy
     private Closure logger
 
     JythonPlugin(Path pluginPath, Path pythonModulesDirPath, Closure logger) {
@@ -26,22 +25,22 @@ class JythonPlugin implements Plugin {
     }
 
     @Override
-    boolean initialize(PluginProxy pluginProxy) {
+    boolean initialize(PluginProxyInterface pluginProxy) {
         logger.call("Trying to load plugin \"${pluginProxy.getId()}\"...")
         this.pluginProxy = pluginProxy
 
-        PythonInterpreter interpreter = new PythonInterpreter()
-        PySystemState systemState = interpreter.getSystemState()
+        def interpreter = new PythonInterpreter()
+        def systemState = interpreter.getSystemState()
         systemState.path.append(Py.java2py(pythonModulesDirPath.toString()))
         systemState.path.append(Py.java2py(pluginPath.getParent().toString()))
         systemState.path.append(Py.java2py(pluginPath.getParent().resolve("__dependencies__").toString()))
 
-        InputStream scriptStream = new FileInputStream(pluginPath.toFile())
-        InputStreamReader scriptReader = new InputStreamReader(scriptStream, Charset.forName("UTF-8"))
+        def scriptStream = new FileInputStream(pluginPath.toFile())
+        def scriptReader = new InputStreamReader(scriptStream, Charset.forName("UTF-8"))
         PyCode script = interpreter.compile(scriptReader)
 
-        MethodProxy methodProxy = new MethodProxy(this)
-        PyStringMap globals = new PyStringMap()
+        def methodProxy = new MethodProxy(this)
+        def globals = new PyStringMap()
         globals.__setitem__("bus", Py.java2py(methodProxy))
         try {
             Py.runCode(script, globals, globals)
@@ -68,7 +67,7 @@ class JythonPlugin implements Plugin {
         return cleanupHandlers
     }
 
-    PluginProxy getPluginProxy() {
+    PluginProxyInterface getPluginProxy() {
         return pluginProxy
     }
 }
