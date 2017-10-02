@@ -1,18 +1,18 @@
 package info.deskchan.core_utils;
 
 import info.deskchan.core.Plugin;
-import info.deskchan.core.PluginProxy;
+import info.deskchan.core.PluginProxyInterface;
 
 import java.util.*;
 
 public class Main implements Plugin {
-	
-	private PluginProxy pluginProxy;
+
+	private static PluginProxyInterface pluginProxy;
 	private final List<MyTimerTask> timerTasks = new LinkedList<>();
 	private final Timer timer = new Timer();
-	
+
 	@Override
-	public boolean initialize(PluginProxy proxy) {
+	public boolean initialize(PluginProxyInterface proxy) {
 		pluginProxy = proxy;
 		pluginProxy.addMessageListener("core-utils:notify-after-delay-default-impl",
 				(sender, tag, data) -> {
@@ -28,7 +28,8 @@ public class Main implements Plugin {
 							}
 						}
 					}
-					long delay = (Long) m.getOrDefault("delay", -1);
+					Object delayObj = m.getOrDefault("delay", -1L);
+					long delay = delayObj instanceof Integer ? (long) (int) delayObj : (long) delayObj;
 					if (delay > 0) {
 						MyTimerTask task = new MyTimerTask(sender, seq);
 						timer.schedule(task, delay);
@@ -46,11 +47,15 @@ public class Main implements Plugin {
 				}
 			}
 		});
+		pluginProxy.addMessageListener("core:distribute-resources", (sender, tag, data) -> {
+			ResourceDistributor.distribute((String) data);
+		});
 		pluginProxy.sendMessage("core:register-alternative", new HashMap<String, Object>() {{
 			put("srcTag", "core-utils:notify-after-delay");
 			put("dstTag", "core-utils:notify-after-delay-default-impl");
 			put("priority", 1);
 		}});
+		UserSpeechRequest.initialize(pluginProxy);
 		return true;
 	}
 	
@@ -82,5 +87,14 @@ public class Main implements Plugin {
 			}});
 		}
 	}
-	
+	static void log(String text) {
+		pluginProxy.log(text);
+	}
+
+	static void log(Throwable e) {
+		pluginProxy.log(e);
+	}
+
+	static PluginProxyInterface getPluginProxy() { return pluginProxy; }
+
 }

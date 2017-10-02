@@ -18,124 +18,25 @@ import java.io.InputStream;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 
-public class Quotes {
-	CharacterDefinite current = new CharacterDefinite();
-	private int queueLength = 30;
-	private int curPos = 0;
-	Quote[] lastUsed = new Quote[queueLength];
-	ArrayList<Quote> quotes = new ArrayList();
-	ArrayList<Quote> suitableQuotes = new ArrayList();
-	
-	public void add(Quote quote) {
-		if (quote == null) {
-			return;
-		}
-		for (Quote q : quotes) {
-			if (q.toString().equals(quote.toString())) {
-				return;
-			}
-		}
-		quotes.add(quote);
-		if (quote.matchToCharacter(current)) {
-			suitableQuotes.add(quote);
-		}
-	}
-	
-	public void update(CharacterDefinite newCharacter) {
-		if (current.equal(newCharacter)) {
-			return;
-		}
-		current = newCharacter;
-		update();
-	}
-	
-	public void update() {
-		suitableQuotes = new ArrayList();
-		for (int i = 0, l = quotes.size(); i < l; i++) {
-			if (quotes.get(i).matchToCharacter(current)) {
-				suitableQuotes.add(quotes.get(i));
-			}
-		}
-		
-	}
-	
-	public ArrayList<Quote> GetMatching(CharacterDefinite target) {
-		ArrayList<Quote> sq = new ArrayList();
-		for (int i = 0, l = quotes.size(); i < l; i++) {
-			if (quotes.get(i).matchToCharacter(target)) {
-				sq.add(quotes.get(i));
-			}
-		}
-		return sq;
-	}
-	
-	public Quote getRandomQuote(String purpose) {
-		purpose = purpose.toUpperCase();
-		if (suitableQuotes.size() == 0) {
-			return new Quote("Я не знаю, что сказать.");
-		}
-		int r;
-		Quote q;
-		LinkedList<Quote> sq = new LinkedList<>();
-		Calendar cal = Calendar.getInstance();
-		cal.setTime(new Date());
-		for (int i = 0; i < suitableQuotes.size(); i++) {
-			q = suitableQuotes.get(i);
-			int dow = cal.get(Calendar.DAY_OF_WEEK);
-			if (dow == 1) {
-				dow = 7;
-			} else {
-				dow--;
-			}
-			if (q.noTimeout() && q.purposeType.equals(purpose) && q.possibleMonth.get(1 + cal.get(Calendar.MONTH)) && q.possibleHour.get(cal.get(Calendar.HOUR_OF_DAY)) && q.possibleWeekDay.get(dow)) {
-				sq.add(q);
-			}
-		}
-		
-		if (sq.size() == 0) {
-			return new Quote("Я не знаю, что сказать.");
-		}
-		int counter = queueLength + 1;
-		do {
-			counter--;
-			r = new Random().nextInt(sq.size());
-			q = sq.get(r);
-			int i, j = curPos - 1;
-			for (i = 0; i < counter; i++, j--) {
-				if (j < 0) {
-					j = j + queueLength;
-				}
-				if (lastUsed[j] == q) {
-					break;
-				}
-			}
-			if (i == counter) {
-				break;
-			}
-		} while (counter > 0);
-		lastUsed[curPos] = q;
-		curPos = (curPos + 1) % queueLength;
-		q.UpdateLastUsage();
-		return q;
-	}
-	
-	public Quote get(int index) {
-		return suitableQuotes.get(index);
-	}
-	
-	public int size() {
-		return suitableQuotes.size();
-	}
-	
-	public void clear() {
-		quotes = new ArrayList();
-		suitableQuotes = new ArrayList();
-		lastUsed = new Quote[queueLength];
-	}
-	
-	public void load(Path path, ArrayList<String> files) {
+class QuotePack{
+	private Path packName;
+	private String packNameString;
+	private ArrayList<Quote> quotes = new ArrayList<Quote>();
+
+	public QuotePack(String file){
+        packNameString=file;
+		packName=Paths.get(file).normalize();
+
+        if(!packName.getFileName().toString().contains("."))
+            packName=Paths.get(file+".quotes").normalize();
+		if(!packName.isAbsolute())
+			packName=Main.getDataDirPath().resolve(packName);
+        else if(packName.startsWith(Main.getDataDirPath()))
+            packNameString=packName.getFileName().toString();
+
 		DocumentBuilder builder;
 		try {
 			DocumentBuilderFactory f = DocumentBuilderFactory.newInstance();
@@ -145,32 +46,284 @@ public class Quotes {
 			Main.log("Error while starting quotes parser: " + e);
 			return;
 		}
-		
-		for (String file : files) {
-			try {
-				InputStream inputStream = Files.newInputStream(path.resolve(file + ".quotes"));
-				Document doc = builder.parse(inputStream);
-				inputStream.close();
-				Node mainNode = doc.getChildNodes().item(0);
-				NodeList list = mainNode.getChildNodes();
-				for (int i = 0; i < list.getLength(); i++) {
-					if (!list.item(i).getNodeName().equals("quote")) {
-						continue;
-					}
-					try {
-						add(Quote.create(list.item(i)));
-					} catch (Exception e2) {
-						Main.log(e2);
+		try {
+			InputStream inputStream = Files.newInputStream(packName);
+			Document doc = builder.parse(inputStream);
+			inputStream.close();
+			Node mainNode = doc.getChildNodes().item(0);
+			NodeList list = mainNode.getChildNodes();
+			for (int i = 0; i < list.getLength(); i++) {
+				if (!list.item(i).getNodeName().equals("quote")) {
+					continue;
+				}
+				try {
+					add(Quote.create(list.item(i)));
+				} catch (Exception e2) {
+					Main.log(e2);
+				}
+			}
+		} catch (Exception e) {
+			Main.log("Error while parsing quotes file " + file + ": " + e);
+            return;
+		}
+	}
+	public void add(Quote quote) {
+		if (quote == null) return;
+		//for (Quote q : quotes)
+		//	if (q.toString().equals(quote.toString())) return;
+		quotes.add(quote);
+	}
+	public int size(){
+		return quotes.size();
+	}
+
+	public Quote get(int i){
+		return quotes.get(i);
+	}
+	public String getFileName(){
+		return packNameString;
+	}
+
+	public void printPhrasesLack(String purpose){
+		System.out.println(packNameString);
+
+		int len=10;
+		CharacterDefinite[] definites=new CharacterDefinite[len];
+		int[] counts=new int[len];
+		long charactersCount=(long)Math.pow(21,CharacterSystem.getFeatureCount());
+		for(int i=0;i<len;i++){
+			definites[i]=new CharacterDefinite(i);
+			counts[i]=0;
+			for(Quote quote : quotes)
+				if(quote.matchToCharacter(definites[i])) counts[i]++;
+		}
+
+		for (int i = len; i < charactersCount; i+=2) {
+			if(i%1000000==0) System.out.println(i*1./charactersCount);
+			CharacterDefinite cur = new CharacterDefinite(i);
+			boolean close = false, ct;
+			for (int k = 0; k < len; k++) {
+				ct = true;
+
+				for (int j = 0; j < CharacterSystem.getFeatureCount(); j++) {
+					if (Math.abs(definites[k].getValue(j) - cur.getValue(j)) > 2.05) {
+						ct = false;
+						break;
 					}
 				}
-			} catch (Exception e) {
-				Main.log("Error while loading file " + file + ".quotes" + ": " + e);
+				if (ct) {
+					close = true;
+					break;
+				}
 			}
+
+			if (close) continue;
+			int count = 0;
+			for (Quote quote : quotes)
+				if (quote.purposeType.equals(purpose) && quote.matchToCharacter(cur)) count++;
+			for (int k = 0; k < len; k++)
+				if (counts[k] > count) {
+					counts[k] = count;
+					definites[k] = cur;
+					break;
+				}
 		}
-		Main.log("Loaded quotes: " + quotes.size() + " " + suitableQuotes.size());
+		for(int k=0;k<len;k++)
+			System.out.println(k+" "+definites[k].toString()+" "+counts[k]);
+	}
+
+}
+
+public class Quotes {
+	CharacterDefinite current = new CharacterDefinite();
+	private int queueLength = 30;
+	private int curPos = 0;
+	private Quote[] lastUsed = new Quote[queueLength];
+	private ArrayList<QuotePack> packs = new ArrayList<QuotePack>();
+	private ArrayList<Quote> suitableQuotes = new ArrayList<Quote>();
+
+	public void update(CharacterDefinite newCharacter) {
+		if (current.equal(newCharacter)) {
+			return;
+		}
+		current = newCharacter;
 		update();
 	}
 	
+	public void update() {
+		suitableQuotes = new ArrayList<Quote>();
+		HashMap<String,Object> quotesToSend=new HashMap<>();
+		ArrayList<HashMap<String,Object>> list=new ArrayList<>();
+		quotesToSend.put("quotes",list);
+		for (QuotePack pack : packs) {
+			for (int i = 0, l = pack.size(); i < l; i++)
+				if (pack.get(i).matchToCharacter(current)){
+					suitableQuotes.add(pack.get(i));
+					list.add(pack.get(i).toMap());
+				}
+		}
+		Main.getPluginProxy().sendMessage("talk:remove-quote",quotesToSend,
+		(sender, dat) -> {
+			HashMap<String,Object> data=(HashMap<String,Object>)dat;
+			ArrayList<HashMap<String,Object>> quotes_list=(ArrayList<HashMap<String,Object>>)data.getOrDefault("quotes",null);
+			if(quotes_list==null) return;
+			for (HashMap<String,Object> map : quotes_list) {
+				int hash=(int)map.getOrDefault("hash",0);
+				for(int i=0;i<suitableQuotes.size();i++){
+					if(suitableQuotes.get(i).hashCode()==hash){
+						suitableQuotes.remove(i);
+						break;
+					}
+				}
+			}
+		});
+	}
+	public Quote[] toArray(){
+		LinkedList<Quote> q=new LinkedList<>();
+		for (QuotePack pack : packs)
+			for (int i = 0, l = pack.size(); i < l; i++)
+				q.add(pack.get(i));
+		return q.toArray(new Quote[q.size()]);
+	}
+	public void load(List<String> files){
+        for(int i=0;i<files.size();i++){
+            QuotePack p;
+            try{
+                p=new QuotePack(files.get(i));
+            } catch (Exception e){
+                Main.log("Error while reading file "+files.get(i)+": "+e.getMessage());
+                files.remove(i);
+                i--;
+                continue;
+            }
+            boolean found=false;
+            for(QuotePack pack : packs)
+                if(pack.getFileName().equals(files.get(i))){
+                    found=true;
+                    break;
+                }
+            if(!found && p.size()>0){
+                packs.add(p);
+                files.set(i,p.getFileName());
+                Main.log("Loaded quotes: " + p.getFileName()+" "+ p.size());
+            }
+        }
+        files.clear();
+        for(QuotePack pack : packs){
+            files.add(pack.getFileName());
+        }
+        update();
+    }
+    public void setPacks(List<String> files){
+        for(int i=0;i<packs.size();i++){
+            boolean found=false;
+            for(int k=0;k<files.size();k++)
+                if(packs.get(i).getFileName().equals(files.get(k))){
+                    found=true;
+                    break;
+                }
+            if(found) continue;
+            packs.remove(i);
+            i--;
+        }
+		for(int i=0;i<packs.size();i++)
+			System.out.print(packs.get(i).getFileName()+" ");
+		System.out.println("\n"+files);
+
+        load(files);
+    }
+
+	public void requestRandomQuote(String purpose,GetQuoteCallback callback) {
+		if (suitableQuotes.size() == 0) {
+			callback.call(new Quote("Я не знаю, что сказать."));
+			return;
+		}
+		purpose = purpose.toUpperCase();
+		LinkedList<Quote> sq = new LinkedList<>();
+
+		HashMap<String,Object> quotesToSend=new HashMap<>();
+		ArrayList<HashMap<String,Object>> list=new ArrayList<>();
+		quotesToSend.put("quotes",list);
+		Quote q;
+		for (int i = 0; i < suitableQuotes.size(); i++) {
+			q = suitableQuotes.get(i);
+			if (q.noTimeout() && q.purposeType.equals(purpose)){
+				sq.add(q);
+				list.add(q.toMap());
+			}
+		}
+		Main.getPluginProxy().sendMessage("talk:reject-quote",quotesToSend,
+				(sender, dat) -> {
+  					HashMap<String,Object> data=(HashMap<String,Object>)dat;
+					ArrayList<HashMap<String,Object>> quotes_list=(ArrayList<HashMap<String,Object>>)data.getOrDefault("quotes",null);
+					if(quotes_list==null) return;
+					for (HashMap<String,Object> map : quotes_list) {
+						int hash=(int)map.getOrDefault("hash",0);
+						for(int i=0;i<sq.size();i++){
+							if(sq.get(i).hashCode()==hash){
+								sq.remove(i);
+								break;
+							}
+						}
+					}
+				},
+				(sender, dat) -> {
+					if (sq.size() == 0) {
+						callback.call(new Quote("Я не знаю, что сказать."));
+						return;
+					}
+					int counter = queueLength + 1;
+					int r;
+					Quote quote;
+					do {
+						counter--;
+						r = new Random().nextInt(sq.size());
+						quote = sq.get(r);
+						int i, j = curPos - 1;
+						for (i = 0; i < counter; i++, j--) {
+							if (j < 0) {
+								j = j + queueLength;
+							}
+							if (lastUsed[j] == quote) {
+								break;
+							}
+						}
+						if (i == counter) {
+							break;
+						}
+					} while (counter > 0);
+					lastUsed[curPos] = quote;
+					curPos = (curPos + 1) % queueLength;
+					quote.UpdateLastUsage();
+					callback.call(quote);
+					return;
+				}
+		);
+	}
+
+	public void printPhrasesLack(String purpose){
+    	purpose=purpose.toUpperCase();
+		for(QuotePack pack : packs)
+			pack.printPhrasesLack(purpose);
+	}
+
+	public interface GetQuoteCallback{
+    	void call(Quote quote);
+	}
+	public Quote get(int index) {
+		return suitableQuotes.get(index);
+	}
+	
+	public int size() {
+		return suitableQuotes.size();
+	}
+	
+	public void clear() {
+		packs = new ArrayList<>();
+		suitableQuotes = new ArrayList<>();
+		lastUsed = new Quote[queueLength];
+	}
+
 	public static void saveTo(String URL, String filename) {
 		try {
 			URL DATA_URL = new URL(URL);
@@ -192,7 +345,7 @@ public class Quotes {
 					for (int k = 0; k < CharacterSystem.featureCount; k++) {
 						range_values[k] = new int[]{-10, 10};
 					}
-					for (int k = 0; k < phrase.length() && k < 13; k++) {
+					for (int k = 0; k < phrase.length() && k < 11; k++) {
 						switch (k) {
 							case 0:
 								next = new Quote(phrase.getString(k));
@@ -231,24 +384,13 @@ public class Quotes {
 							case 9:
 								try {
 									next.timeout = array.getInt(k);
-								} catch (Exception u) {
-								}
+								} catch (Exception u) { }
 								break;
-							case 10:
-								if (phrase.getString(k).length() > 0) {
-									next.possibleHour.fillFromString(phrase.getString(k));
-								}
-								break;
-							case 11:
-								if (phrase.getString(k).length() > 0) {
-									next.possibleWeekDay.fillFromString(phrase.getString(k));
-								}
-								break;
-							case 12:
-								if (phrase.getString(k).length() > 0) {
-									next.possibleMonth.fillFromString(phrase.getString(k));
-								}
-								break;
+							case 10: {
+								if (phrase.length()<11) continue;
+								if (phrase.getString(10).length() == 0) continue;
+								next.setTags(phrase.getString(10));
+							} break;
 						}
 					}
 					next.character = new CharacterRange(range_values);

@@ -2,10 +2,7 @@ package info.deskchan.groovy_support;
 
 import groovy.lang.GroovyShell;
 import groovy.lang.Script;
-import info.deskchan.core.Plugin;
-import info.deskchan.core.PluginLoader;
-import info.deskchan.core.PluginManager;
-import info.deskchan.core.PluginProxy;
+import info.deskchan.core.*;
 import org.codehaus.groovy.control.CompilerConfiguration;
 
 import java.nio.file.Files;
@@ -14,7 +11,7 @@ import java.nio.file.Path;
 public class Main implements Plugin, PluginLoader {
 	
 	@Override
-	public boolean initialize(PluginProxy pluginProxy) {
+	public boolean initialize(PluginProxyInterface pluginProxy) {
 		PluginManager.getInstance().registerPluginLoader(this);
 		return true;
 	}
@@ -47,7 +44,10 @@ public class Main implements Plugin, PluginLoader {
 		Script script = groovyShell.parse(path.toFile());
 		GroovyPlugin plugin = (GroovyPlugin) script;
 		plugin.setPluginDirPath(path.getParent());
-		PluginManager.getInstance().initializePlugin(id, plugin);
+		PluginConfig config = new PluginConfig("Groovy");
+		path = path.getParent().resolve("manifest.json");
+		config.appendFromJson(path);
+		PluginManager.getInstance().initializePlugin(id, plugin, config);
 	}
 	
 }

@@ -5,16 +5,30 @@ import java.util.*;
 
 public class CorePlugin implements Plugin, MessageListener {
 	
-	private PluginProxy pluginProxy = null;
+	private PluginProxyInterface pluginProxy = null;
 	private final Map<String, List<AlternativeInfo>> alternatives = new HashMap<>();
 	private final Map<String, PipeInfo> pipes = new HashMap<>();
-	
+
 	@Override
-	public boolean initialize(PluginProxy pluginProxy) {
+	public boolean initialize(PluginProxyInterface pluginProxy) {
 		this.pluginProxy = pluginProxy;
 		pluginProxy.addMessageListener("core:quit", (sender, tag, data) -> {
-			pluginProxy.log("Plugin " + sender + " requested application quit");
-			PluginManager.getInstance().quit();
+			int delay = 0;
+			if (data != null) {
+				if (data instanceof Map) {
+					delay = (int) ((Map<String, Object>) data).getOrDefault("delay", 0);
+				} else if (data instanceof Number) {
+					delay = ((Number) data).intValue();
+				}
+			}
+			Map<String, Object> m = new HashMap<>();
+			m.put("delay", delay);
+			pluginProxy.log("Plugin " + sender + " requested application quit in " + delay / 1000 + " seconds.");
+			if(delay>20)
+				pluginProxy.sendMessage("core-utils:notify-after-delay", m, (s, d) -> {
+					PluginManager.getInstance().quit();
+				});
+			else PluginManager.getInstance().quit();
 		});
 		pluginProxy.addMessageListener("core:register-alternative", (sender, tag, data) -> {
 			Map m = (Map) data;
@@ -45,6 +59,10 @@ public class CorePlugin implements Plugin, MessageListener {
 			}});
 		});
 		pluginProxy.addMessageListener("core-events:plugin-unload", (sender, tag, data) -> {
+			if(data==null) {
+				PluginManager.log("attempt to unload null plugin");
+				return;
+			}
 			String plugin = data.toString();
 			synchronized (this) {
 				Iterator<Map.Entry<String, List<AlternativeInfo>>> mapIterator = alternatives.entrySet().iterator();
@@ -143,6 +161,7 @@ public class CorePlugin implements Plugin, MessageListener {
 				}
 			}
 		});
+		CommandsProxy.initialize(pluginProxy);
 		return true;
 	}
 	
@@ -194,19 +213,22 @@ public class CorePlugin implements Plugin, MessageListener {
 		ListIterator<AlternativeInfo> iterator = l.listIterator();
 		while (iterator.hasNext()) {
 			AlternativeInfo info = iterator.next();
-			if (info.tag.equals(dstTag) && (info.priority != priority)) {
-				iterator.remove();
-				iterator = l.listIterator();
-				while (iterator.hasNext()) {
-					AlternativeInfo info2 = iterator.next();
-					if (info2.priority < priority) {
-						break;
-					}
+
+			if (!info.tag.equals(dstTag)) continue;
+			if (info.priority == priority) break;
+
+			iterator.remove();
+			iterator = l.listIterator();
+			while (iterator.hasNext()) {
+				AlternativeInfo info2 = iterator.next();
+				if (info2.priority < priority) {
+					iterator.previous();
+					break;
 				}
-				info.priority = priority;
-				iterator.add(info);
-				break;
 			}
+			info.priority = priority;
+			iterator.add(info);
+			break;
 		}
 	}
 	

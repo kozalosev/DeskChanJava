@@ -1,11 +1,7 @@
 package info.deskchan.gui_javafx;
 
 import com.sun.javafx.stage.StageHelper;
-import dorkbox.systemTray.Menu;
-import dorkbox.systemTray.MenuItem;
-import dorkbox.systemTray.Separator;
-import dorkbox.systemTray.SystemTray;
-import info.deskchan.core.PluginProxy;
+import info.deskchan.core.PluginProxyInterface;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Application;
@@ -14,15 +10,13 @@ import javafx.collections.ListChangeListener;
 import javafx.event.EventHandler;
 import javafx.scene.control.Alert;
 import javafx.scene.control.TextArea;
+import javafx.scene.media.AudioClip;
 import javafx.scene.text.Font;
-import javafx.stage.Modality;
-import javafx.stage.Stage;
-import javafx.stage.Window;
+import javafx.stage.*;
 import javafx.util.Duration;
+import org.apache.commons.io.FileUtils;
 
-import javax.swing.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -30,37 +24,46 @@ import java.net.URL;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class App extends Application {
-	
+
 	static final String NAME = "DeskChan";
 	static final URL ICON_URL = App.class.getResource("icon.png");
 	
 	private static App instance = null;
 	static final List<SkinLoader> skinLoaders = Arrays.asList(
-			new SingleImageSkin.Loader(), new ImageSetSkin.Loader()
+			new SingleImageSkin.Loader(), new ImageSetSkin.Loader(), new DaytimeDependentSkin.Loader()
 	);
-	private SystemTray systemTray = null;
-	private SortedMap<String, List<PluginActionInfo>> pluginsActions = new TreeMap<>();
+
 	private Character character = new Character("main", Skin.load(Main.getProperty("skin.name", null)));
 	private List<DelayNotifier> delayNotifiers = new LinkedList<>();
-	
+
 	@Override
 	public void start(Stage primaryStage) {
 		instance = this;
 		HackJavaFX.process();
 		loadFonts();
 		initStylesheetOverride();
-		initSystemTray();
-		OverlayStage normalStage = new OverlayStage("normal");
-		normalStage.show();
-		OverlayStage topStage = new OverlayStage("top");
-		topStage.setAlwaysOnTop(true);
-		topStage.show();
-		character.setLayerMode(Character.LayerMode.valueOf(Main.getProperty("character.layer_mode", "ALWAYS_TOP")));
+		Platform.setImplicitExit(false);
+		OverlayStage.initialize();
+		OverlayStage.updateStage();
 		initMessageListeners();
+		TrayMenu.initialize();
+		// KeyboardEventNotificator.initialize();
 		Main.getInstance().getAppInitSem().release();
+		character.say(new HashMap<String,Object>(){{
+			put("text", Main.getString("info.loading"));
+			put("priority",20000);
+			put("timeout",500000);
+		}});
+		character.say(new HashMap<String,Object>(){{
+			put("text",Main.getString("info.not-loading"));
+			put("priority",19999);
+			put("timeout",500000);
+		}});
 	}
 	
 	static App getInstance() {
@@ -70,60 +73,49 @@ public class App extends Application {
 	Character getCharacter() {
 		return character;
 	}
-	
+
 	static void run(String[] args) {
 		launch(args);
 	}
 	
-	private void initSystemTray() {
-		systemTray = SystemTray.get();
-		if (systemTray == null) {
-			Main.log("Failed to load SystemTray!");
-			return;
-		}
-		systemTray.setTooltip(NAME);
-		systemTray.setImage(ICON_URL);
-		systemTray.setStatus(NAME);
-		rebuildMenu();
+	public static void showNotification(String name,String text){
+		TemplateBox dialog = new TemplateBox(name);
+		dialog.setContentText(text);
+		dialog.requestFocus();
+		dialog.show();
 	}
-	
 	private void initMessageListeners() {
-		PluginProxy pluginProxy = Main.getInstance().getPluginProxy();
+		PluginProxyInterface pluginProxy = Main.getInstance().getPluginProxy();
 		pluginProxy.addMessageListener("gui:register-simple-action", (sender, tag, data) -> {
 			Platform.runLater(() -> {
 				Map<String, Object> m = (Map<String, Object>) data;
-				PluginActionInfo pluginActionInfo = new PluginActionInfo((String) m.get("name"),
-						(String) m.get("msgTag"), m.get("msgData"));
-				List<PluginActionInfo> actions = pluginsActions.getOrDefault(sender, null);
-				if (actions == null) {
-					actions = new ArrayList<>();
-					pluginsActions.put(sender, actions);
+				if(!m.containsKey("msgTag")){
+					Main.log("Not enough data to setup simple action, recieved by "+sender);
+					return;
 				}
-				actions.add(pluginActionInfo);
-				rebuildMenu();
+				TrayMenu.add(sender, (String) m.getOrDefault("name", sender), (String) m.get("msgTag"), m.get("msgData"));
 			});
 		});
 		pluginProxy.addMessageListener("gui:register-simple-actions", (sender, tag, data) -> {
 			Platform.runLater(() -> {
-				List<Map<String, Object>> actionList = (List<Map<String, Object>>) data;
-				
-				List<PluginActionInfo> actions = pluginsActions.getOrDefault(sender, null);
-				if (actions == null) {
-					actions = new ArrayList<>();
-					pluginsActions.put(sender, actions);
+				List<Map<String, Object>> actionList;
+				String name = sender;
+				if(data instanceof List){
+					actionList = (List<Map<String, Object>>) data;
+				} else if(data instanceof Map){
+					name = ((Map) data).getOrDefault("name",name).toString();
+					actionList = (List) ((Map) data).get("actions");
+				} else {
+					Main.log("Cannot convert "+data.getClass().toString()+" to actions list, send by "+sender);
+					return;
 				}
 				
-				for (Map<String, Object> m : actionList) {
-					PluginActionInfo pluginActionInfo = new PluginActionInfo((String) m.get("name"),
-							(String) m.get("msgTag"), m.get("msgData"));
-					actions.add(pluginActionInfo);
-				}
-				rebuildMenu();
+				TrayMenu.add(sender, name, actionList);
 			});
 		});
 		pluginProxy.addMessageListener("gui:say", (sender, tag, data) -> {
 			Platform.runLater(() -> {
-				character.say((Map<String, Object>) data);
+				character.say(data);
 			});
 		});
 		pluginProxy.addMessageListener("gui:set-image", (sender, tag, data) -> {
@@ -140,20 +132,53 @@ public class App extends Application {
 				}
 			});
 		});
+		pluginProxy.addMessageListener("gui:change-skin-opacity", (sender, tag, data) -> {
+			Platform.runLater(() -> {
+				Map<String, Object> m = (Map<String, Object>) data;
+				boolean save = (boolean) m.getOrDefault("save", false);
+				if (m.containsKey("absolute")) {
+					Double opacity = getDouble(m.get("absolute"), 1.);
+					character.changeOpacity(opacity.floatValue());
+				} else if (m.containsKey("relative")) {
+					Double opacityIncrement = getDouble(m.get("relative"), 0.);
+					character.changeOpacityRelatively(opacityIncrement.floatValue());
+				}
+
+				if (save) {
+					Float opacity = character.getSkinOpacity();
+					Main.setProperty("skin.opacity", opacity.toString());
+				}
+			});
+		});
+		pluginProxy.addMessageListener("gui:set-skin-filter", (sender, tag, data) -> {
+			Platform.runLater(() -> {
+				if (data != null) {
+					Map<String, Object> m = (Map<String, Object>) data;
+					double red, green, blue, opacity;
+					red = getDouble(m, "red", 0.0);
+					green = getDouble(m, "green", 0.0);
+					blue = getDouble(m, "blue", 0.0);
+					opacity = getDouble(m, "opacity", 1.0);
+					character.setColorFilter(red, green, blue, opacity);
+				} else {
+					character.setColorFilter(null);
+				}
+			});
+		});
 		pluginProxy.addMessageListener("gui:resize-character", (sender, tag, data) -> {
 			Platform.runLater(() -> {
 				Map<String, Object> m = (Map<String, Object>) data;
+				boolean save = (boolean) m.getOrDefault("save", false);
 				if (m.containsKey("scaleFactor")) {
-					Double scaleFactor = (double) m.get("scaleFactor");
-					character.resizeSprite(scaleFactor.floatValue());
+					Double scaleFactor = getDouble(m.get("scaleFactor"), 1.);
+					character.resizeSkin(scaleFactor.floatValue());
 				} else if (m.containsKey("zoom")) {
-					Double zoom = (double) m.get("zoom");
-					character.resizeSpriteRelatively(zoom.floatValue());
+					Double zoom = getDouble(m.get("zoom"), 0.);
+					character.resizeSkinRelatively(zoom.floatValue());
 				} else if (m.containsKey("width") || m.containsKey("height")) {
-					character.resizeSprite((Integer) m.get("width"), (Integer) m.get("height"));
+					character.resizeSkin((Integer) m.get("width"), (Integer) m.get("height"));
 				}
 
-				boolean save = (boolean) m.getOrDefault("save", false);
 				if (save) {
 					Float scaleFactor = character.getScaleFactor();
 					Main.setProperty("skin.scale_factor", scaleFactor.toString());
@@ -162,28 +187,174 @@ public class App extends Application {
 		});
 		pluginProxy.addMessageListener("gui:setup-options-tab", (sender, tag, data) -> {
 			Platform.runLater(() -> {
-				Map<String, Object> m = (Map<String, Object>) data;
-				OptionsDialog.registerPluginTab(sender, (String) m.get("name"),
-						(List<Map<String, Object>>) m.get("controls"), (String) m.getOrDefault("msgTag", null));
+				OptionsDialog.registerPluginMenu(sender, (Map<String, Object>) data, true);
+			});
+		});
+		pluginProxy.addMessageListener("gui:setup-options-submenu", (sender, tag, data) -> {
+			Platform.runLater(() -> {
+				OptionsDialog.registerPluginMenu(sender, (Map<String, Object>) data,false);
+			});
+		});
+		pluginProxy.addMessageListener("gui:update-options-tab", (sender, tag, data) -> {
+			Platform.runLater(() -> {
+				OptionsDialog.updatePluginMenu(sender, (Map<String, Object>) data, true);
+			});
+		});
+		pluginProxy.addMessageListener("gui:update-options-submenu", (sender, tag, data) -> {
+			Platform.runLater(() -> {
+				OptionsDialog.updatePluginMenu(sender, (Map<String, Object>) data,false);
 			});
 		});
 		pluginProxy.addMessageListener("gui:show-notification", (sender, tag, data) -> {
 			Platform.runLater(() -> {
 				Map<String, Object> m = (Map<String, Object>) data;
-				TemplateBox dialog = new TemplateBox((String) m.getOrDefault("name", Main.getString("default_messagebox_name")));
-				dialog.setContentText((String) m.get("text"));
-				dialog.requestFocus();
-				dialog.show();
+				showNotification( (String) m.getOrDefault("name", Main.getString("default_messagebox_name")),
+						(String) m.get("text"));
+			});
+		});
+		pluginProxy.addMessageListener("gui:play-sound", (sender, tag, data) -> {
+			Platform.runLater(() -> {
+				Map<String, Object> m = (Map<String, Object>) data;
+				String filename=null;
+				if(m.containsKey("value")) filename=(String) m.get("value");
+				if(m.containsKey("file"))  filename=(String) m.get("file");
+				AudioClip clip;
+				try {
+					clip = new AudioClip(Paths.get(filename).toUri().toString());
+				} catch(Exception e){
+					Main.log(e);
+					return;
+				}
+				Object volume=m.getOrDefault("volume",new Integer(100));
+				if     (volume instanceof Integer) clip.setVolume(((Integer) volume).doubleValue()/100);
+				else if(volume instanceof Double) clip.setVolume((Double) volume);
+				else if(volume instanceof String) clip.setVolume(Double.valueOf((String)volume));
+				//if(m.containsKey("count"))
+				///	clip.setCycleCount(2);
+				clip.play();
 			});
 		});
 		pluginProxy.addMessageListener("gui:show-custom-window", (sender, tag, data) -> {
 			Platform.runLater(() -> {
+				ControlsWindow.setupCustomWindow(sender, (Map<String,Object>) data);
+			});
+		});
+		pluginProxy.addMessageListener("gui:update-custom-window", (sender, tag, data) -> {
+			Platform.runLater(() -> {
+				ControlsWindow.updateCustomWindow(sender, (Map<String,Object>) data);
+			});
+		});
+		pluginProxy.addMessageListener("gui:send-character-front", (sender, tag, data) -> {
+			Platform.runLater(() -> {
+				OverlayStage.getInstance().toFront();
+			});
+		});
+		pluginProxy.addMessageListener("gui:hide-character", (sender, tag, data) -> {
+			Platform.runLater(() -> {
+				OverlayStage.updateStage("HIDE");
+			});
+		});
+		pluginProxy.addMessageListener("gui:show-character", (sender, tag, data) -> {
+			Platform.runLater(() -> {
+				OverlayStage.updateStage();
+			});
+		});
+		pluginProxy.addMessageListener("gui:choose-files", (sender, tag, data) -> {
+			Platform.runLater(() -> {
 				Map<String, Object> m = (Map<String, Object>) data;
-				TemplateBox dialog = new TemplateBox((String) m.getOrDefault("name", Main.getString("default_messagebox_name")));
-				dialog.getDialogPane().setContent(new ControlsContainer((String) m.get("name"),
-						(List<Map<String, Object>>) m.get("controls"), (String) m.getOrDefault("msgTag", null)).createControlsPane());
-				dialog.requestFocus();
-				dialog.show();
+				FileChooser chooser = new FileChooser();
+				chooser.setTitle((String) m.getOrDefault("title", Main.getString("chooser.file.default_title")));
+
+				List<Map<String, Object>> filters = (List<Map<String, Object>>) m.getOrDefault("filters", null);
+				for (Map<String, Object> filter : filters) {
+					String description = (String) filter.getOrDefault("description", null);
+					List<String> extensions = (List<String>) filter.getOrDefault("extensions", null);
+					if (description != null && extensions != null) {
+						chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter(description, extensions));
+					}
+				}
+
+				String initialDirectory = (String) m.getOrDefault("initialDirectory", null);
+				if (initialDirectory != null) {
+					Path initialDirectoryPath = Paths.get(initialDirectory);
+					if (Files.isDirectory(initialDirectoryPath)) {
+						chooser.setInitialDirectory(initialDirectoryPath.toFile());
+					}
+				}
+
+				String initialFilename = (String) m.getOrDefault("initialFilename", null);
+				if (initialFilename != null) {
+					chooser.setInitialFileName(initialFilename);
+				}
+
+				Window ownerWindow = OverlayStage.getInstance().getOwner();
+				Object result;
+				boolean multiple = (boolean) m.getOrDefault("multiple", false);
+				if (multiple) {
+					List<File> chosenFiles = chooser.showOpenMultipleDialog(ownerWindow);
+					if (chosenFiles != null) {
+						result = chosenFiles.stream().map(File::toString).collect(Collectors.toList());
+					} else {
+						result = null;
+					}
+				} else {
+					boolean saveDialog = (boolean) m.getOrDefault("saveDialog", false);
+					File chosenFile = (saveDialog) ? chooser.showSaveDialog(ownerWindow) : chooser.showOpenDialog(ownerWindow);
+					result = (chosenFile != null) ? chosenFile.toString() : null;
+				}
+
+				Object seq = m.get("seq");
+				Map<String, Object> response = new HashMap<>();
+				response.put("seq", seq);
+				response.put((multiple) ? "paths" : "path", result);
+				pluginProxy.sendMessage(sender, response);
+			});
+		});
+		pluginProxy.addMessageListener("gui:supply-resource", (sender, tag, data) -> {
+			try {
+				Map<String, Object> map = (Map<String, Object>) data;
+				if (map.containsKey("skin")) {
+					String type=(String)map.get("skin");
+					if(!type.startsWith(Skin.getSkinsPath().toString())){
+						Path resFile = Paths.get(type);
+						Path newPath = Skin.getSkinsPath().resolve(resFile.getFileName());
+						try {
+							FileUtils.copyDirectory(resFile.toFile(), newPath.toFile());
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
+						type = newPath.toString();
+					}
+					character.setSkin(Skin.load(type));
+					OptionsDialog.updateInstanceTabs();
+				}
+			} catch(Exception e){
+				Main.log(e);
+			}
+		});
+		pluginProxy.addMessageListener("gui:choose-directory", (sender, tag, data) -> {
+			Platform.runLater(() -> {
+				Map<String, Object> m = (Map<String, Object>) data;
+				DirectoryChooser chooser = new DirectoryChooser();
+				chooser.setTitle((String) m.getOrDefault("title", Main.getString("chooser.directory.default_title")));
+
+				String initialDirectory = (String) m.getOrDefault("initialDirectory", null);
+				if (initialDirectory != null) {
+					Path initialDirectoryPath = Paths.get(initialDirectory);
+					if (Files.isDirectory(initialDirectoryPath)) {
+						chooser.setInitialDirectory(initialDirectoryPath.toFile());
+					}
+				}
+
+				Window ownerWindow = OverlayStage.getInstance().getOwner();
+				File chosenFile = chooser.showDialog(ownerWindow);
+				String chosenFilePath = (chosenFile != null) ? chosenFile.toString() : null;
+
+				Object seq = m.get("seq");
+				Map<String, Object> response = new HashMap<>();
+				response.put("seq", seq);
+				response.put("path", chosenFilePath);
+				pluginProxy.sendMessage(sender, response);
 			});
 		});
 		pluginProxy.addMessageListener("gui:notify-after-delay", (sender, tag, data) -> {
@@ -198,17 +369,53 @@ public class App extends Application {
 						delayNotifier.timeline.stop();
 					}
 				}
-				long delay = (Long) m.get("delay");
+				Object delayObj = m.getOrDefault("delay", -1L);
+				long delay=1000;
+				if(delayObj instanceof Number) delay=((Number) delayObj).longValue();
+				else if(delayObj instanceof String) delay=Long.valueOf((String) delayObj);
 				if (delay > 0) {
 					new DelayNotifier(sender, seq, delay);
 				}
+			});
+		});
+		pluginProxy.addMessageListener("gui:change-balloon-timeout", (sender, tag, data) -> {
+			Platform.runLater(() -> {
+				Map<String, Object> m = (Map<String, Object>) data;
+				Double value = getDouble(m, "value", 200);
+				Integer val=value.intValue();
+				Main.setProperty("balloon.default_timeout", val.toString());
+			});
+		});
+		pluginProxy.addMessageListener("gui:change-balloon-opacity", (sender, tag, data) -> {
+			Platform.runLater(() -> {
+				Map<String, Object> m = (Map<String, Object>) data;
+				Double value = getDouble(m, "value", 100) / 100;
+
+				Main.setProperty("balloon.opacity", value.toString());
+				if(Balloon.getInstance()!=null)
+					Balloon.getInstance().setBalloonOpacity(value.floatValue());
+			});
+		});
+		pluginProxy.addMessageListener("gui:change-layer-mode", (sender, tag, data) -> {
+			Platform.runLater(() -> {
+				Map<String, Object> m = (Map<String, Object>) data;
+				String value=(String) m.getOrDefault("value","ALWAYS_TOP");
+				Main.setProperty("character.layer_mode", value);
+				OverlayStage.updateStage();
+			});
+		});
+		pluginProxy.addMessageListener("gui:change-balloon-position-mode", (sender, tag, data) -> {
+			Platform.runLater(() -> {
+				Map<String, Object> m = (Map<String, Object>) data;
+				String value=(String) m.getOrDefault("value","AUTO");
+				App.getInstance().getCharacter().setBalloonPositionMode(Balloon.PositionMode.valueOf(value));
 			});
 		});
 		pluginProxy.addMessageListener("core-events:plugin-unload", (sender, tag, data) -> {
 			Platform.runLater(() -> {
 				String pluginId = (String) data;
 				OptionsDialog.unregisterPluginTabs(pluginId);
-				rebuildMenu();
+				TrayMenu.remove(pluginId);
 				Iterator<DelayNotifier> iterator = delayNotifiers.iterator();
 				while (iterator.hasNext()) {
 					DelayNotifier delayNotifier = iterator.next();
@@ -242,44 +449,31 @@ public class App extends Application {
 				}}
 		));
 	}
-	
-	private void rebuildMenu() {
-		Menu mainMenu = systemTray.getMenu();
-		if (mainMenu instanceof dorkbox.systemTray.swingUI.SwingUI) {
-			if (!SwingUtilities.isEventDispatchThread()) {
-				SwingUtilities.invokeLater(this::rebuildMenu);
-				return;
-			}
+
+	public static Double getDouble(Object value, Double defaultValue) {
+		if (value == null) return defaultValue;
+		if (value instanceof Number) return ((Number) value).doubleValue();
+		if (value instanceof String){
+			Double d;
+			try {
+				d = Double.valueOf((String) value);
+			} catch(Exception e){ return defaultValue; }
+			return d;
 		}
-		mainMenu.clear();
-		systemTray.setStatus(NAME);
-		mainMenu.add(new MenuItem(Main.getString("options"), event -> {
-			Platform.runLater(this::showOptionsDialog);
-		}));
-		mainMenu.add(new Separator());
-		if (pluginsActions.size() > 0) {
-			for (Map.Entry<String, List<PluginActionInfo>> entry : pluginsActions.entrySet()) {
-				String pluginId = entry.getKey();
-				List<PluginActionInfo> actions = entry.getValue();
-				if (actions.size() <= 0) {
-					continue;
-				}
-				if (actions.size() == 1) {
-					mainMenu.add(actions.get(0).createMenuItem());
-				} else {
-					Menu pluginMenu = new Menu(pluginId);
-					mainMenu.add(pluginMenu);
-					for (PluginActionInfo action : actions) {
-						pluginMenu.add(action.createMenuItem());
-					}
-				}
-			}
-			mainMenu.add(new Separator());
-		}
-		mainMenu.add(new MenuItem(Main.getString("quit"), event -> Main.getInstance().quit()));
+		return defaultValue;
+	}
+	public static Boolean getBoolean(Object value, Boolean defaultValue) {
+		if (value == null) return defaultValue;
+		if (value instanceof Boolean) return (Boolean) value;
+		if (value instanceof String) return value.equals("true");
+		return defaultValue;
+	}
+
+	private Double getDouble(Map<String, Object> map, String key, double defaultValue) {
+		return getDouble(map.getOrDefault(key, defaultValue), defaultValue);
 	}
 	
-	private void showOptionsDialog() {
+	protected void showOptionsDialog() {
 		OptionsDialog optionsDialog = OptionsDialog.getInstance();
 		if (optionsDialog != null) {
 			optionsDialog.getDialogPane().getScene().getWindow().requestFocus();
@@ -291,7 +485,7 @@ public class App extends Application {
 	
 	private void loadFonts() {
 		try (DirectoryStream<Path> directoryStream =
-					 Files.newDirectoryStream(Skin.getSkinsPath().getParent().resolve("fonts"))) {
+					 Files.newDirectoryStream(Main.getInstance().getPluginProxy().getAssetsDirPath().resolve("fonts"))) {
 			for (Path fontPath : directoryStream) {
 				if (fontPath.getFileName().toString().endsWith(".ttf")) {
 					Font.loadFont(Files.newInputStream(fontPath), 10);
@@ -337,29 +531,7 @@ public class App extends Application {
 		alert.getDialogPane().setExpandableContent(textArea);
 		alert.showAndWait();
 	}
-	
-	class PluginActionInfo implements ActionListener {
-		
-		String name;
-		String msgTag;
-		Object msgData;
-		
-		PluginActionInfo(String name, String msgTag, Object msgData) {
-			this.name = name;
-			this.msgTag = msgTag;
-			this.msgData = msgData;
-		}
-		
-		@Override
-		public void actionPerformed(ActionEvent actionEvent) {
-			Main.getInstance().getPluginProxy().sendMessage(msgTag, msgData);
-		}
-		
-		MenuItem createMenuItem() {
-			return new MenuItem(name, this);
-		}
-	}
-	
+
 	class DelayNotifier implements EventHandler<javafx.event.ActionEvent> {
 		
 		private final Timeline timeline;

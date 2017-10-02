@@ -3,31 +3,39 @@ package info.deskchan.gui_javafx;
 import info.deskchan.core.Plugin;
 import info.deskchan.core.PluginManager;
 import info.deskchan.core.PluginProxy;
+import info.deskchan.core.PluginProxyInterface;
 import org.apache.commons.lang3.SystemUtils;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.Locale;
 import java.util.Properties;
-import java.util.ResourceBundle;
 import java.util.concurrent.Semaphore;
 
 public class Main implements Plugin {
 	
 	private static Main instance;
-	private PluginProxy pluginProxy;
+	private PluginProxyInterface pluginProxy;
 	private Semaphore appInitSem = new Semaphore(0);
-	private static final ResourceBundle strings = ResourceBundle.getBundle("info/deskchan/gui_javafx/gui-strings");
 	private static final Properties properties = new Properties();
 	
 	@Override
-	public boolean initialize(PluginProxy pluginProxy) {
+	public boolean initialize(PluginProxyInterface pluginProxy) {
 		this.pluginProxy = pluginProxy;
 		instance = this;
+
 		try {
 			properties.load(Files.newInputStream(pluginProxy.getDataDirPath().resolve("config.properties")));
 		} catch (IOException e) {
 			// Ignore
 		}
+		if(properties.containsKey("locale")) {
+			Locale.setDefault(new Locale(properties.getProperty("locale")));
+			PluginProxy.Companion.updateResourceBundle();
+		}
+
+		pluginProxy.setResourceBundle("info/deskchan/gui_javafx/strings");
+
 		new Thread(() -> {
 			App.run(PluginManager.getInstance().getArgs());
 		}).start();
@@ -58,17 +66,15 @@ public class Main implements Plugin {
 	static Main getInstance() {
 		return instance;
 	}
-	
-	PluginProxy getPluginProxy() {
-		return pluginProxy;
-	}
+
+	PluginProxyInterface getPluginProxy() { return pluginProxy; }
 	
 	Semaphore getAppInitSem() {
 		return appInitSem;
 	}
 	
 	void quit() {
-		pluginProxy.sendMessage("core:quit", null);
+		pluginProxy.sendMessage("core:quit", 0);
 	}
 	
 	static void log(String text) {
@@ -78,14 +84,9 @@ public class Main implements Plugin {
 	static void log(Throwable e) {
 		instance.pluginProxy.log(e);
 	}
-	
-	static synchronized String getString(String key) {
-		try {
-			String s = strings.getString(key);
-			return new String(s.getBytes("ISO-8859-1"), "UTF-8");
-		} catch (Throwable e) {
-			return key;
-		}
+
+	public static String getString(String text){
+		return getInstance().pluginProxy.getString(text);
 	}
 	
 	static synchronized String getProperty(String key, String def) {
