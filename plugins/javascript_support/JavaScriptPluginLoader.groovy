@@ -1,3 +1,4 @@
+import info.deskchan.core.PluginConfig
 import info.deskchan.core.PluginLoader
 import info.deskchan.core.PluginManager
 
@@ -23,11 +24,17 @@ class JavaScriptPluginLoader implements PluginLoader {
 
     @Override
     void loadByPath(Path path) throws Throwable {
-        String id = path.getFileName().toString()
+        def id = path.getFileName().toString()
+        def config = new PluginConfig("JavaScript")
         if (Files.isDirectory(path)) {
+            def manifestPath = path.resolve("manifest.json")
+            if (Files.exists(manifestPath)) {
+                config.appendFromJson(manifestPath)
+            }
+
             path = path.resolve("plugin.js")
         }
-        JavaScriptPlugin plugin = new JavaScriptPlugin(path, logger)
-        PluginManager.getInstance().initializePlugin(id, plugin)
+        def plugin = new JavaScriptPlugin(path, logger)
+        PluginManager.getInstance().initializePlugin(id, plugin, config)
     }
 }
