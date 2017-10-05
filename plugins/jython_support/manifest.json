@@ -1,0 +1,16 @@
+{
+  "name": "jython_support",
+  "version": "1.2.1",
+  "description": {
+    "en": "Allows to load plugins written in Jython (dialect of Python 2.7 for JVM).",
+    "ru": "Позволяет загружать плагины, написанные на Jython (диалект Python 2.7 для JVM)."
+  },
+  "authors": [{
+    "name": "Leonid Kozarin",
+    "email": "kozalo@sadbot.ru",
+    "website": "http://kozalo.ru"
+  }],
+  "license": "LGPL-3.0",
+
+  "dependencies": ["groovy_support"]
+}

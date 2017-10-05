@@ -1,0 +1,16 @@
+{
+  "name": "test_python",
+  "version": "1.2.1",
+  "description": {
+    "en": "Just a test plugin in Python 2.7 (in Jython, to be more precisely).",
+    "ru": "Просто тестовый плагин на Python 2.7 (точнее на Jython)."
+  },
+  "authors": [{
+    "name": "Leonid Kozarin",
+    "email": "kozalo@sadbot.ru",
+    "website": "http://kozalo.ru"
+  }],
+  "license": "LGPL-3.0",
+
+  "dependencies": ["jython_support"]
+}
